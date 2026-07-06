@@ -1,0 +1,43 @@
+name: Feature request
+description: Propose a new capability or improvement
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Wisdum is a platform, not a single app — proposals are evaluated for platform fit
+        (API-first, domain-driven, event-driven, plugin-based). Proposals that change
+        architecture will typically result in an [ADR](../../docs/adr/README.md) before implementation.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this solve? Who has it, and how do they work around it today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you'd like to see. Include the owning domain if you have one in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - New domain / service
+        - Change within an existing domain
+        - New plugin / provider integration
+        - Frontend / UX
+        - Developer experience / tooling
+        - Documentation
+        - Not sure
+    validations:
+      required: true

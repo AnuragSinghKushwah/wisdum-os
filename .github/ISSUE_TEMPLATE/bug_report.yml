@@ -1,0 +1,52 @@
+name: Bug report
+description: Report a defect in Wisdum
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+        **Security vulnerabilities must not be reported here** — see [SECURITY.md](../../SECURITY.md) for private reporting.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Backend service (services/)
+        - Frontend app (apps/)
+        - Shared package (packages/)
+        - Plugin (plugins/)
+        - Documentation (docs/)
+        - Tooling / CI
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python/Node versions, deployment method (local, Docker, ...), commit SHA.
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or output
+      render: shell

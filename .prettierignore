@@ -1,0 +1,14 @@
+# Generated / vendored
+node_modules/
+dist/
+package-lock.json
+LICENSE
+
+# Hand-maintained formats (documentation and CI definitions)
+*.md
+*.yml
+*.yaml
+
+# Local tooling
+.idea/
+.claude/

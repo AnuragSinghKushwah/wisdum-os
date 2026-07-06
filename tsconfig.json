@@ -1,0 +1,21 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/types" },
+    { "path": "packages/errors" },
+    { "path": "packages/logger" },
+    { "path": "packages/config" },
+    { "path": "packages/contracts" },
+    { "path": "packages/events" },
+    { "path": "packages/domain" },
+    { "path": "packages/database" },
+    { "path": "platform/auth" },
+    { "path": "platform/ai" },
+    { "path": "platform/plugins" },
+    { "path": "platform/search" },
+    { "path": "platform/storage" },
+    { "path": "platform/jobs" },
+    { "path": "apps/api" },
+    { "path": "apps/web" }
+  ]
+}

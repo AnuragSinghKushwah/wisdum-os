@@ -6,7 +6,12 @@ User-facing applications. Each app is a client of the platform APIs with no priv
 
 - One directory per application (e.g. `apps/web/`).
 - Stack: Next.js, React, TypeScript, Tailwind CSS (see [ADR 0003](../docs/adr/0003-core-technology-stack.md)).
-- No business logic — apps orchestrate API calls and present state. Logic belongs in `services/`.
+- No business logic — apps are composition layers that wire packages together and present state.
 - Shared UI or client code used by more than one app is promoted to `packages/`.
 
-No applications exist yet.
+## Applications
+
+| App | Purpose |
+| --- | --- |
+| [`web/`](web/) | Web application composition root (bootstrap placeholder) |
+| [`api/`](api/) | API application composition root (bootstrap placeholder) |

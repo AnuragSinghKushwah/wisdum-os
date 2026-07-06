@@ -36,8 +36,9 @@ See [docs/architecture/overview.md](docs/architecture/overview.md) for the full 
 | --- | --- |
 | [`product/`](product/) | Product strategy, vision, and planning |
 | [`docs/`](docs/) | Architecture, ADRs, domain models, API specifications |
-| [`apps/`](apps/) | User-facing applications (web, admin, …) |
-| [`packages/`](packages/) | Shared libraries used across apps and services |
+| [`apps/`](apps/) | User-facing applications — composition layers only |
+| [`packages/`](packages/) | Shared libraries: domain, contracts, events, and infrastructure |
+| [`platform/`](platform/) | Platform capability packages (auth, ai, plugins, search, storage, jobs) |
 | [`services/`](services/) | Backend domain services |
 | [`plugins/`](plugins/) | External provider integrations |
 | [`tools/`](tools/) | Development and operations utilities |
@@ -58,11 +59,21 @@ The rationale is recorded in [ADR 0003](docs/adr/0003-core-technology-stack.md).
 
 ## Getting started
 
-There is nothing to run yet. To get involved now:
+The monorepo skeleton builds from the root (Node.js 18.18+):
+
+```sh
+npm install
+npm run build      # compile all packages (TypeScript project references)
+npm run typecheck  # full type check
+npm run lint       # ESLint across the workspace
+npm run format     # Prettier
+```
+
+There is no runnable product yet — the packages are scaffolding with enforced boundaries. To get involved now:
 
 1. Read [docs/architecture/overview.md](docs/architecture/overview.md).
-2. Read the ADRs in [docs/adr/](docs/adr/).
-3. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and environment setup that services will follow.
+2. Read the ADRs in [docs/adr/](docs/adr/) — [ADR 0004](docs/adr/0004-typescript-workspace-topology.md) explains the workspace layout.
+3. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
 
 ## Contributing
 

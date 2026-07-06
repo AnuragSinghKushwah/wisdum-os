@@ -13,6 +13,21 @@ Libraries shared across apps, services, and plugins. This is the only sanctioned
 
 - One directory per package, self-contained with its own tests.
 - A package may depend on other packages, never on `services/`, `apps/`, or `plugins/`.
+- Every package exposes its public API through `src/index.ts` only — deep imports are lint-banned.
+- Declared `dependencies` and `tsconfig.json` references stay in lockstep.
 - Event and API schema changes here are contract changes — version them for backward compatibility.
 
-No packages exist yet.
+## Packages
+
+| Package | Purpose |
+| --- | --- |
+| [`types/`](types/) | Branded identifiers and the `Result` type |
+| [`errors/`](errors/) | Platform error hierarchy |
+| [`logger/`](logger/) | Structured logging contract + minimal console transport |
+| [`config/`](config/) | Typed, fail-fast environment configuration |
+| [`contracts/`](contracts/) | Shared interfaces: API envelopes, event contracts, plugin manifests |
+| [`events/`](events/) | Runtime eventing interfaces (`Event`, `EventHandler`, `EventBus`) |
+| [`domain/`](domain/) | Bounded contexts of the domain layer (placeholders) |
+| [`database/`](database/) | Persistence contracts, schema/migrations/seed structure |
+
+See [ADR 0004](../docs/adr/0004-typescript-workspace-topology.md) for the workspace topology.

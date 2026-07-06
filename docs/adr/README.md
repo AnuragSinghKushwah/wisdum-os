@@ -38,5 +38,6 @@ Bug fixes, refactors within a domain, and additive features that follow existing
 | [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
 | [0002](0002-adopt-monorepo-structure.md) | Adopt a monorepo structure | Accepted |
 | [0003](0003-core-technology-stack.md) | Core technology stack | Accepted |
+| [0004](0004-typescript-workspace-topology.md) | TypeScript workspace topology and package boundaries | Accepted |
 
 Keep this index up to date when adding ADRs.

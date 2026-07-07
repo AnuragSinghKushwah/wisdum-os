@@ -2,7 +2,7 @@
   "name": "@wisdum/domain",
   "version": "0.0.0",
   "private": true,
-  "description": "Bounded contexts of the Wisdum domain layer (placeholder exports only)",
+  "description": "Bounded contexts and tactical DDD primitives of the Wisdum domain layer",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,5 +15,8 @@
   },
   "scripts": {
     "build": "tsc -b"
+  },
+  "dependencies": {
+    "@wisdum/types": "*"
   }
 }

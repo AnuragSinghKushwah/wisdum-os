@@ -23,6 +23,26 @@ export class ConfigurationError extends WisdumError {
   }
 }
 
+/**
+ * Base class for errors raised by domain logic, as opposed to infrastructure
+ * failures. Bounded contexts define their own subclasses of this family.
+ */
+export class DomainError extends WisdumError {}
+
+/** Raised when input fails domain validation rules. */
+export class ValidationError extends DomainError {
+  constructor(message: string, details: Record<string, unknown> = {}) {
+    super('validation_error', message, details);
+  }
+}
+
+/** Raised when an operation would leave an aggregate in a state that violates its invariants. */
+export class InvariantViolationError extends DomainError {
+  constructor(message: string, details: Record<string, unknown> = {}) {
+    super('invariant_violation', message, details);
+  }
+}
+
 /** Narrow an unknown thrown value to the platform error hierarchy. */
 export function isWisdumError(value: unknown): value is WisdumError {
   return value instanceof WisdumError;

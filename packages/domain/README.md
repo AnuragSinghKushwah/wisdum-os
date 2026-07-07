@@ -22,16 +22,16 @@ See [ADR 0007](../../docs/adr/0007-domain-driven-design.md) for the DDD philosop
 
 ## Bounded contexts
 
-| Context | Scope |
-| --- | --- |
-| `identity/` | Actors on the platform and their tenant memberships |
-| `workspace/` | Tenant workspaces — the container for knowledge work |
-| `knowledge/` | Knowledge assets and the connections between them |
-| `plugin/` | Registered plugins and their lifecycle state |
-| `ai/` | AI-assisted workflows and their execution state |
-| `search/` | Search indexing state and query orchestration |
+| Context | Scope | Status |
+| --- | --- | --- |
+| `knowledge/` | Knowledge assets: aggregate, value objects, events, ports ([docs](../../docs/domains/knowledge.md)) | **Modelled** |
+| `identity/` | Actors on the platform and their tenant memberships | Placeholder |
+| `workspace/` | Tenant workspaces — the container for knowledge work | Placeholder |
+| `plugin/` | Registered plugins and their lifecycle state | Placeholder |
+| `ai/` | AI-assisted workflows and their execution state | Placeholder |
+| `search/` | Search indexing state and query orchestration | Placeholder |
 
-Currently placeholder exports only — each context ships with its own ADR and design doc in `docs/domains/` before implementation lands.
+Each remaining context ships with its design doc in `docs/domains/` before implementation lands.
 
 ## Boundaries
 

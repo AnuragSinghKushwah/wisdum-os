@@ -4,11 +4,13 @@ import type { UUID } from '@wisdum/types';
  * Strongly typed, immutable identifier abstraction. Prevents accidental
  * mixing of identifiers from different domains or aggregates.
  *
- * The generic TBrand parameter (e.g., 'UserId') is phantom — it affects
- * types but not runtime — so callers cannot accidentally pass a UserId
- * where a DocumentId is expected.
+ * The TBrand parameter (e.g. 'KnowledgeId') is phantom — the `__brand` field
+ * is declared but never emitted or assigned — so identifiers with different
+ * brands are not assignable to each other even though they share structure.
  */
 export abstract class Identifier<TBrand extends string> {
+  declare protected readonly __brand: TBrand;
+
   protected readonly id: UUID;
 
   protected constructor(id: UUID) {

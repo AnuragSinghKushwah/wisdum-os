@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Sprint 003:** Knowledge bounded context (`packages/domain/src/knowledge/`).
+  - `Knowledge` aggregate root: lifecycle state machine (draft/importing/processing/active/archived/deleted), invariant enforcement, domain event recording.
+  - Self-validating value objects: `KnowledgeId`, `KnowledgeTitle`, `KnowledgeSlug`, `KnowledgeDescription`, `KnowledgeType`, `KnowledgeStatus`, `KnowledgeVisibility`, `KnowledgeSource`, `KnowledgeVersion`, `KnowledgeLabel`, `ContentReference`.
+  - Domain events: created, updated, archived, deleted, imported, processing-started, processing-completed, visibility-changed (`knowledge.asset.*`).
+  - Ports: `KnowledgeRepository` and `KnowledgeLifecycleService` (interfaces only).
+  - Specifications: `KnowledgeIsActive`, `KnowledgeIsPublic`, `KnowledgeCanBeArchived`, `KnowledgeCanBeDeleted`, `KnowledgeIsProcessable`.
+  - Shared primitives fixed: `PendingDomainEvent` (domain events carry no `eventId` until publication), `eventType` discriminator on `DomainEvent`, `Identifier` brand made truly nominal.
+  - Domain documentation: `docs/domains/knowledge.md`.
 - **Sprint 002:** Domain-Driven Design foundation.
   - Tactical DDD primitives in `packages/domain/src/shared/`: `Entity<TId>`, `AggregateRoot<TId>`, `ValueObject<T>`, `Identifier<TBrand>`, `DomainEvent<T>`, `Repository<T>`, `DomainService`, `Specification<T>`, `Clock` and `SystemClock`.
   - Extended `packages/types` with `Option<T>`, `Maybe<T>`, `Either<L,R>`.

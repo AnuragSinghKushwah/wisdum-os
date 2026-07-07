@@ -1,0 +1,25 @@
+{
+  "name": "@wisdum/kernel",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Platform kernel: dependency injection, module registration, lifecycle, health, plugin lifecycle",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@wisdum/types": "*",
+    "@wisdum/errors": "*",
+    "@wisdum/events": "*",
+    "@wisdum/contracts": "*"
+  }
+}

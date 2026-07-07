@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+
+:root {
+  --wisdum-bg: #ffffff;
+  --wisdum-fg: #111111;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --wisdum-bg: #0a0a0a;
+    --wisdum-fg: #ededed;
+  }
+}
+
+body {
+  background: var(--wisdum-bg);
+  color: var(--wisdum-fg);
+}

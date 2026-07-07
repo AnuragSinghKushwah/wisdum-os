@@ -1,0 +1,35 @@
+import {
+  DisablePluginHandler,
+  EnablePluginHandler,
+  GetPluginHandler,
+  InstallPluginHandler,
+} from '@wisdum/application';
+import {
+  EventBusDomainEventPublisher,
+  InMemoryPluginReadModel,
+  InMemoryPluginRepository,
+} from '@wisdum/infrastructure';
+import type { Container, KernelModule } from '@wisdum/kernel';
+import { CLOCK, EVENT_BUS, ID_GENERATOR, PLUGIN_HANDLERS } from '../tokens.js';
+import type { PluginHandlers } from '../tokens.js';
+
+export class PluginModule implements KernelModule {
+  readonly name = 'plugin';
+  readonly dependsOn = ['core'];
+
+  register(container: Container): void {
+    const repository = new InMemoryPluginRepository();
+    const readModel = new InMemoryPluginReadModel(repository);
+    const events = new EventBusDomainEventPublisher(container.resolve(EVENT_BUS));
+    const clock = container.resolve(CLOCK);
+    const ids = container.resolve(ID_GENERATOR);
+
+    const handlers: PluginHandlers = {
+      install: new InstallPluginHandler(repository, ids, events, clock),
+      enable: new EnablePluginHandler(repository, events, clock),
+      disable: new DisablePluginHandler(repository, events, clock),
+      get: new GetPluginHandler(readModel),
+    };
+    container.registerValue(PLUGIN_HANDLERS, handlers);
+  }
+}

@@ -6,11 +6,13 @@
   },
   "include": ["src"],
   "references": [
-    {
-      "path": "../../packages/config"
-    },
-    {
-      "path": "../../packages/logger"
-    }
+    { "path": "../../packages/config" },
+    { "path": "../../packages/logger" },
+    { "path": "../../packages/errors" },
+    { "path": "../../packages/types" },
+    { "path": "../../packages/kernel" },
+    { "path": "../../packages/domain" },
+    { "path": "../../packages/application" },
+    { "path": "../../packages/infrastructure" }
   ]
 }

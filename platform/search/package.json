@@ -17,6 +17,10 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@wisdum/contracts": "*"
+    "@wisdum/contracts": "*",
+    "@wisdum/types": "*",
+    "@wisdum/errors": "*",
+    "@wisdum/domain": "*",
+    "@wisdum/platform-ai": "*"
   }
 }

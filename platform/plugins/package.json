@@ -17,6 +17,9 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@wisdum/contracts": "*"
+    "@wisdum/contracts": "*",
+    "@wisdum/errors": "*",
+    "@wisdum/domain": "*",
+    "@wisdum/kernel": "*"
   }
 }

@@ -2,23 +2,22 @@
   "name": "@wisdum/web",
   "version": "0.0.0",
   "private": true,
-  "description": "Wisdum web application (composition root, bootstrap placeholder)",
+  "description": "Wisdum web application — App Router shells for auth, dashboard, knowledge, workspace, plugins, and settings",
   "license": "Apache-2.0",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
-  },
   "scripts": {
-    "build": "tsc -b",
-    "start": "node dist/main.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
   "dependencies": {
-    "@wisdum/config": "*",
-    "@wisdum/logger": "*"
+    "next": "^16.2.10",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.3.2"
   }
 }

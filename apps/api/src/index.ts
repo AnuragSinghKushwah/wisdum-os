@@ -1,11 +1,7 @@
 /**
  * Composition root for the Wisdum API application.
- * Wires shared infrastructure only — business logic lives in packages/domain.
+ * Wires shared infrastructure and every bounded context's handlers behind
+ * HTTP routes — business logic lives in packages/domain and
+ * packages/application, never here.
  */
-import { getEnvironment } from '@wisdum/config';
-import { createLogger } from '@wisdum/logger';
-
-export function bootstrap(): void {
-  const logger = createLogger('api');
-  logger.info('Wisdum API skeleton ready', { environment: getEnvironment() });
-}
+export { buildServer } from './server.js';

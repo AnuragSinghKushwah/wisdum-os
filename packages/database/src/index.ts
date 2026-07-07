@@ -1,7 +1,9 @@
 /**
  * Persistence contracts for the primary PostgreSQL datastore (ADR 0003).
  * ORM/client selection is deferred to the first domain implementation;
- * this package holds only vendor-neutral configuration and migration types.
+ * this package holds only vendor-neutral configuration, migration, and
+ * row-shape types. Schema itself lives in ../migrations; row types here
+ * mirror it for typed access at the query boundary. No business logic.
  */
 
 /** Connection settings for the primary datastore. */
@@ -15,3 +17,5 @@ export interface MigrationDescriptor {
   readonly id: string;
   readonly description: string;
 }
+
+export * from './tables/index.js';

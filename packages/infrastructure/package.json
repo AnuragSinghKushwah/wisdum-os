@@ -17,13 +17,16 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@wisdum/types": "*",
-    "@wisdum/errors": "*",
-    "@wisdum/contracts": "*",
-    "@wisdum/events": "*",
+    "@types/pg": "^8.20.0",
+    "@wisdum/application": "*",
     "@wisdum/config": "*",
-    "@wisdum/kernel": "*",
+    "@wisdum/contracts": "*",
+    "@wisdum/database": "*",
     "@wisdum/domain": "*",
-    "@wisdum/application": "*"
+    "@wisdum/errors": "*",
+    "@wisdum/events": "*",
+    "@wisdum/kernel": "*",
+    "@wisdum/types": "*",
+    "pg": "^8.22.0"
   }
 }

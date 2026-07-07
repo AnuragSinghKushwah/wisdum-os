@@ -13,10 +13,18 @@
       "default": "./dist/index.js"
     }
   },
+  "bin": {
+    "wisdum-migrate": "./dist/migrate.js"
+  },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "migrate": "node dist/migrate.js up",
+    "migrate:down": "node dist/migrate.js down"
   },
   "dependencies": {
-    "@wisdum/types": "*"
+    "@types/pg": "^8.20.0",
+    "@wisdum/logger": "*",
+    "@wisdum/types": "*",
+    "pg": "^8.22.0"
   }
 }

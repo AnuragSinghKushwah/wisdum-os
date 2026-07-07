@@ -7,3 +7,4 @@ export * from './organization-repository.js';
 export * from './plugin-repository.js';
 export * from './ai-repositories.js';
 export * from './search-index-repository.js';
+export * from './postgres/index.js';

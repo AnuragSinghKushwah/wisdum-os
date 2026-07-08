@@ -12,8 +12,10 @@ import {
   DocumentModule,
   IdentityModule,
   KnowledgeModule,
+  OpportunityModule,
   OrganizationModule,
   PluginModule,
+  ReasoningModule,
   SearchModule,
   WorkspaceModule,
 } from './container/modules/index.js';
@@ -23,8 +25,10 @@ import {
   DOCUMENT_HANDLERS,
   IDENTITY_HANDLERS,
   KNOWLEDGE_HANDLERS,
+  OPPORTUNITY_HANDLERS,
   ORGANIZATION_HANDLERS,
   PLUGIN_HANDLERS,
+  REASONING_HANDLERS,
   SEARCH_HANDLERS,
   TOKEN_SERVICE,
   WORKSPACE_HANDLERS,
@@ -36,8 +40,10 @@ import {
   registerDocumentRoutes,
   registerIdentityRoutes,
   registerKnowledgeRoutes,
+  registerOpportunityRoutes,
   registerOrganizationRoutes,
   registerPluginRoutes,
+  registerReasoningRoutes,
   registerSearchRoutes,
   registerWorkspaceRoutes,
 } from './routes/index.js';
@@ -58,7 +64,9 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
     .use(new OrganizationModule())
     .use(new PluginModule())
     .use(new AiModule())
-    .use(new SearchModule());
+    .use(new SearchModule())
+    .use(new OpportunityModule())
+    .use(new ReasoningModule());
   await kernel.start();
 
   const app = Fastify({ logger: false });
@@ -87,6 +95,8 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
   registerPluginRoutes(app, kernel.container.resolve(PLUGIN_HANDLERS));
   registerAiRoutes(app, kernel.container.resolve(AI_HANDLERS), kernel.container.resolve(CONVERSATION_RUNTIME));
   registerSearchRoutes(app, kernel.container.resolve(SEARCH_HANDLERS));
+  registerOpportunityRoutes(app, kernel.container.resolve(OPPORTUNITY_HANDLERS));
+  registerReasoningRoutes(app, kernel.container.resolve(REASONING_HANDLERS));
 
   return { app, kernel };
 }

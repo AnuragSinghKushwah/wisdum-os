@@ -6,3 +6,4 @@ export * from './organization-read-model.postgres.js';
 export * from './plugin-read-model.postgres.js';
 export * from './conversation-read-model.postgres.js';
 export * from './search-index-read-model.postgres.js';
+export * from './opportunity-read-model.postgres.js';

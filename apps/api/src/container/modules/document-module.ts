@@ -14,7 +14,14 @@ import {
   Sha256ContentHasher,
 } from '@wisdum/infrastructure';
 import type { Container, KernelModule } from '@wisdum/kernel';
-import { CLOCK, DOCUMENT_HANDLERS, EVENT_BUS, ID_GENERATOR, PG_POOL } from '../tokens.js';
+import {
+  CLOCK,
+  DOCUMENT_HANDLERS,
+  DOCUMENT_READ_MODEL,
+  EVENT_BUS,
+  ID_GENERATOR,
+  PG_POOL,
+} from '../tokens.js';
 import type { DocumentHandlers } from '../tokens.js';
 
 export class DocumentModule implements KernelModule {
@@ -45,5 +52,6 @@ export class DocumentModule implements KernelModule {
       get: new GetDocumentHandler(readModel),
     };
     container.registerValue(DOCUMENT_HANDLERS, handlers);
+    container.registerValue(DOCUMENT_READ_MODEL, readModel);
   }
 }

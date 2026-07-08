@@ -21,6 +21,7 @@ import {
   EVENT_BUS,
   ID_GENERATOR,
   KNOWLEDGE_HANDLERS,
+  KNOWLEDGE_READ_MODEL,
   PG_POOL,
   SLUG_GENERATOR,
 } from '../tokens.js';
@@ -57,5 +58,6 @@ export class KnowledgeModule implements KernelModule {
       attachContent: new AttachKnowledgeContentHandler(repository, events, clock),
     };
     container.registerValue(KNOWLEDGE_HANDLERS, handlers);
+    container.registerValue(KNOWLEDGE_READ_MODEL, readModel);
   }
 }

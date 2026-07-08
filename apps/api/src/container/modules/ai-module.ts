@@ -1,5 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
 import {
   AppendMessageHandler,
   GetConversationHandler,
@@ -7,7 +5,6 @@ import {
 } from '@wisdum/application';
 import type { ConversationReadModel } from '@wisdum/application';
 import type { ConversationRepository } from '@wisdum/domain';
-import { optionalEnv } from '@wisdum/config';
 import {
   EventBusDomainEventPublisher,
   InMemoryConversationReadModel,
@@ -16,40 +13,18 @@ import {
   PostgresConversationRepository,
 } from '@wisdum/infrastructure';
 import type { Container, KernelModule } from '@wisdum/kernel';
-import {
-  AnthropicLlmProvider,
-  AssistantConversationRuntime,
-  OpenAiLlmProvider,
-  TruncatingContextBuilder,
-} from '@wisdum/platform-ai';
-import type { ConversationRuntime, LlmProvider } from '@wisdum/platform-ai';
+import { AssistantConversationRuntime, TruncatingContextBuilder } from '@wisdum/platform-ai';
+import type { ConversationRuntime } from '@wisdum/platform-ai';
 import {
   AI_HANDLERS,
   CLOCK,
   CONVERSATION_RUNTIME,
   EVENT_BUS,
   ID_GENERATOR,
+  LLM_PROVIDER,
   PG_POOL,
 } from '../tokens.js';
 import type { AiHandlers } from '../tokens.js';
-
-/**
- * Picks a real `LlmProvider` from whichever provider API key is present
- * (Anthropic takes precedence when both are set). Neither vendor SDK is
- * referenced outside this composition root — `platform/ai`'s adapters
- * depend only on the narrow client shape they call.
- */
-function createLlmProvider(): LlmProvider | undefined {
-  const anthropicKey = optionalEnv('ANTHROPIC_API_KEY', '');
-  if (anthropicKey.length > 0) {
-    return new AnthropicLlmProvider(new Anthropic({ apiKey: anthropicKey }));
-  }
-  const openAiKey = optionalEnv('OPENAI_API_KEY', '');
-  if (openAiKey.length > 0) {
-    return new OpenAiLlmProvider(new OpenAI({ apiKey: openAiKey }));
-  }
-  return undefined;
-}
 
 export class AiModule implements KernelModule {
   readonly name = 'ai';
@@ -79,7 +54,7 @@ export class AiModule implements KernelModule {
     };
     container.registerValue(AI_HANDLERS, handlers);
 
-    const llm = createLlmProvider();
+    const llm = container.resolve(LLM_PROVIDER);
     const runtime: ConversationRuntime | undefined =
       llm !== undefined
         ? new AssistantConversationRuntime(repository, llm, new TruncatingContextBuilder(), clock)

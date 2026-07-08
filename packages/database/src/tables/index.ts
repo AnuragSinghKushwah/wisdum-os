@@ -14,3 +14,5 @@ export * from './plugin-row.js';
 export * from './conversation-row.js';
 export * from './prompt-template-row.js';
 export * from './search-index-row.js';
+export * from './graph-row.js';
+export * from './opportunity-row.js';

@@ -6,3 +6,5 @@ export * from './organization-routes.js';
 export * from './plugin-routes.js';
 export * from './ai-routes.js';
 export * from './search-routes.js';
+export * from './opportunity-routes.js';
+export * from './reasoning-routes.js';

@@ -7,3 +7,5 @@ export * from './organization-module.js';
 export * from './plugin-module.js';
 export * from './ai-module.js';
 export * from './search-module.js';
+export * from './opportunity-module.js';
+export * from './reasoning-module.js';

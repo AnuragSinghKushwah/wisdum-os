@@ -13,3 +13,5 @@ export * from './organization/index.js';
 export * from './plugin/index.js';
 export * from './ai/index.js';
 export * from './search/index.js';
+export * from './opportunity/index.js';
+export * from './reasoning/index.js';

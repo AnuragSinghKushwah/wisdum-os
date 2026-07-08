@@ -24,3 +24,13 @@ export interface SlugGenerator {
 export interface DomainEventPublisher {
   publishAll(events: readonly PendingDomainEvent[]): Promise<void>;
 }
+
+/**
+ * A single-shot text completion, vendor-neutral. The reasoning pipeline and
+ * content generation use this instead of depending on `@wisdum/platform-ai`
+ * directly — the application layer never depends on a platform package;
+ * the composition root wires a real `LlmProvider` behind this port.
+ */
+export interface LlmCompletionPort {
+  complete(prompt: string): Promise<string>;
+}

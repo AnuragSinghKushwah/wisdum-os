@@ -1,6 +1,6 @@
 import { createToken } from '@wisdum/kernel';
 import type { PgPool } from '@wisdum/database';
-import type { Clock } from '@wisdum/domain';
+import type { Clock, InsightRepository, OpportunityRepository } from '@wisdum/domain';
 import type {
   ArchiveKnowledgeHandler,
   AssignRoleHandler,
@@ -16,28 +16,38 @@ import type {
   CreateUserHandler,
   CreateWorkspaceHandler,
   DisablePluginHandler,
+  DocumentReadModel,
   EnablePluginHandler,
+  GenerateContentDraftHandler,
   GetConversationHandler,
+  GetContentDraftHandler,
   GetDocumentHandler,
   GetKnowledgeHandler,
+  GetOpportunityHandler,
   GetOrganizationHandler,
   GetPluginHandler,
+  GetPublishedContentHandler,
   GetSearchIndexHandler,
   GetUserHandler,
   GetWorkspaceHandler,
   IdGenerator,
   IndexSearchDocumentHandler,
   InstallPluginHandler,
+  KnowledgeReadModel,
   ListKnowledgeHandler,
+  ListOpportunitiesHandler,
+  PublishContentDraftHandler,
   PublishKnowledgeHandler,
   ReplaceDocumentContentHandler,
+  RunReasoningPassHandler,
   SearchIndexHandler,
   SlugGenerator,
   StartConversationHandler,
   TokenService,
+  UpdateContentDraftHandler,
 } from '@wisdum/application';
 import type { EventBus } from '@wisdum/events';
-import type { ConversationRuntime } from '@wisdum/platform-ai';
+import type { ConversationRuntime, LlmProvider } from '@wisdum/platform-ai';
 
 /**
  * DI tokens for the API composition root. Each context registers a
@@ -53,6 +63,10 @@ export const EVENT_BUS = createToken<EventBus>('api.event-bus');
 /** Undefined when `DATABASE_URL` is not configured — modules fall back to in-memory adapters. */
 export const PG_POOL = createToken<PgPool | undefined>('api.pg-pool');
 export const TOKEN_SERVICE = createToken<TokenService>('api.token-service');
+/** Undefined when no AI provider API key is configured — shared by AiModule and ReasoningModule. */
+export const LLM_PROVIDER = createToken<LlmProvider | undefined>('api.llm-provider');
+/** The model name matching whichever provider LLM_PROVIDER resolved to. Undefined together with it. */
+export const LLM_MODEL = createToken<string | undefined>('api.llm-model');
 
 export interface KnowledgeHandlers {
   readonly create: CreateKnowledgeHandler;
@@ -63,6 +77,8 @@ export interface KnowledgeHandlers {
   readonly attachContent: AttachKnowledgeContentHandler;
 }
 export const KNOWLEDGE_HANDLERS = createToken<KnowledgeHandlers>('api.knowledge-handlers');
+/** Exposed separately so ReasoningModule can read tenant knowledge without depending on KnowledgeHandlers. */
+export const KNOWLEDGE_READ_MODEL = createToken<KnowledgeReadModel>('api.knowledge-read-model');
 
 export interface DocumentHandlers {
   readonly create: CreateDocumentHandler;
@@ -70,6 +86,8 @@ export interface DocumentHandlers {
   readonly get: GetDocumentHandler;
 }
 export const DOCUMENT_HANDLERS = createToken<DocumentHandlers>('api.document-handlers');
+/** Exposed separately so ReasoningModule can read document content without depending on DocumentHandlers. */
+export const DOCUMENT_READ_MODEL = createToken<DocumentReadModel>('api.document-read-model');
 
 export interface IdentityHandlers {
   readonly createUser: CreateUserHandler;
@@ -119,3 +137,28 @@ export interface SearchHandlers {
   readonly indexDocument: IndexSearchDocumentHandler;
 }
 export const SEARCH_HANDLERS = createToken<SearchHandlers>('api.search-handlers');
+
+export interface OpportunityHandlers {
+  readonly get: GetOpportunityHandler;
+  readonly list: ListOpportunitiesHandler;
+  readonly generateDraft: GenerateContentDraftHandler;
+  readonly getDraft: GetContentDraftHandler;
+  readonly updateDraft: UpdateContentDraftHandler;
+  readonly publishDraft: PublishContentDraftHandler;
+  readonly getPublished: GetPublishedContentHandler;
+}
+export const OPPORTUNITY_HANDLERS = createToken<OpportunityHandlers>('api.opportunity-handlers');
+/**
+ * Exposed separately so ReasoningModule writes through the same repository
+ * instance OpportunityModule reads from — essential in in-memory mode,
+ * where two independently constructed instances would silently diverge.
+ */
+export const OPPORTUNITY_REPOSITORY = createToken<OpportunityRepository>(
+  'api.opportunity-repository',
+);
+export const INSIGHT_REPOSITORY = createToken<InsightRepository>('api.insight-repository');
+
+export interface ReasoningHandlers {
+  readonly run: RunReasoningPassHandler;
+}
+export const REASONING_HANDLERS = createToken<ReasoningHandlers>('api.reasoning-handlers');

@@ -1,3 +1,5 @@
+import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { createPgPool, migrateUp } from '@wisdum/database';
 import { optionalEnv, requireEnv } from '@wisdum/config';
 import { SystemClock } from '@wisdum/domain';
@@ -10,15 +12,48 @@ import {
 } from '@wisdum/infrastructure';
 import type { Container, KernelModule } from '@wisdum/kernel';
 import type { EventBus } from '@wisdum/events';
+import { AnthropicLlmProvider, OpenAiLlmProvider } from '@wisdum/platform-ai';
+import type { LlmProvider } from '@wisdum/platform-ai';
 import { Redis } from 'ioredis';
 import {
   CLOCK,
   EVENT_BUS,
   ID_GENERATOR,
+  LLM_MODEL,
+  LLM_PROVIDER,
   PG_POOL,
   SLUG_GENERATOR,
   TOKEN_SERVICE,
 } from '../tokens.js';
+
+const DEFAULT_ANTHROPIC_MODEL = 'anthropic/claude-sonnet-5';
+const DEFAULT_OPENAI_MODEL = 'openai/gpt-4o-mini';
+
+/**
+ * Picks a real `LlmProvider` (and a matching default model name) from
+ * whichever provider API key is present (Anthropic takes precedence when
+ * both are set). Shared by AiModule (chat) and ReasoningModule (one-shot
+ * completions) — neither vendor SDK is referenced outside this composition
+ * root. The model name is overridable via `REASONING_LLM_MODEL` since
+ * exact available model ids drift over time.
+ */
+function createLlmProvider(): { provider: LlmProvider; model: string } | undefined {
+  const anthropicKey = optionalEnv('ANTHROPIC_API_KEY', '');
+  if (anthropicKey.length > 0) {
+    return {
+      provider: new AnthropicLlmProvider(new Anthropic({ apiKey: anthropicKey })),
+      model: optionalEnv('REASONING_LLM_MODEL', DEFAULT_ANTHROPIC_MODEL),
+    };
+  }
+  const openAiKey = optionalEnv('OPENAI_API_KEY', '');
+  if (openAiKey.length > 0) {
+    return {
+      provider: new OpenAiLlmProvider(new OpenAI({ apiKey: openAiKey })),
+      model: optionalEnv('REASONING_LLM_MODEL', DEFAULT_OPENAI_MODEL),
+    };
+  }
+  return undefined;
+}
 
 /**
  * Registers the shared singletons every other module depends on. When
@@ -55,6 +90,10 @@ export class CoreModule implements KernelModule {
     container.registerValue(PG_POOL, pool);
 
     container.registerValue(TOKEN_SERVICE, new JwtTokenService(requireEnv('JWT_SECRET')));
+
+    const llm = createLlmProvider();
+    container.registerValue(LLM_PROVIDER, llm?.provider);
+    container.registerValue(LLM_MODEL, llm?.model);
   }
 
   async start(container: Container): Promise<void> {

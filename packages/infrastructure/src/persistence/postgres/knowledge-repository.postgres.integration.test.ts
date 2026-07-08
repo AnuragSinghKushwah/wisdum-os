@@ -39,6 +39,7 @@ describe.skipIf(databaseUrl === undefined)('PostgresKnowledgeRepository (integra
   });
 
   afterAll(async () => {
+    await pool.query('DELETE FROM knowledge WHERE tenant_id = $1', [tenantId]);
     await pool.query('DELETE FROM tenants WHERE id = $1', [tenantId]);
     await pool.end();
   });
@@ -112,7 +113,8 @@ describe.skipIf(databaseUrl === undefined)('PostgresKnowledgeRepository (integra
     const found = await repository.findById(id);
     expect(found.some).toBe(true);
     if (!found.some) return;
-    found.value.restore(clock);
+    found.value.startProcessing(clock);
+    found.value.completeProcessing(clock);
     await repository.save(found.value);
 
     const reloaded = await repository.findById(id);

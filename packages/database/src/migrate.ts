@@ -42,32 +42,47 @@ async function appliedMigrationIds(pool: pg.Pool): Promise<Set<string>> {
   return new Set(result.rows.map((row) => row.id));
 }
 
+/**
+ * Arbitrary fixed key for the session-level advisory lock guarding migrations.
+ * Prevents concurrent callers (e.g. multiple API replicas booting together,
+ * or parallel test suites) from racing to apply the same migration twice.
+ */
+const MIGRATION_LOCK_KEY = 72_845_190;
+
 /** Applies every pending `*.up.sql` migration, in filename order, tracked in `schema_migrations`. */
 export async function migrateUp(pool: pg.Pool): Promise<readonly string[]> {
-  await ensureMigrationsTable(pool);
-  const applied = await appliedMigrationIds(pool);
-  const pending = loadMigrations('up').filter((migration) => !applied.has(migration.id));
+  const lockClient = await pool.connect();
+  try {
+    await lockClient.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_KEY]);
 
-  const appliedNow: string[] = [];
-  for (const migration of pending) {
-    const sql = readFileSync(migration.path, 'utf-8');
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      await client.query(sql);
-      await client.query('INSERT INTO schema_migrations (id) VALUES ($1)', [migration.id]);
-      await client.query('COMMIT');
-      appliedNow.push(migration.id);
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw new Error(`Migration ${migration.id} failed: ${(error as Error).message}`, {
-        cause: error,
-      });
-    } finally {
-      client.release();
+    await ensureMigrationsTable(pool);
+    const applied = await appliedMigrationIds(pool);
+    const pending = loadMigrations('up').filter((migration) => !applied.has(migration.id));
+
+    const appliedNow: string[] = [];
+    for (const migration of pending) {
+      const sql = readFileSync(migration.path, 'utf-8');
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(sql);
+        await client.query('INSERT INTO schema_migrations (id) VALUES ($1)', [migration.id]);
+        await client.query('COMMIT');
+        appliedNow.push(migration.id);
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw new Error(`Migration ${migration.id} failed: ${(error as Error).message}`, {
+          cause: error,
+        });
+      } finally {
+        client.release();
+      }
     }
+    return appliedNow;
+  } finally {
+    await lockClient.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY]);
+    lockClient.release();
   }
-  return appliedNow;
 }
 
 /** Reverts the most recently applied migration using its `*.down.sql` counterpart. */

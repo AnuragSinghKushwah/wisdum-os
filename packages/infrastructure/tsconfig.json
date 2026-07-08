@@ -12,6 +12,7 @@
     { "path": "../events" },
     { "path": "../config" },
     { "path": "../kernel" },
+    { "path": "../logger" },
     { "path": "../domain" },
     { "path": "../application" },
     { "path": "../database" }

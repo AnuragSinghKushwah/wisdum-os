@@ -28,6 +28,7 @@
     "@wisdum/application": "*",
     "@wisdum/infrastructure": "*",
     "fastify": "^5.10.0",
+    "ioredis": "^5.11.1",
     "@fastify/swagger": "^9.7.0",
     "@fastify/swagger-ui": "^6.0.0"
   }

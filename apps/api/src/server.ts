@@ -1,5 +1,7 @@
+import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import { optionalEnv } from '@wisdum/config';
 import { createKernel } from '@wisdum/kernel';
 import type { Kernel } from '@wisdum/kernel';
 import Fastify from 'fastify';
@@ -62,6 +64,10 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
   const app = Fastify({ logger: false });
   app.setErrorHandler(errorHandler);
   app.addHook('onRequest', createAuthHook(kernel.container.resolve(TOKEN_SERVICE)));
+
+  await app.register(cors, {
+    origin: optionalEnv('CORS_ORIGIN', 'http://localhost:3000').split(','),
+  });
 
   await app.register(swagger, {
     openapi: {

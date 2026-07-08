@@ -6,3 +6,4 @@ export * from './organization-read-model.js';
 export * from './plugin-read-model.js';
 export * from './conversation-read-model.js';
 export * from './search-index-read-model.js';
+export * from './postgres/index.js';

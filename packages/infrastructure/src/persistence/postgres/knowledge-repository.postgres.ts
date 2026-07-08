@@ -68,6 +68,20 @@ export class PostgresKnowledgeRepository implements KnowledgeRepository {
     return some(await this.hydrate(row));
   }
 
+  /** Beyond the write-side port: used by `KnowledgeReadModel` to list a tenant's assets. */
+  async listByTenant(tenantId: TenantId, status?: string): Promise<readonly Knowledge[]> {
+    const result =
+      status === undefined
+        ? await this.pool.query<KnowledgeRow>('SELECT * FROM knowledge WHERE tenant_id = $1', [
+            tenantId,
+          ])
+        : await this.pool.query<KnowledgeRow>(
+            'SELECT * FROM knowledge WHERE tenant_id = $1 AND status = $2',
+            [tenantId, status],
+          );
+    return Promise.all(result.rows.map((row) => this.hydrate(row)));
+  }
+
   async findBySlug(tenantId: TenantId, slug: KnowledgeSlug): Promise<Option<Knowledge>> {
     const rowResult = await this.pool.query<KnowledgeRow>(
       'SELECT * FROM knowledge WHERE tenant_id = $1 AND slug = $2',

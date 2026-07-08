@@ -5,13 +5,24 @@ import {
   ListKnowledgeHandler,
   PublishKnowledgeHandler,
 } from '@wisdum/application';
+import type { KnowledgeReadModel } from '@wisdum/application';
+import type { KnowledgeRepository } from '@wisdum/domain';
 import {
   EventBusDomainEventPublisher,
   InMemoryKnowledgeReadModel,
   InMemoryKnowledgeRepository,
+  PostgresKnowledgeReadModel,
+  PostgresKnowledgeRepository,
 } from '@wisdum/infrastructure';
 import type { Container, KernelModule } from '@wisdum/kernel';
-import { CLOCK, EVENT_BUS, ID_GENERATOR, KNOWLEDGE_HANDLERS, SLUG_GENERATOR } from '../tokens.js';
+import {
+  CLOCK,
+  EVENT_BUS,
+  ID_GENERATOR,
+  KNOWLEDGE_HANDLERS,
+  PG_POOL,
+  SLUG_GENERATOR,
+} from '../tokens.js';
 import type { KnowledgeHandlers } from '../tokens.js';
 
 export class KnowledgeModule implements KernelModule {
@@ -19,8 +30,18 @@ export class KnowledgeModule implements KernelModule {
   readonly dependsOn = ['core'];
 
   register(container: Container): void {
-    const repository = new InMemoryKnowledgeRepository();
-    const readModel = new InMemoryKnowledgeReadModel(repository);
+    const pool = container.resolve(PG_POOL);
+    let repository: KnowledgeRepository;
+    let readModel: KnowledgeReadModel;
+    if (pool !== undefined) {
+      const postgresRepository = new PostgresKnowledgeRepository(pool);
+      repository = postgresRepository;
+      readModel = new PostgresKnowledgeReadModel(postgresRepository);
+    } else {
+      const inMemoryRepository = new InMemoryKnowledgeRepository();
+      repository = inMemoryRepository;
+      readModel = new InMemoryKnowledgeReadModel(inMemoryRepository);
+    }
     const events = new EventBusDomainEventPublisher(container.resolve(EVENT_BUS));
     const clock = container.resolve(CLOCK);
     const ids = container.resolve(ID_GENERATOR);

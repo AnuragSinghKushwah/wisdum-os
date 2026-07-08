@@ -3,13 +3,24 @@ import {
   CreateWorkspaceHandler,
   GetWorkspaceHandler,
 } from '@wisdum/application';
+import type { WorkspaceReadModel } from '@wisdum/application';
+import type { WorkspaceRepository } from '@wisdum/domain';
 import {
   EventBusDomainEventPublisher,
   InMemoryWorkspaceReadModel,
   InMemoryWorkspaceRepository,
+  PostgresWorkspaceReadModel,
+  PostgresWorkspaceRepository,
 } from '@wisdum/infrastructure';
 import type { Container, KernelModule } from '@wisdum/kernel';
-import { CLOCK, EVENT_BUS, ID_GENERATOR, SLUG_GENERATOR, WORKSPACE_HANDLERS } from '../tokens.js';
+import {
+  CLOCK,
+  EVENT_BUS,
+  ID_GENERATOR,
+  PG_POOL,
+  SLUG_GENERATOR,
+  WORKSPACE_HANDLERS,
+} from '../tokens.js';
 import type { WorkspaceHandlers } from '../tokens.js';
 
 export class WorkspaceModule implements KernelModule {
@@ -17,8 +28,18 @@ export class WorkspaceModule implements KernelModule {
   readonly dependsOn = ['core'];
 
   register(container: Container): void {
-    const repository = new InMemoryWorkspaceRepository();
-    const readModel = new InMemoryWorkspaceReadModel(repository);
+    const pool = container.resolve(PG_POOL);
+    let repository: WorkspaceRepository;
+    let readModel: WorkspaceReadModel;
+    if (pool !== undefined) {
+      const postgresRepository = new PostgresWorkspaceRepository(pool);
+      repository = postgresRepository;
+      readModel = new PostgresWorkspaceReadModel(postgresRepository);
+    } else {
+      const inMemoryRepository = new InMemoryWorkspaceRepository();
+      repository = inMemoryRepository;
+      readModel = new InMemoryWorkspaceReadModel(inMemoryRepository);
+    }
     const events = new EventBusDomainEventPublisher(container.resolve(EVENT_BUS));
     const clock = container.resolve(CLOCK);
     const ids = container.resolve(ID_GENERATOR);

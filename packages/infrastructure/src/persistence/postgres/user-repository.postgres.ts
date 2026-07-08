@@ -40,6 +40,14 @@ export class PostgresUserRepository implements UserRepository {
     return row === undefined ? none : some(User.reconstitute(toSnapshot(row)));
   }
 
+  /** Beyond the write-side port: used by `UserReadModel` to list a tenant's users. */
+  async listByTenant(tenantId: TenantId): Promise<readonly User[]> {
+    const result = await this.pool.query<UserRow>('SELECT * FROM users WHERE tenant_id = $1', [
+      tenantId,
+    ]);
+    return result.rows.map((row) => User.reconstitute(toSnapshot(row)));
+  }
+
   async findByEmail(tenantId: TenantId, email: Email): Promise<Option<User>> {
     const result = await this.pool.query<UserRow>(
       'SELECT * FROM users WHERE tenant_id = $1 AND email = $2',

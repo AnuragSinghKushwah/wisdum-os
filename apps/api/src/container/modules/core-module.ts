@@ -1,9 +1,17 @@
+import { createPgPool, migrateUp } from '@wisdum/database';
+import { optionalEnv } from '@wisdum/config';
 import { SystemClock } from '@wisdum/domain';
 import { InMemoryEventBus, KebabSlugGenerator, UuidGenerator } from '@wisdum/infrastructure';
 import type { Container, KernelModule } from '@wisdum/kernel';
-import { CLOCK, EVENT_BUS, ID_GENERATOR, SLUG_GENERATOR } from '../tokens.js';
+import { CLOCK, EVENT_BUS, ID_GENERATOR, PG_POOL, SLUG_GENERATOR } from '../tokens.js';
 
-/** Registers the shared singletons every other module depends on. */
+/**
+ * Registers the shared singletons every other module depends on. When
+ * `DATABASE_URL` is set, opens the Postgres pool and applies pending
+ * migrations before any other module starts; otherwise every domain module
+ * falls back to its in-memory adapters (used for local development and
+ * tests without a database).
+ */
 export class CoreModule implements KernelModule {
   readonly name = 'core';
 
@@ -12,5 +20,21 @@ export class CoreModule implements KernelModule {
     container.registerValue(ID_GENERATOR, new UuidGenerator());
     container.registerValue(SLUG_GENERATOR, new KebabSlugGenerator());
     container.registerValue(EVENT_BUS, new InMemoryEventBus());
+
+    const databaseUrl = optionalEnv('DATABASE_URL', '');
+    const pool = databaseUrl.length > 0 ? createPgPool({ url: databaseUrl }) : undefined;
+    container.registerValue(PG_POOL, pool);
+  }
+
+  async start(container: Container): Promise<void> {
+    const pool = container.resolve(PG_POOL);
+    if (pool !== undefined) {
+      await migrateUp(pool);
+    }
+  }
+
+  async stop(container: Container): Promise<void> {
+    const pool = container.resolve(PG_POOL);
+    await pool?.end();
   }
 }

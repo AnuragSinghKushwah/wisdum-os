@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@wisdum/config": "*",
+    "@wisdum/database": "*",
     "@wisdum/logger": "*",
     "@wisdum/errors": "*",
     "@wisdum/types": "*",

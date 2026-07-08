@@ -1,4 +1,5 @@
 import { createToken } from '@wisdum/kernel';
+import type { PgPool } from '@wisdum/database';
 import type { Clock } from '@wisdum/domain';
 import type {
   ArchiveKnowledgeHandler,
@@ -44,6 +45,8 @@ export const CLOCK = createToken<Clock>('api.clock');
 export const ID_GENERATOR = createToken<IdGenerator>('api.id-generator');
 export const SLUG_GENERATOR = createToken<SlugGenerator>('api.slug-generator');
 export const EVENT_BUS = createToken<EventBus>('api.event-bus');
+/** Undefined when `DATABASE_URL` is not configured — modules fall back to in-memory adapters. */
+export const PG_POOL = createToken<PgPool | undefined>('api.pg-pool');
 
 export interface KnowledgeHandlers {
   readonly create: CreateKnowledgeHandler;

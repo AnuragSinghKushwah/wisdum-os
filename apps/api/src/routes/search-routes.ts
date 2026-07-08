@@ -1,6 +1,7 @@
 import {
   createSearchIndexCommand,
   getSearchIndexQuery,
+  indexSearchDocumentCommand,
   searchIndexQuery,
 } from '@wisdum/application';
 import type { FastifyInstance } from 'fastify';
@@ -8,6 +9,7 @@ import type { SearchHandlers } from '../container/tokens.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
 import {
   createSearchIndexBodySchema,
+  indexSearchDocumentBodySchema,
   searchIndexIdParamsSchema,
   searchQuerySchema,
 } from '../validation/search-schemas.js';
@@ -22,6 +24,13 @@ interface SearchQueryParams {
   readonly mode?: 'keyword' | 'semantic' | 'hybrid';
   readonly limit?: number;
   readonly offset?: number;
+}
+
+interface IndexSearchDocumentBody {
+  readonly sourceId: string;
+  readonly sourceType: 'knowledge' | 'document' | 'conversation';
+  readonly text: string;
+  readonly chunkCount?: number;
 }
 
 export function registerSearchRoutes(app: FastifyInstance, handlers: SearchHandlers): void {
@@ -54,6 +63,19 @@ export function registerSearchRoutes(app: FastifyInstance, handlers: SearchHandl
       const { id } = request.params as { id: string };
       const query = request.query as SearchQueryParams;
       return handlers.search.execute(searchIndexQuery({ searchIndexId: id, ...query }));
+    },
+  );
+
+  app.post(
+    '/v1/search-indexes/:id/documents',
+    { schema: { params: searchIndexIdParamsSchema, body: indexSearchDocumentBodySchema } },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const body = request.body as IndexSearchDocumentBody;
+      await handlers.indexDocument.execute(
+        indexSearchDocumentCommand({ searchIndexId: id, ...body }),
+      );
+      await reply.status(202).send({ status: 'indexed' });
     },
   );
 }

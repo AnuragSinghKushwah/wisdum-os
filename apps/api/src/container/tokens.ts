@@ -25,6 +25,7 @@ import type {
   GetUserHandler,
   GetWorkspaceHandler,
   IdGenerator,
+  IndexSearchDocumentHandler,
   InstallPluginHandler,
   ListKnowledgeHandler,
   PublishKnowledgeHandler,
@@ -113,5 +114,6 @@ export interface SearchHandlers {
   readonly createIndex: CreateSearchIndexHandler;
   readonly search: SearchIndexHandler;
   readonly getIndex: GetSearchIndexHandler;
+  readonly indexDocument: IndexSearchDocumentHandler;
 }
 export const SEARCH_HANDLERS = createToken<SearchHandlers>('api.search-handlers');

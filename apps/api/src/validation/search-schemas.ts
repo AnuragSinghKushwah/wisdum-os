@@ -24,3 +24,15 @@ export const searchQuerySchema = {
     offset: { type: 'number' },
   },
 } as const;
+
+export const indexSearchDocumentBodySchema = {
+  type: 'object',
+  required: ['sourceId', 'sourceType', 'text'],
+  properties: {
+    sourceId: { type: 'string' },
+    sourceType: { type: 'string', enum: ['knowledge', 'document', 'conversation'] },
+    text: { type: 'string' },
+    chunkCount: { type: 'number' },
+  },
+  additionalProperties: false,
+} as const;

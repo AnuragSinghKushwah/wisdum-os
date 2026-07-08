@@ -4,7 +4,7 @@ export const startConversationBodySchema = {
   properties: {
     provider: { type: 'string' },
     modelName: { type: 'string' },
-    ownerId: { type: 'string' },
+    ownerId: { type: 'string', format: 'uuid' },
     title: { type: 'string' },
   },
   additionalProperties: false,

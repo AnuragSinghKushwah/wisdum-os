@@ -28,7 +28,10 @@ interface ApiRequestOptions {
  */
 export async function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const session = loadSession();
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  const headers: Record<string, string> = {};
+  if (options.body !== undefined) {
+    headers['content-type'] = 'application/json';
+  }
   if (session !== null) {
     headers.authorization = `Bearer ${session.token}`;
   }

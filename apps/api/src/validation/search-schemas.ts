@@ -29,7 +29,7 @@ export const indexSearchDocumentBodySchema = {
   type: 'object',
   required: ['sourceId', 'sourceType', 'text'],
   properties: {
-    sourceId: { type: 'string' },
+    sourceId: { type: 'string', format: 'uuid' },
     sourceType: { type: 'string', enum: ['knowledge', 'document', 'conversation'] },
     text: { type: 'string' },
     chunkCount: { type: 'number' },

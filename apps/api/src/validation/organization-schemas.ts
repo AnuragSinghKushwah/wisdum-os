@@ -8,7 +8,7 @@ export const createOrganizationBodySchema = {
 export const attachWorkspaceBodySchema = {
   type: 'object',
   required: ['workspaceId'],
-  properties: { workspaceId: { type: 'string' } },
+  properties: { workspaceId: { type: 'string', format: 'uuid' } },
   additionalProperties: false,
 } as const;
 

@@ -62,6 +62,10 @@ export default function WorkspacePage() {
 
       <section className="mt-6">
         <h2 className="text-sm font-medium text-neutral-500">Create a workspace</h2>
+        <p className="mt-1 text-xs text-neutral-500">
+          There&apos;s no organization management UI yet — you need the ID of an existing
+          organization, created directly in the database.
+        </p>
         <form onSubmit={handleCreate} className="mt-2 flex flex-wrap items-end gap-2">
           <label className="flex flex-col gap-1 text-sm">
             Organization ID
@@ -69,6 +73,7 @@ export default function WorkspacePage() {
               className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700"
               value={organizationId}
               onChange={(event) => setOrganizationId(event.target.value)}
+              placeholder="e.g. af3da7a6-8cd5-4ab6-b217-41d45320a8a8"
               required
             />
           </label>

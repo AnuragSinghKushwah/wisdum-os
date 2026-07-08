@@ -1,10 +1,16 @@
-import { assignRoleCommand, createUserCommand, getUserQuery } from '@wisdum/application';
+import {
+  assignRoleCommand,
+  authenticateUserCommand,
+  createUserCommand,
+  getUserQuery,
+} from '@wisdum/application';
 import type { FastifyInstance } from 'fastify';
 import type { IdentityHandlers } from '../container/tokens.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
 import {
   assignRoleBodySchema,
   createUserBodySchema,
+  loginBodySchema,
   userIdParamsSchema,
 } from '../validation/identity-schemas.js';
 
@@ -16,6 +22,11 @@ interface CreateUserBody {
 
 interface AssignRoleBody {
   readonly roleId: string;
+}
+
+interface LoginBody {
+  readonly email: string;
+  readonly password: string;
 }
 
 export function registerIdentityRoutes(app: FastifyInstance, handlers: IdentityHandlers): void {
@@ -41,4 +52,10 @@ export function registerIdentityRoutes(app: FastifyInstance, handlers: IdentityH
       return { status: 'assigned' };
     },
   );
+
+  app.post('/v1/auth/login', { schema: { body: loginBodySchema } }, async (request) => {
+    const tenantId = requireTenantId(request);
+    const { email, password } = request.body as LoginBody;
+    return handlers.authenticate.execute(authenticateUserCommand({ tenantId, email, password }));
+  });
 }

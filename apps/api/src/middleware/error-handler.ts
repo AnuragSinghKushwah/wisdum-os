@@ -3,6 +3,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 
 const STATUS_BY_CODE: Readonly<Record<string, number>> = {
   validation_error: 400,
+  authentication_error: 401,
   not_found: 404,
   conflict: 409,
   invariant_violation: 422,

@@ -21,3 +21,13 @@ export const userIdParamsSchema = {
   required: ['id'],
   properties: { id: { type: 'string' } },
 } as const;
+
+export const loginBodySchema = {
+  type: 'object',
+  required: ['email', 'password'],
+  properties: {
+    email: { type: 'string' },
+    password: { type: 'string' },
+  },
+  additionalProperties: false,
+} as const;

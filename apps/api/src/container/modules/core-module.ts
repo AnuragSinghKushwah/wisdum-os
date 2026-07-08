@@ -1,9 +1,21 @@
 import { createPgPool, migrateUp } from '@wisdum/database';
-import { optionalEnv } from '@wisdum/config';
+import { optionalEnv, requireEnv } from '@wisdum/config';
 import { SystemClock } from '@wisdum/domain';
-import { InMemoryEventBus, KebabSlugGenerator, UuidGenerator } from '@wisdum/infrastructure';
+import {
+  InMemoryEventBus,
+  JwtTokenService,
+  KebabSlugGenerator,
+  UuidGenerator,
+} from '@wisdum/infrastructure';
 import type { Container, KernelModule } from '@wisdum/kernel';
-import { CLOCK, EVENT_BUS, ID_GENERATOR, PG_POOL, SLUG_GENERATOR } from '../tokens.js';
+import {
+  CLOCK,
+  EVENT_BUS,
+  ID_GENERATOR,
+  PG_POOL,
+  SLUG_GENERATOR,
+  TOKEN_SERVICE,
+} from '../tokens.js';
 
 /**
  * Registers the shared singletons every other module depends on. When
@@ -24,6 +36,8 @@ export class CoreModule implements KernelModule {
     const databaseUrl = optionalEnv('DATABASE_URL', '');
     const pool = databaseUrl.length > 0 ? createPgPool({ url: databaseUrl }) : undefined;
     container.registerValue(PG_POOL, pool);
+
+    container.registerValue(TOKEN_SERVICE, new JwtTokenService(requireEnv('JWT_SECRET')));
   }
 
   async start(container: Container): Promise<void> {

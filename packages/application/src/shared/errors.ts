@@ -13,3 +13,10 @@ export class ConflictError extends DomainError {
     super('conflict', message, details);
   }
 }
+
+/** Raised when credentials or a bearer token fail to authenticate a request. */
+export class AuthenticationError extends DomainError {
+  constructor(message: string, details: Record<string, unknown> = {}) {
+    super('authentication_error', message, details);
+  }
+}

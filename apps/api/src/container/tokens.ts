@@ -7,6 +7,7 @@ import type {
   AppendMessageHandler,
   AddWorkspaceMemberHandler,
   AttachWorkspaceHandler,
+  AuthenticateUserHandler,
   CreateDocumentHandler,
   CreateKnowledgeHandler,
   CreateOrganizationHandler,
@@ -31,6 +32,7 @@ import type {
   SearchIndexHandler,
   SlugGenerator,
   StartConversationHandler,
+  TokenService,
 } from '@wisdum/application';
 import type { EventBus } from '@wisdum/events';
 
@@ -47,6 +49,7 @@ export const SLUG_GENERATOR = createToken<SlugGenerator>('api.slug-generator');
 export const EVENT_BUS = createToken<EventBus>('api.event-bus');
 /** Undefined when `DATABASE_URL` is not configured — modules fall back to in-memory adapters. */
 export const PG_POOL = createToken<PgPool | undefined>('api.pg-pool');
+export const TOKEN_SERVICE = createToken<TokenService>('api.token-service');
 
 export interface KnowledgeHandlers {
   readonly create: CreateKnowledgeHandler;
@@ -68,6 +71,7 @@ export interface IdentityHandlers {
   readonly createUser: CreateUserHandler;
   readonly assignRole: AssignRoleHandler;
   readonly getUser: GetUserHandler;
+  readonly authenticate: AuthenticateUserHandler;
 }
 export const IDENTITY_HANDLERS = createToken<IdentityHandlers>('api.identity-handlers');
 

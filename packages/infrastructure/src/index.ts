@@ -12,6 +12,7 @@ export * from './slugs/index.js';
 export * from './events/index.js';
 export * from './clock/index.js';
 export * from './hashing/index.js';
+export * from './auth/index.js';
 export * from './storage/index.js';
 export * from './cache/index.js';
 export * from './search/index.js';

@@ -23,8 +23,10 @@ import {
   ORGANIZATION_HANDLERS,
   PLUGIN_HANDLERS,
   SEARCH_HANDLERS,
+  TOKEN_SERVICE,
   WORKSPACE_HANDLERS,
 } from './container/tokens.js';
+import { createAuthHook } from './middleware/auth-context.js';
 import { errorHandler } from './middleware/error-handler.js';
 import {
   registerAiRoutes,
@@ -58,6 +60,7 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
 
   const app = Fastify({ logger: false });
   app.setErrorHandler(errorHandler);
+  app.addHook('onRequest', createAuthHook(kernel.container.resolve(TOKEN_SERVICE)));
 
   await app.register(swagger, {
     openapi: {

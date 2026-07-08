@@ -21,3 +21,4 @@ export interface MigrationDescriptor {
 export * from './tables/index.js';
 export * from './client.js';
 export { migrateUp, migrateDown } from './migrate.js';
+export * from './test-support.js';

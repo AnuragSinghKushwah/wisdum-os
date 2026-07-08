@@ -4,7 +4,7 @@
 
 It is infrastructure for knowledge-driven work: it enables individuals and organizations to transform raw information into connected knowledge, turn knowledge into business outcomes, and continuously improve through AI-assisted workflows.
 
-> **Status: pre-alpha.** Wisdum is in early foundational development. There is no runnable application yet — the current focus is architecture, documentation, and platform scaffolding. APIs and structure will change without notice.
+> **Status: pre-alpha.** Wisdum is in early foundational development. The API and web dashboard run end to end (see [Getting started](#getting-started)), but coverage across bounded contexts is uneven and APIs and structure will change without notice.
 
 ## What Wisdum is not
 
@@ -59,17 +59,46 @@ The rationale is recorded in [ADR 0003](docs/adr/0003-core-technology-stack.md).
 
 ## Getting started
 
-The monorepo skeleton builds from the root (Node.js 18.18+):
+The monorepo builds from the root (Node.js 18.18+):
 
 ```sh
 npm install
 npm run build      # compile all packages (TypeScript project references)
 npm run typecheck  # full type check
 npm run lint       # ESLint across the workspace
+npm run test       # unit tests (Vitest)
 npm run format     # Prettier
 ```
 
-There is no runnable product yet — the packages are scaffolding with enforced boundaries. To get involved now:
+### Running the platform
+
+The API (`apps/api`, Fastify) and web dashboard (`apps/web`, Next.js) are
+runnable end to end. The API falls back to in-memory adapters for
+anything not configured (Postgres, Redis), so the fastest way to try it
+is with just a signing secret:
+
+```sh
+# Terminal 1 — API (in-memory persistence/cache; no Postgres/Redis required)
+JWT_SECRET=dev-secret npm run build --workspace @wisdum/api && \
+  node apps/api/dist/main.js   # http://localhost:3001
+
+# Terminal 2 — web dashboard
+npm run dev --workspace @wisdum/web   # http://localhost:3000
+```
+
+For a persistent setup with real Postgres and Redis, copy `.env.example`
+to `.env` and fill in `JWT_SECRET`, then:
+
+```sh
+docker compose up --build
+```
+
+This starts Postgres, Redis, the API (migrating on startup), and the web
+dashboard (`http://localhost:3000`). Set `ANTHROPIC_API_KEY` or
+`OPENAI_API_KEY` in `.env` to enable AI conversation replies; both are
+optional.
+
+To learn the architecture rather than just run it:
 
 1. Read [docs/architecture/overview.md](docs/architecture/overview.md).
 2. Read the ADRs in [docs/adr/](docs/adr/) — [ADR 0004](docs/adr/0004-typescript-workspace-topology.md) explains the workspace layout.

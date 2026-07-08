@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/*.tsbuildinfo
+.git
+.claude
+.idea
+.vscode
+*.log
+tmp
+temp
+.cache
+docs
+product

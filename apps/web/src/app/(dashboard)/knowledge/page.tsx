@@ -37,6 +37,7 @@ export default function KnowledgePage() {
   const [error, setError] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
   const [type, setType] = useState<(typeof KNOWLEDGE_TYPES)[number]>('note');
   const [visibility, setVisibility] = useState<(typeof VISIBILITIES)[number]>('private');
   const [isCreating, setIsCreating] = useState(false);
@@ -63,11 +64,24 @@ export default function KnowledgePage() {
     setIsCreating(true);
     setError(null);
     try {
-      await apiFetch('/v1/knowledge', {
+      const { knowledgeId } = await apiFetch<{ knowledgeId: string }>('/v1/knowledge', {
         method: 'POST',
         body: { title, type, visibility, sourceKind: 'manual' },
       });
+
+      if (content.trim().length > 0) {
+        const { documentId } = await apiFetch<{ documentId: string }>('/v1/documents', {
+          method: 'POST',
+          body: { content, mimeType: 'text/plain', encoding: 'utf-8' },
+        });
+        await apiFetch(`/v1/knowledge/${knowledgeId}/content`, {
+          method: 'POST',
+          body: { reference: documentId, mimeType: 'text/plain' },
+        });
+      }
+
       setTitle('');
+      setContent('');
       await load();
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : 'Failed to create knowledge asset.');
@@ -80,7 +94,8 @@ export default function KnowledgePage() {
     <div>
       <h1 className="text-2xl font-semibold">Knowledge</h1>
 
-      <form onSubmit={handleCreate} className="mt-4 flex flex-wrap items-end gap-2">
+      <form onSubmit={handleCreate} className="mt-4 flex flex-col gap-3">
+        <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-sm">
           Title
           <input
@@ -118,10 +133,20 @@ export default function KnowledgePage() {
             ))}
           </select>
         </label>
+        </div>
+        <label className="flex flex-col gap-1 text-sm">
+          Content
+          <textarea
+            className="min-h-32 rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700"
+            value={content}
+            onChange={(event) => setContent(event.target.value)}
+            placeholder="Optional — leave blank to create a draft with no content yet."
+          />
+        </label>
         <button
           type="submit"
           disabled={isCreating}
-          className="rounded bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+          className="self-start rounded bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
         >
           {isCreating ? 'Creating…' : 'Create'}
         </button>

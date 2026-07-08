@@ -8,7 +8,8 @@ export interface DocumentRow {
   readonly mime_type: string;
   readonly language: string;
   readonly encoding: string;
-  readonly size_bytes: number;
+  /** `bigint` in Postgres — the `pg` driver returns it as a string. */
+  readonly size_bytes: string;
   readonly content_hash_algorithm: string;
   readonly content_hash_digest: string;
   readonly status: string;

@@ -37,9 +37,10 @@ function toSnapshot(
     ownerId: row.owner_id as UUID,
     title: row.title ?? undefined,
     status: row.status as ConversationSnapshot['status'],
+    // pg returns `bigint` columns as strings to avoid silent precision loss.
     totalUsage: TokenUsage.create({
-      inputTokens: row.total_input_tokens,
-      outputTokens: row.total_output_tokens,
+      inputTokens: Number(row.total_input_tokens),
+      outputTokens: Number(row.total_output_tokens),
     }),
     messages: [...messages]
       .sort((a, b) => a.message_index - b.message_index)
@@ -59,8 +60,8 @@ function toSnapshot(
           usage:
             message.input_tokens !== null && message.output_tokens !== null
               ? TokenUsage.create({
-                  inputTokens: message.input_tokens,
-                  outputTokens: message.output_tokens,
+                  inputTokens: Number(message.input_tokens),
+                  outputTokens: Number(message.output_tokens),
                 })
               : undefined,
         }),

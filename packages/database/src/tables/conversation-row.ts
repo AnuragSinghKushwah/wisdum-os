@@ -9,8 +9,10 @@ export interface ConversationRow {
   readonly owner_id: UUID;
   readonly title: string | null;
   readonly status: string;
-  readonly total_input_tokens: number;
-  readonly total_output_tokens: number;
+  /** `bigint` in Postgres — the `pg` driver returns it as a string. */
+  readonly total_input_tokens: string;
+  /** `bigint` in Postgres — the `pg` driver returns it as a string. */
+  readonly total_output_tokens: string;
   readonly created_at: IsoTimestamp;
   readonly updated_at: IsoTimestamp;
 }
@@ -21,8 +23,10 @@ export interface ConversationMessageRow {
   readonly message_index: number;
   readonly role: string;
   readonly content: string;
-  readonly input_tokens: number | null;
-  readonly output_tokens: number | null;
+  /** `bigint` in Postgres — the `pg` driver returns it as a string. */
+  readonly input_tokens: string | null;
+  /** `bigint` in Postgres — the `pg` driver returns it as a string. */
+  readonly output_tokens: string | null;
   readonly created_at: IsoTimestamp;
 }
 

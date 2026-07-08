@@ -28,6 +28,14 @@ export class CreateDocumentHandler implements CommandHandler<
 
   async execute(command: CreateDocumentCommand): Promise<{ documentId: string }> {
     const hashed = this.hasher.hash(command.content);
+    const existing = await this.repository.findByContentHash(
+      command.tenantId,
+      ContentHash.create(hashed),
+    );
+    if (existing.some) {
+      return { documentId: existing.value.getId().value() };
+    }
+
     const document = Document.create(
       {
         id: DocumentId.create(this.ids.nextId()),

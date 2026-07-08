@@ -1,5 +1,11 @@
 import type { Knowledge } from '@wisdum/domain';
 
+/** Wire-safe projection of a ContentReference. `reference` is the linked Document's id. */
+export interface KnowledgeContentReferenceDto {
+  readonly reference: string;
+  readonly mimeType: string | null;
+}
+
 /** Wire-safe projection of a Knowledge aggregate. No value object leaks through. */
 export interface KnowledgeDto {
   readonly id: string;
@@ -11,6 +17,7 @@ export interface KnowledgeDto {
   readonly visibility: string;
   readonly version: number;
   readonly labels: readonly string[];
+  readonly contentReferences: readonly KnowledgeContentReferenceDto[];
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -26,6 +33,10 @@ export function toKnowledgeDto(knowledge: Knowledge): KnowledgeDto {
     visibility: knowledge.visibility.value,
     version: knowledge.version.value,
     labels: knowledge.labels.map((label) => label.value),
+    contentReferences: knowledge.contentReferences.map((ref) => ({
+      reference: ref.reference,
+      mimeType: ref.mimeType,
+    })),
     createdAt: knowledge.createdAt,
     updatedAt: knowledge.updatedAt,
   };

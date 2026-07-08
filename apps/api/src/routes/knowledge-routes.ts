@@ -1,5 +1,6 @@
 import {
   archiveKnowledgeCommand,
+  attachKnowledgeContentCommand,
   createKnowledgeCommand,
   getKnowledgeQuery,
   listKnowledgeQuery,
@@ -9,6 +10,7 @@ import type { FastifyInstance } from 'fastify';
 import type { KnowledgeHandlers } from '../container/tokens.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
 import {
+  attachKnowledgeContentBodySchema,
   createKnowledgeBodySchema,
   knowledgeIdParamsSchema,
 } from '../validation/knowledge-schemas.js';
@@ -21,6 +23,11 @@ interface CreateKnowledgeBody {
   readonly sourceUri?: string;
   readonly description?: string;
   readonly labels?: readonly string[];
+}
+
+interface AttachKnowledgeContentBody {
+  readonly reference: string;
+  readonly mimeType?: string;
 }
 
 /** Wires the Knowledge context's handlers to HTTP. No business logic — composition only. */
@@ -67,6 +74,19 @@ export function registerKnowledgeRoutes(app: FastifyInstance, handlers: Knowledg
       const { id } = request.params as { id: string };
       await handlers.archive.execute(archiveKnowledgeCommand({ tenantId, knowledgeId: id }));
       return { status: 'archived' };
+    },
+  );
+
+  app.post(
+    '/v1/knowledge/:id/content',
+    { schema: { params: knowledgeIdParamsSchema, body: attachKnowledgeContentBodySchema } },
+    async (request) => {
+      const { id } = request.params as { id: string };
+      const body = request.body as AttachKnowledgeContentBody;
+      await handlers.attachContent.execute(
+        attachKnowledgeContentCommand({ knowledgeId: id, ...body }),
+      );
+      return { status: 'attached' };
     },
   );
 }

@@ -2,6 +2,7 @@ import type { Document } from '@wisdum/domain';
 
 export interface DocumentDto {
   readonly id: string;
+  readonly content: string;
   readonly mimeType: string;
   readonly language: string;
   readonly encoding: string;
@@ -15,6 +16,7 @@ export interface DocumentDto {
 export function toDocumentDto(document: Document): DocumentDto {
   return {
     id: document.getId().value(),
+    content: document.content.value,
     mimeType: document.mimeType.value,
     language: document.language.value,
     encoding: document.encoding.value,

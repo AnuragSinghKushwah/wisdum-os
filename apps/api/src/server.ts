@@ -67,6 +67,7 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
 
   await app.register(cors, {
     origin: optionalEnv('CORS_ORIGIN', 'http://localhost:3000').split(','),
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 
   await app.register(swagger, {

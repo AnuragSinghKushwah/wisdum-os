@@ -18,3 +18,13 @@ export const knowledgeIdParamsSchema = {
   required: ['id'],
   properties: { id: { type: 'string' } },
 } as const;
+
+export const attachKnowledgeContentBodySchema = {
+  type: 'object',
+  required: ['reference'],
+  properties: {
+    reference: { type: 'string', minLength: 1 },
+    mimeType: { type: 'string' },
+  },
+  additionalProperties: false,
+} as const;

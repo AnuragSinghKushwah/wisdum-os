@@ -10,7 +10,8 @@ export interface WorkspaceRow {
   readonly status: string;
   readonly max_members: number | null;
   readonly max_knowledge_assets: number | null;
-  readonly max_storage_bytes: number | null;
+  /** `bigint` in Postgres — the `pg` driver returns it as a string. */
+  readonly max_storage_bytes: string | null;
   readonly created_at: IsoTimestamp;
   readonly updated_at: IsoTimestamp;
 }

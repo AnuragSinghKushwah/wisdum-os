@@ -16,12 +16,10 @@ interface LoginResponse {
   readonly token: string;
 }
 
-const DEFAULT_TENANT_ID = 'default';
-
 export default function SignUpPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [tenantId, setTenantId] = useState(DEFAULT_TENANT_ID);
+  const [tenantId, setTenantId] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,8 +54,8 @@ export default function SignUpPage() {
     <div className="flex flex-col gap-4">
       <h1 className="text-center text-xl font-semibold">Create your account</h1>
       <p className="text-center text-xs text-neutral-500">
-        Tenant provisioning isn&apos;t built yet — use an existing tenant ID, or{' '}
-        <span className="font-mono">default</span> for local development.
+        Tenant provisioning isn&apos;t built yet — you need the ID of an existing tenant, created
+        directly in the database, to sign up.
       </p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
@@ -66,6 +64,7 @@ export default function SignUpPage() {
             className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700"
             value={tenantId}
             onChange={(event) => setTenantId(event.target.value)}
+            placeholder="e.g. af3da7a6-8cd5-4ab6-b217-41d45320a8a8"
             required
           />
         </label>

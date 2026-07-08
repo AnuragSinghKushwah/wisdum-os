@@ -12,12 +12,10 @@ interface LoginResponse {
   readonly token: string;
 }
 
-const DEFAULT_TENANT_ID = 'default';
-
 export default function SignInPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [tenantId, setTenantId] = useState(DEFAULT_TENANT_ID);
+  const [tenantId, setTenantId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +50,7 @@ export default function SignInPage() {
             className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700"
             value={tenantId}
             onChange={(event) => setTenantId(event.target.value)}
+            placeholder="e.g. af3da7a6-8cd5-4ab6-b217-41d45320a8a8"
             required
           />
         </label>

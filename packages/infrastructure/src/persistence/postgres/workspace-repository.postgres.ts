@@ -49,7 +49,8 @@ function toSnapshot(
     limits: WorkspaceLimits.create({
       maxMembers: row.max_members ?? undefined,
       maxKnowledgeAssets: row.max_knowledge_assets ?? undefined,
-      maxStorageBytes: row.max_storage_bytes ?? undefined,
+      // pg returns `bigint` columns as strings to avoid silent precision loss.
+      maxStorageBytes: row.max_storage_bytes !== null ? Number(row.max_storage_bytes) : undefined,
     }),
     featureFlags: FeatureFlags.create(
       Object.fromEntries(featureFlags.map((flag) => [flag.flag, flag.enabled])),

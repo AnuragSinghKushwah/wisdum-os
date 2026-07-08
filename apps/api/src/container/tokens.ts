@@ -4,6 +4,7 @@ import type { Clock } from '@wisdum/domain';
 import type {
   ArchiveKnowledgeHandler,
   AssignRoleHandler,
+  AttachKnowledgeContentHandler,
   AppendMessageHandler,
   AddWorkspaceMemberHandler,
   AttachWorkspaceHandler,
@@ -59,6 +60,7 @@ export interface KnowledgeHandlers {
   readonly archive: ArchiveKnowledgeHandler;
   readonly get: GetKnowledgeHandler;
   readonly list: ListKnowledgeHandler;
+  readonly attachContent: AttachKnowledgeContentHandler;
 }
 export const KNOWLEDGE_HANDLERS = createToken<KnowledgeHandlers>('api.knowledge-handlers');
 

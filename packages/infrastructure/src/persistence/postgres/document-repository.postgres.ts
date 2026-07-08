@@ -24,7 +24,9 @@ function toSnapshot(row: DocumentRow): DocumentSnapshot {
     mimeType: MimeType.create(row.mime_type),
     language: LanguageCode.create(row.language),
     encoding: ContentEncoding.create(row.encoding),
-    sizeBytes: ByteSize.create(row.size_bytes),
+    // pg returns `bigint` columns as strings to avoid silent precision loss;
+    // Number(...) is safe here since ByteSize itself rejects unsafe integers.
+    sizeBytes: ByteSize.create(Number(row.size_bytes)),
     contentHash: ContentHash.create({
       algorithm: row.content_hash_algorithm as HashAlgorithm,
       digest: row.content_hash_digest,

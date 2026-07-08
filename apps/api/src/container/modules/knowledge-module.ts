@@ -1,5 +1,6 @@
 import {
   ArchiveKnowledgeHandler,
+  AttachKnowledgeContentHandler,
   CreateKnowledgeHandler,
   GetKnowledgeHandler,
   ListKnowledgeHandler,
@@ -53,6 +54,7 @@ export class KnowledgeModule implements KernelModule {
       archive: new ArchiveKnowledgeHandler(repository, events, clock),
       get: new GetKnowledgeHandler(readModel),
       list: new ListKnowledgeHandler(readModel),
+      attachContent: new AttachKnowledgeContentHandler(repository, events, clock),
     };
     container.registerValue(KNOWLEDGE_HANDLERS, handlers);
   }

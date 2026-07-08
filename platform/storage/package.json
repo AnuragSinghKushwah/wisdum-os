@@ -2,7 +2,7 @@
   "name": "@wisdum/platform-storage",
   "version": "0.0.0",
   "private": true,
-  "description": "Object and file storage capability behind an S3-compatible abstraction (scaffold)",
+  "description": "Object and file storage capability behind an S3-compatible abstraction",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -17,6 +17,8 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@wisdum/contracts": "*"
+    "@aws-sdk/client-s3": "^3.1081.0",
+    "@wisdum/contracts": "*",
+    "@wisdum/errors": "*"
   }
 }

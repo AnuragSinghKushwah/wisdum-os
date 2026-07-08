@@ -27,3 +27,14 @@ export const conversationIdParamsSchema = {
   required: ['id'],
   properties: { id: { type: 'string' } },
 } as const;
+
+export const runTurnBodySchema = {
+  type: 'object',
+  required: ['userMessage'],
+  properties: {
+    userMessage: { type: 'string' },
+    systemPrompt: { type: 'string' },
+    maxContextTokens: { type: 'number' },
+  },
+  additionalProperties: false,
+} as const;

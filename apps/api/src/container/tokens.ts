@@ -35,6 +35,7 @@ import type {
   TokenService,
 } from '@wisdum/application';
 import type { EventBus } from '@wisdum/events';
+import type { ConversationRuntime } from '@wisdum/platform-ai';
 
 /**
  * DI tokens for the API composition root. Each context registers a
@@ -103,6 +104,10 @@ export interface AiHandlers {
   readonly getConversation: GetConversationHandler;
 }
 export const AI_HANDLERS = createToken<AiHandlers>('api.ai-handlers');
+/** Undefined when no AI provider API key is configured. */
+export const CONVERSATION_RUNTIME = createToken<ConversationRuntime | undefined>(
+  'api.conversation-runtime',
+);
 
 export interface SearchHandlers {
   readonly createIndex: CreateSearchIndexHandler;

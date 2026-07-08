@@ -3,12 +3,15 @@ import {
   getConversationQuery,
   startConversationCommand,
 } from '@wisdum/application';
+import { ConfigurationError } from '@wisdum/errors';
+import type { ConversationRuntime } from '@wisdum/platform-ai';
 import type { FastifyInstance } from 'fastify';
 import type { AiHandlers } from '../container/tokens.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
 import {
   appendMessageBodySchema,
   conversationIdParamsSchema,
+  runTurnBodySchema,
   startConversationBodySchema,
 } from '../validation/ai-schemas.js';
 
@@ -26,7 +29,17 @@ interface AppendMessageBody {
   readonly outputTokens?: number;
 }
 
-export function registerAiRoutes(app: FastifyInstance, handlers: AiHandlers): void {
+interface RunTurnBody {
+  readonly userMessage: string;
+  readonly systemPrompt?: string;
+  readonly maxContextTokens?: number;
+}
+
+export function registerAiRoutes(
+  app: FastifyInstance,
+  handlers: AiHandlers,
+  runtime: ConversationRuntime | undefined,
+): void {
   app.post(
     '/v1/conversations',
     { schema: { body: startConversationBodySchema } },
@@ -57,6 +70,21 @@ export function registerAiRoutes(app: FastifyInstance, handlers: AiHandlers): vo
       const body = request.body as AppendMessageBody;
       await handlers.appendMessage.execute(appendMessageCommand({ conversationId: id, ...body }));
       return { status: 'appended' };
+    },
+  );
+
+  app.post(
+    '/v1/conversations/:id/turns',
+    { schema: { params: conversationIdParamsSchema, body: runTurnBodySchema } },
+    async (request) => {
+      if (runtime === undefined) {
+        throw new ConfigurationError(
+          'No AI provider is configured (set ANTHROPIC_API_KEY or OPENAI_API_KEY)',
+        );
+      }
+      const { id } = request.params as { id: string };
+      const body = request.body as RunTurnBody;
+      return runtime.runTurn({ conversationId: id, ...body });
     },
   );
 }

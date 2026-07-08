@@ -2,7 +2,7 @@
   "name": "@wisdum/platform-ai",
   "version": "0.0.0",
   "private": true,
-  "description": "AI subsystem capability (scaffold)",
+  "description": "AI subsystem capability behind provider-neutral abstractions",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.js",

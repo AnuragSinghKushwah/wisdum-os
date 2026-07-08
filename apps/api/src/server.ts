@@ -17,6 +17,7 @@ import {
 } from './container/modules/index.js';
 import {
   AI_HANDLERS,
+  CONVERSATION_RUNTIME,
   DOCUMENT_HANDLERS,
   IDENTITY_HANDLERS,
   KNOWLEDGE_HANDLERS,
@@ -77,7 +78,7 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
   registerWorkspaceRoutes(app, kernel.container.resolve(WORKSPACE_HANDLERS));
   registerOrganizationRoutes(app, kernel.container.resolve(ORGANIZATION_HANDLERS));
   registerPluginRoutes(app, kernel.container.resolve(PLUGIN_HANDLERS));
-  registerAiRoutes(app, kernel.container.resolve(AI_HANDLERS));
+  registerAiRoutes(app, kernel.container.resolve(AI_HANDLERS), kernel.container.resolve(CONVERSATION_RUNTIME));
   registerSearchRoutes(app, kernel.container.resolve(SEARCH_HANDLERS));
 
   return { app, kernel };

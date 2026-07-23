@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Sprint 005:** Knowledge REST API Endpoints & Fastify Integration (`apps/api/src/routes/knowledge-routes.ts`).
+  - Added REST API routes: `PATCH /v1/knowledge/:id`, `DELETE /v1/knowledge/:id`, `POST /v1/knowledge/:id/visibility`, `POST /v1/knowledge/:id/import`.
+  - Added Fastify body validation schemas in `apps/api/src/validation/knowledge-schemas.ts`.
+  - Updated DI container registrations in `apps/api/src/container/modules/knowledge-module.ts` and `apps/api/src/container/tokens.ts`.
+  - Documented Knowledge REST API specification in `docs/api/knowledge.md`.
+- **Sprint 004:** Knowledge Application Layer (`packages/application/src/knowledge/`).
+  - CQRS commands and helper functions: `UpdateKnowledgeCommand`, `DeleteKnowledgeCommand`, `ChangeKnowledgeVisibilityCommand`, `ImportKnowledgeCommand`.
+  - Application command handlers: `UpdateKnowledgeHandler`, `DeleteKnowledgeHandler`, `ChangeKnowledgeVisibilityHandler`, `ImportKnowledgeHandler`.
+  - Unit test suite: Comprehensive Vitest handler tests (`packages/application/src/knowledge/handlers/__tests__/knowledge-handlers.test.ts`).
 - **Sprint 003:** Knowledge bounded context (`packages/domain/src/knowledge/`).
   - `Knowledge` aggregate root: lifecycle state machine (draft/importing/processing/active/archived/deleted), invariant enforcement, domain event recording.
   - Self-validating value objects: `KnowledgeId`, `KnowledgeTitle`, `KnowledgeSlug`, `KnowledgeDescription`, `KnowledgeType`, `KnowledgeStatus`, `KnowledgeVisibility`, `KnowledgeSource`, `KnowledgeVersion`, `KnowledgeLabel`, `ContentReference`.

@@ -1,10 +1,14 @@
 import {
   ArchiveKnowledgeHandler,
   AttachKnowledgeContentHandler,
+  ChangeKnowledgeVisibilityHandler,
   CreateKnowledgeHandler,
+  DeleteKnowledgeHandler,
   GetKnowledgeHandler,
+  ImportKnowledgeHandler,
   ListKnowledgeHandler,
   PublishKnowledgeHandler,
+  UpdateKnowledgeHandler,
 } from '@wisdum/application';
 import type { KnowledgeReadModel } from '@wisdum/application';
 import type { KnowledgeRepository } from '@wisdum/domain';
@@ -24,6 +28,7 @@ import {
   KNOWLEDGE_READ_MODEL,
   PG_POOL,
   SLUG_GENERATOR,
+  DOCUMENT_REPOSITORY,
 } from '../tokens.js';
 import type { KnowledgeHandlers } from '../tokens.js';
 
@@ -48,14 +53,19 @@ export class KnowledgeModule implements KernelModule {
     const clock = container.resolve(CLOCK);
     const ids = container.resolve(ID_GENERATOR);
     const slugs = container.resolve(SLUG_GENERATOR);
+    const documentRepository = container.resolve(DOCUMENT_REPOSITORY);
 
     const handlers: KnowledgeHandlers = {
       create: new CreateKnowledgeHandler(repository, ids, slugs, events, clock),
+      update: new UpdateKnowledgeHandler(repository, events, clock),
+      delete: new DeleteKnowledgeHandler(repository, events, clock),
+      changeVisibility: new ChangeKnowledgeVisibilityHandler(repository, events, clock),
+      import: new ImportKnowledgeHandler(repository, events, clock),
       publish: new PublishKnowledgeHandler(repository, events, clock),
       archive: new ArchiveKnowledgeHandler(repository, events, clock),
       get: new GetKnowledgeHandler(readModel),
       list: new ListKnowledgeHandler(readModel),
-      attachContent: new AttachKnowledgeContentHandler(repository, events, clock),
+      attachContent: new AttachKnowledgeContentHandler(repository, documentRepository, events, clock),
     };
     container.registerValue(KNOWLEDGE_HANDLERS, handlers);
     container.registerValue(KNOWLEDGE_READ_MODEL, readModel);

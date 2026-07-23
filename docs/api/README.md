@@ -32,6 +32,14 @@ Domain events are a public contract with the same discipline as REST endpoints:
 - Schemas live in shared packages and are versioned for backward compatibility.
 - Consumers must tolerate unknown fields; producers must never repurpose existing ones.
 
+## Domain APIs
+
+- [Knowledge API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/knowledge.md)
+
+## Webhooks
+
+For external ingestion services, see the [Webhook Ingestion API](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/webhooks.md) specification.
+
 ## Change control
 
 Breaking changes to any published API or event schema require an ADR and a deprecation path for existing consumers.

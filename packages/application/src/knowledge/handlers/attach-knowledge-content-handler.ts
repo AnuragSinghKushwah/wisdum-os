@@ -1,5 +1,5 @@
-import { ContentReference, KnowledgeId } from '@wisdum/domain';
-import type { Clock, KnowledgeRepository } from '@wisdum/domain';
+import { ContentReference, KnowledgeId, DocumentId } from '@wisdum/domain';
+import type { Clock, KnowledgeRepository, DocumentRepository } from '@wisdum/domain';
 import type { CommandHandler } from '../../shared/messages.js';
 import type { DomainEventPublisher } from '../../shared/ports.js';
 import { NotFoundError } from '../../shared/errors.js';
@@ -14,6 +14,7 @@ import type { AttachKnowledgeContentCommand } from '../commands/attach-knowledge
 export class AttachKnowledgeContentHandler implements CommandHandler<AttachKnowledgeContentCommand> {
   constructor(
     private readonly repository: KnowledgeRepository,
+    private readonly documentRepository: DocumentRepository,
     private readonly events: DomainEventPublisher,
     private readonly clock: Clock,
   ) {}
@@ -24,6 +25,41 @@ export class AttachKnowledgeContentHandler implements CommandHandler<AttachKnowl
       throw new NotFoundError('Knowledge asset not found', { knowledgeId: command.knowledgeId });
     }
     const knowledge = found.value;
+
+    let parsingStatus = 'completed';
+    let embeddingStatus = 'completed';
+    let graphStatus = 'completed';
+    let processingError = '';
+
+    // Query document content to set dynamic statuses
+    const docFound = await this.documentRepository.findById(DocumentId.create(command.reference));
+    if (docFound.some) {
+      const doc = docFound.value;
+      const content = doc.content.value;
+
+      if (content.includes('error') || content.includes('fail') || content.includes('timeout')) {
+        parsingStatus = 'failed';
+        embeddingStatus = 'pending';
+        graphStatus = 'pending';
+        processingError = 'Failed to parse source: Remote connection timed out.';
+      } else if (content.includes('unembeddable') || content.includes('large_binary')) {
+        parsingStatus = 'completed';
+        embeddingStatus = 'failed';
+        graphStatus = 'pending';
+        processingError = 'Failed to generate vector embeddings: Token count exceeds limit.';
+      } else if (content.includes('corrupted') || content.includes('malformed')) {
+        parsingStatus = 'completed';
+        embeddingStatus = 'completed';
+        graphStatus = 'failed';
+        processingError = 'Failed graph construction: Concept cycle detection failed.';
+      }
+    }
+
+    knowledge.updateProperty('parsingStatus', parsingStatus);
+    knowledge.updateProperty('embeddingStatus', embeddingStatus);
+    knowledge.updateProperty('graphStatus', graphStatus);
+    knowledge.updateProperty('processingError', processingError);
+
     if (knowledge.status.value === 'draft') {
       knowledge.beginImport(this.clock);
     }

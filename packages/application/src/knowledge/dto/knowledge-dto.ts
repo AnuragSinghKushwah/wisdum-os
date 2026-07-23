@@ -20,6 +20,7 @@ export interface KnowledgeDto {
   readonly contentReferences: readonly KnowledgeContentReferenceDto[];
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly properties: Record<string, string>;
 }
 
 export function toKnowledgeDto(knowledge: Knowledge): KnowledgeDto {
@@ -39,5 +40,12 @@ export function toKnowledgeDto(knowledge: Knowledge): KnowledgeDto {
     })),
     createdAt: knowledge.createdAt,
     updatedAt: knowledge.updatedAt,
+    properties: {
+      parsingStatus: 'pending',
+      embeddingStatus: 'pending',
+      graphStatus: 'pending',
+      processingError: '',
+      ...knowledge.properties,
+    },
   };
 }

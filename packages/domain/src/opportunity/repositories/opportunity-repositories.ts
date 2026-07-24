@@ -28,6 +28,7 @@ export interface OpportunityRepository extends Repository<Opportunity> {
 export interface ContentDraftRepository extends Repository<ContentDraft> {
   findById(id: ContentDraftId): Promise<Option<ContentDraft>>;
   findByOpportunityId(tenantId: TenantId, opportunityId: string): Promise<Option<ContentDraft>>;
+  listByTenant(tenantId: TenantId): Promise<readonly ContentDraft[]>;
   save(draft: ContentDraft): Promise<void>;
   delete(draft: ContentDraft): Promise<void>;
 }
@@ -41,6 +42,7 @@ export interface PublishedContentRepository extends Repository<PublishedContent>
   findBySlug(tenantId: TenantId, slug: PublishedSlug): Promise<Option<PublishedContent>>;
   /** Powers idempotent re-publish: a retry of an already-published draft must not create a duplicate. */
   findByDraftId(tenantId: TenantId, draftId: string): Promise<Option<PublishedContent>>;
+  listByTenant(tenantId: TenantId): Promise<readonly PublishedContent[]>;
   save(published: PublishedContent): Promise<void>;
   delete(published: PublishedContent): Promise<void>;
 }

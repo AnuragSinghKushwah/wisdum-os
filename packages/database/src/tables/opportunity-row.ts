@@ -46,4 +46,6 @@ export interface PublishedContentRow {
   readonly body: string;
   readonly view_count: number;
   readonly published_at: IsoTimestamp;
+  readonly provider_capability: string;
+  readonly external_url: string;
 }

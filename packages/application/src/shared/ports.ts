@@ -1,4 +1,4 @@
-import type { UUID } from '@wisdum/types';
+import type { TenantId, UUID } from '@wisdum/types';
 import type { PendingDomainEvent } from '@wisdum/domain';
 
 /**
@@ -33,4 +33,16 @@ export interface DomainEventPublisher {
  */
 export interface LlmCompletionPort {
   complete(prompt: string): Promise<string>;
+}
+
+/**
+ * Enumerates every tenant that exists in the platform. Read-only and
+ * deliberately minimal — there is no domain `Tenant` aggregate yet (rows
+ * in the `tenants` table are created out-of-band today, not through any
+ * application command); this port exists only to unblock "run this job
+ * for every tenant" scheduling. A full Tenant bounded context
+ * (creation/provisioning) is separate, later work.
+ */
+export interface TenantDirectory {
+  listAllTenantIds(): Promise<readonly TenantId[]>;
 }

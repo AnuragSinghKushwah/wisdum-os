@@ -22,4 +22,10 @@ export class InMemoryWorkspaceRepository
       ),
     );
   }
+
+  findByTenant(tenantId: TenantId): Promise<readonly Workspace[]> {
+    return Promise.resolve(
+      this.values().filter((workspace) => workspace.tenantId === tenantId),
+    );
+  }
 }

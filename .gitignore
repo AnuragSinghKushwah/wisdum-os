@@ -36,6 +36,7 @@ pnpm-debug.log*
 
 # --- Local tool state ---
 .claude/settings.local.json
+.codegraph/
 
 # --- IDEs & editors ---
 .idea/

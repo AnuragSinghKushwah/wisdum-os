@@ -22,4 +22,9 @@ export class PostgresWorkspaceReadModel implements WorkspaceReadModel {
     );
     return workspaces.map(toWorkspaceDto);
   }
+
+  async listByTenant(tenantId: TenantId): Promise<readonly WorkspaceDto[]> {
+    const workspaces = await this.repository.findByTenant(tenantId);
+    return workspaces.map(toWorkspaceDto);
+  }
 }

@@ -9,3 +9,6 @@ export const jobsCapability: PlatformCapability = {
   name: 'jobs',
   description: 'Background jobs, scheduling, and event delivery.',
 };
+
+export * from './scheduler.js';
+export * from './interval-scheduler.js';

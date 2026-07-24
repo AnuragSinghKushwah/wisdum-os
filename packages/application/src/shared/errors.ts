@@ -20,3 +20,10 @@ export class AuthenticationError extends DomainError {
     super('authentication_error', message, details);
   }
 }
+
+/** Raised when the plugin capability an action depends on is disabled for this tenant. */
+export class PluginDisabledError extends DomainError {
+  constructor(message: string, details: Record<string, unknown> = {}) {
+    super('plugin_disabled', message, details);
+  }
+}

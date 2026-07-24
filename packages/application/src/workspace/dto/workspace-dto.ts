@@ -6,6 +6,7 @@ export interface WorkspaceDto {
   readonly name: string;
   readonly slug: string;
   readonly status: string;
+  readonly settings: Record<string, any>;
   readonly memberCount: number;
   readonly createdAt: string;
 }
@@ -17,6 +18,7 @@ export function toWorkspaceDto(workspace: Workspace): WorkspaceDto {
     name: workspace.name.value,
     slug: workspace.slug.value,
     status: workspace.status.value,
+    settings: workspace.settings.toRecord(),
     memberCount: workspace.memberCount(),
     createdAt: workspace.createdAt,
   };

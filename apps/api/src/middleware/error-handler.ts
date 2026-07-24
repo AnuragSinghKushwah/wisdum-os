@@ -10,6 +10,7 @@ const STATUS_BY_CODE: Readonly<Record<string, number>> = {
   not_found: 404,
   conflict: 409,
   invariant_violation: 422,
+  plugin_disabled: 403,
   configuration_error: 500,
 };
 

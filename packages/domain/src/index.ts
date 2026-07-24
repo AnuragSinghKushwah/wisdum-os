@@ -12,3 +12,4 @@ export * from './organization/index.js';
 export * from './plugin/index.js';
 export * from './search/index.js';
 export * from './workspace/index.js';
+export * from './agent/index.js';

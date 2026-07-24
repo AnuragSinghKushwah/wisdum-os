@@ -22,4 +22,12 @@ export class InMemoryWorkspaceReadModel implements WorkspaceReadModel {
       .map(toWorkspaceDto);
     return Promise.resolve(dtos);
   }
+
+  listByTenant(tenantId: TenantId): Promise<readonly WorkspaceDto[]> {
+    const dtos = this.repository
+      .all()
+      .filter((workspace) => workspace.tenantId === tenantId)
+      .map(toWorkspaceDto);
+    return Promise.resolve(dtos);
+  }
 }

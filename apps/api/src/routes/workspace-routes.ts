@@ -2,6 +2,8 @@ import {
   addWorkspaceMemberCommand,
   createWorkspaceCommand,
   getWorkspaceQuery,
+  listWorkspacesQuery,
+  updateWorkspaceSettingsCommand,
 } from '@wisdum/application';
 import type { FastifyInstance } from 'fastify';
 import type { WorkspaceHandlers } from '../container/tokens.js';
@@ -36,6 +38,14 @@ export function registerWorkspaceRoutes(app: FastifyInstance, handlers: Workspac
   );
 
   app.get(
+    '/v1/workspaces',
+    async (request) => {
+      const tenantId = requireTenantId(request);
+      return handlers.list.execute(listWorkspacesQuery({ tenantId }));
+    },
+  );
+
+  app.get(
     '/v1/workspaces/:id',
     { schema: { params: workspaceIdParamsSchema } },
     async (request) => {
@@ -52,6 +62,20 @@ export function registerWorkspaceRoutes(app: FastifyInstance, handlers: Workspac
       const body = request.body as AddWorkspaceMemberBody;
       await handlers.addMember.execute(addWorkspaceMemberCommand({ workspaceId: id, ...body }));
       return { status: 'added' };
+    },
+  );
+
+  app.put(
+    '/v1/workspaces/:id/settings',
+    { schema: { params: workspaceIdParamsSchema } },
+    async (request) => {
+      const { id } = request.params as { id: string };
+      const { key, value } = request.body as { key: string; value: any };
+      const tenantId = requireTenantId(request);
+      await handlers.updateSettings.execute(
+        updateWorkspaceSettingsCommand({ tenantId, workspaceId: id, key, value }),
+      );
+      return { status: 'updated' };
     },
   );
 }

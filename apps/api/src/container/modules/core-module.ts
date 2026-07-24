@@ -10,15 +10,31 @@ import {
   RedisEventBus,
   UuidGenerator,
 } from '@wisdum/infrastructure';
+import { CapabilityRegistry } from '@wisdum/kernel';
 import type { Container, KernelModule } from '@wisdum/kernel';
 import type { EventBus } from '@wisdum/events';
-import { AnthropicLlmProvider, OpenAiLlmProvider } from '@wisdum/platform-ai';
+import {
+  AnthropicLlmProvider,
+  OpenAiLlmProvider,
+  OpenAiEmbeddingProvider,
+  LocalEmbeddingProvider,
+  createLazyLocalFeatureExtractor,
+} from '@wisdum/platform-ai';
 import type { LlmProvider } from '@wisdum/platform-ai';
+import type { InputConnector } from '@wisdum/platform-inputs';
+import { DefaultEmbeddingPipeline, FixedSizeChunker, InMemoryVectorStore } from '@wisdum/platform-search';
+import type { EmbeddingPipeline } from '@wisdum/platform-search';
+import { PostgresVectorStore } from '@wisdum/infrastructure';
 import { Redis } from 'ioredis';
 import {
   CLOCK,
+  EMBEDDING_MODEL,
+  EMBEDDING_PIPELINE,
+  EMBEDDING_PROVIDER,
+  VECTOR_STORE,
   EVENT_BUS,
   ID_GENERATOR,
+  INPUT_CONNECTORS,
   LLM_MODEL,
   LLM_PROVIDER,
   PG_POOL,
@@ -55,6 +71,41 @@ function createLlmProvider(): { provider: LlmProvider; model: string } | undefin
   return undefined;
 }
 
+const DEFAULT_OPENAI_EMBEDDING_MODEL = 'text-embedding-3-small';
+const DEFAULT_LOCAL_EMBEDDING_MODEL = 'Xenova/all-MiniLM-L6-v2';
+const LOCAL_EMBEDDING_DIMENSIONS = 384;
+
+/**
+ * Picks an `EmbeddingProvider`: OpenAI when `OPENAI_API_KEY` is set,
+ * otherwise a local, offline model run in-process via `@xenova/transformers`.
+ * Unlike `createLlmProvider`, this never returns undefined — the local path
+ * is a real fallback, not an absence, so uploads still get embedded on a
+ * fully self-hosted deployment with no vendor key. The local model itself
+ * loads lazily on first use (see `createLazyLocalFeatureExtractor`) rather
+ * than here, since `register()` is synchronous and must not block kernel
+ * startup on a multi-second model download.
+ */
+function createEmbeddingProvider(): {
+  provider: OpenAiEmbeddingProvider | LocalEmbeddingProvider;
+  model: string;
+} {
+  const openAiKey = optionalEnv('OPENAI_API_KEY', '');
+  if (openAiKey.length > 0) {
+    return {
+      provider: new OpenAiEmbeddingProvider(new OpenAI({ apiKey: openAiKey })),
+      model: optionalEnv('EMBEDDING_MODEL', DEFAULT_OPENAI_EMBEDDING_MODEL),
+    };
+  }
+  const model = optionalEnv('LOCAL_EMBEDDING_MODEL', DEFAULT_LOCAL_EMBEDDING_MODEL);
+  return {
+    provider: new LocalEmbeddingProvider(
+      createLazyLocalFeatureExtractor(model),
+      LOCAL_EMBEDDING_DIMENSIONS,
+    ),
+    model,
+  };
+}
+
 /**
  * Registers the shared singletons every other module depends on. When
  * `DATABASE_URL` is set, opens the Postgres pool and applies pending
@@ -72,6 +123,7 @@ export class CoreModule implements KernelModule {
     container.registerValue(CLOCK, SystemClock.instance());
     container.registerValue(ID_GENERATOR, new UuidGenerator());
     container.registerValue(SLUG_GENERATOR, new KebabSlugGenerator());
+    container.registerValue(INPUT_CONNECTORS, new CapabilityRegistry<InputConnector>('InputConnector'));
 
     const redisUrl = optionalEnv('REDIS_URL', '');
     let eventBus: EventBus;
@@ -94,6 +146,28 @@ export class CoreModule implements KernelModule {
     const llm = createLlmProvider();
     container.registerValue(LLM_PROVIDER, llm?.provider);
     container.registerValue(LLM_MODEL, llm?.model);
+
+    const embeddingEnabled = optionalEnv('EMBEDDING_ENABLED', 'true') !== 'false';
+    let embeddingPipeline: EmbeddingPipeline | undefined;
+    let embeddingModel: string | undefined;
+    let embeddingProvider: any = undefined;
+    let vectorStoreVal: any = undefined;
+    if (embeddingEnabled) {
+      const embedding = createEmbeddingProvider();
+      const vectorStore = pool !== undefined ? new PostgresVectorStore(pool) : new InMemoryVectorStore();
+      embeddingPipeline = new DefaultEmbeddingPipeline(
+        new FixedSizeChunker(),
+        embedding.provider,
+        vectorStore,
+      );
+      embeddingModel = embedding.model;
+      embeddingProvider = embedding.provider;
+      vectorStoreVal = vectorStore;
+    }
+    container.registerValue(EMBEDDING_PIPELINE, embeddingPipeline);
+    container.registerValue(EMBEDDING_MODEL, embeddingModel);
+    container.registerValue(EMBEDDING_PROVIDER, embeddingProvider);
+    container.registerValue(VECTOR_STORE, vectorStoreVal);
   }
 
   async start(container: Container): Promise<void> {

@@ -40,6 +40,10 @@ export class InMemoryContentDraftRepository
     );
     return Promise.resolve(found === undefined ? none : some(found));
   }
+
+  listByTenant(tenantId: TenantId): Promise<readonly ContentDraft[]> {
+    return Promise.resolve(this.values().filter((draft) => draft.tenantId === tenantId));
+  }
 }
 
 export class InMemoryPublishedContentRepository
@@ -58,5 +62,9 @@ export class InMemoryPublishedContentRepository
       (published) => published.tenantId === tenantId && published.draftId === draftId,
     );
     return Promise.resolve(found === undefined ? none : some(found));
+  }
+
+  listByTenant(tenantId: TenantId): Promise<readonly PublishedContent[]> {
+    return Promise.resolve(this.values().filter((published) => published.tenantId === tenantId));
   }
 }

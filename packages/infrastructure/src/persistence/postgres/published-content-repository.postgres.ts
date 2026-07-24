@@ -23,6 +23,8 @@ function toSnapshot(row: PublishedContentRow): PublishedContentSnapshot {
     body: ContentBody.create(row.body),
     viewCount: row.view_count,
     publishedAt: row.published_at,
+    providerCapability: row.provider_capability,
+    externalUrl: row.external_url,
   };
 }
 
@@ -45,8 +47,9 @@ export class PostgresPublishedContentRepository implements PublishedContentRepos
   async save(published: PublishedContent): Promise<void> {
     await this.pool.query(
       `INSERT INTO published_content (
-         id, tenant_id, draft_id, opportunity_id, slug, title, body, view_count, published_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         id, tenant_id, draft_id, opportunity_id, slug, title, body, view_count, published_at,
+         provider_capability, external_url
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        ON CONFLICT (id) DO UPDATE SET
          view_count = EXCLUDED.view_count`,
       [
@@ -59,6 +62,8 @@ export class PostgresPublishedContentRepository implements PublishedContentRepos
         published.body.value,
         published.viewCount,
         published.publishedAt,
+        published.providerCapability,
+        published.externalUrl,
       ],
     );
   }
@@ -67,6 +72,14 @@ export class PostgresPublishedContentRepository implements PublishedContentRepos
     await this.pool.query('DELETE FROM published_content WHERE id = $1', [
       published.getId().value(),
     ]);
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<readonly PublishedContent[]> {
+    const result = await this.pool.query<PublishedContentRow>(
+      'SELECT * FROM published_content WHERE tenant_id = $1 ORDER BY published_at DESC',
+      [tenantId],
+    );
+    return result.rows.map((row) => PublishedContent.reconstitute(toSnapshot(row)));
   }
 
   private async findOneWhere(

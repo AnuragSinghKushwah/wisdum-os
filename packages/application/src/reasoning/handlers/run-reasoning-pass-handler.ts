@@ -24,6 +24,7 @@ import type {
   ConceptRepository,
   InsightRepository,
   OpportunityRepository,
+  PublishedContentRepository,
 } from '@wisdum/domain';
 import type { UUID } from '@wisdum/types';
 import type { DocumentReadModel } from '../../document/index.js';
@@ -69,6 +70,7 @@ export class RunReasoningPassHandler implements CommandHandler<
     private readonly relationships: ConceptRelationshipRepository,
     private readonly insights: InsightRepository,
     private readonly opportunities: OpportunityRepository,
+    private readonly published: PublishedContentRepository,
     private readonly llm: LlmCompletionPort,
     private readonly ids: IdGenerator,
     private readonly events: DomainEventPublisher,
@@ -109,6 +111,22 @@ export class RunReasoningPassHandler implements CommandHandler<
 
       if (assetHasNewActivity && assetConceptIds.length >= 2) {
         await this.recordCoOccurrences(tenantId, assetConceptIds);
+
+        const conceptMap = new Map<string, ConceptId>();
+        extracted.forEach((item, idx) => {
+          const conceptId = assetConceptIds[idx];
+          if (conceptId) conceptMap.set(item.name.toLowerCase().trim(), conceptId);
+        });
+
+        const semanticRels = await this.discoverSemanticRelationships(
+          document.content,
+          extracted,
+          conceptMap,
+        );
+
+        for (const rel of semanticRels) {
+          await this.upsertRelationship(tenantId, rel.conceptAId, rel.conceptBId, rel.type);
+        }
       }
     }
 
@@ -242,8 +260,8 @@ export class RunReasoningPassHandler implements CommandHandler<
     tenantId: RunReasoningPassCommand['tenantId'],
     conceptAId: ConceptId,
     conceptBId: ConceptId,
+    relationshipType: ConceptRelationshipType = ConceptRelationshipType.coOccurs(),
   ): Promise<void> {
-    const relationshipType = ConceptRelationshipType.coOccurs();
     const existing = await this.relationships.findExisting(
       tenantId,
       conceptAId,
@@ -268,6 +286,70 @@ export class RunReasoningPassHandler implements CommandHandler<
     await this.relationships.save(relationship);
     await this.events.publishAll(relationship.pullDomainEvents());
     relationship.clearDomainEvents();
+  }
+
+  private async discoverSemanticRelationships(
+    content: string,
+    extractedConcepts: readonly ExtractedConcept[],
+    conceptMap: Map<string, ConceptId>,
+  ): Promise<readonly { conceptAId: ConceptId; conceptBId: ConceptId; type: ConceptRelationshipType }[]> {
+    if (extractedConcepts.length < 2) return [];
+
+    const conceptNames = extractedConcepts.map((c) => c.name);
+    const prompt = [
+      'Analyze the relationship between the following concepts extracted from a knowledge document.',
+      'Allowed relationship types:',
+      '  - relates_to: general connection',
+      '  - depends_on: concept A requires concept B',
+      '  - extends: concept A expands upon concept B',
+      '  - contradicts: concept A conflicts with concept B',
+      '  - complements: concept A pairs well with concept B',
+      '  - implemented_by: concept A is implemented or instantiated by concept B',
+      '',
+      `Concepts: ${conceptNames.join(', ')}`,
+      '',
+      'Respond with ONLY a JSON array in this exact shape:',
+      '[{"conceptA": "string", "conceptB": "string", "type": "relates_to|depends_on|extends|contradicts|complements|implemented_by"}]',
+      '',
+      'Context snippet:',
+      content.slice(0, 4000),
+    ].join('\n');
+
+    try {
+      const response = await this.llm.complete(prompt);
+      const parsed = extractJsonArray(response);
+      const result: { conceptAId: ConceptId; conceptBId: ConceptId; type: ConceptRelationshipType }[] = [];
+
+      for (const item of parsed) {
+        if (
+          typeof item === 'object' &&
+          item !== null &&
+          typeof (item as Record<string, unknown>).conceptA === 'string' &&
+          typeof (item as Record<string, unknown>).conceptB === 'string' &&
+          typeof (item as Record<string, unknown>).type === 'string'
+        ) {
+          const rawA = (item as Record<string, unknown>).conceptA as string;
+          const rawB = (item as Record<string, unknown>).conceptB as string;
+          const rawType = (item as Record<string, unknown>).type as string;
+
+          const idA = conceptMap.get(rawA.toLowerCase().trim());
+          const idB = conceptMap.get(rawB.toLowerCase().trim());
+
+          if (idA && idB && idA.value() !== idB.value()) {
+            try {
+              const relType = ConceptRelationshipType.create(rawType);
+              const [a, b] = orderPair(idA, idB);
+              result.push({ conceptAId: a, conceptBId: b, type: relType });
+            } catch {
+              // Skip invalid relationship type
+            }
+          }
+        }
+      }
+      return result;
+    } catch {
+      return [];
+    }
   }
 
   // ── Reason -> Insight -> Opportunity ────────────────────────────────────
@@ -298,7 +380,29 @@ export class RunReasoningPassHandler implements CommandHandler<
     await this.events.publishAll(insight.pullDomainEvents());
     insight.clearDomainEvents();
 
-    const proposed = await this.proposeOpportunities(summaryText);
+    // Query historical performance metrics (views) to feed into the Opportunity Engine (Measure & Learn)
+    const publishedItems = await this.published.listByTenant(tenantId);
+    const performanceSummary: string[] = [];
+    if (publishedItems.length > 0) {
+      const typeViews: Record<string, { count: number; totalViews: number }> = {};
+      for (const pub of publishedItems) {
+        const opp = await this.opportunities.findById(OpportunityId.create(pub.opportunityId));
+        if (opp.some) {
+          const typeName = opp.value.type.value;
+          if (!typeViews[typeName]) {
+            typeViews[typeName] = { count: 0, totalViews: 0 };
+          }
+          typeViews[typeName].count += 1;
+          typeViews[typeName].totalViews += pub.viewCount;
+        }
+      }
+      for (const [type, stats] of Object.entries(typeViews)) {
+        const avg = stats.count > 0 ? Math.round(stats.totalViews / stats.count) : 0;
+        performanceSummary.push(`- Opportunity Type "${type}": ${stats.count} published, average views = ${avg}`);
+      }
+    }
+
+    const proposed = await this.proposeOpportunities(summaryText, performanceSummary.join('\n'));
     let opportunitiesCreated = 0;
     for (const item of proposed) {
       try {
@@ -328,12 +432,17 @@ export class RunReasoningPassHandler implements CommandHandler<
 
   private async proposeOpportunities(
     insightSummary: string,
+    performanceHistory: string,
   ): Promise<readonly ProposedOpportunity[]> {
     const prompt = [
       'Given this observation about a person\'s captured knowledge, propose 1 to 3',
       'concrete content opportunities they could create.',
       'Respond with only a JSON array, no commentary, in this exact shape:',
       '[{"title": "string", "type": "blog_post|linkedin_post|newsletter|youtube_script|course_module|book_chapter|architecture_document|research_paper|podcast_outline|trading_report|internal_documentation|product_specification|marketing_campaign|sales_content", "rationale": "one sentence"}]',
+      '',
+      performanceHistory.trim().length > 0
+        ? `Here is the historical performance (measured in views) of content types previously published by this user:\n${performanceHistory}\nLearn from this feedback and prioritize generating opportunity types that have performed well historically (i.e. have higher average views).`
+        : 'There is no historical performance data available yet. Propose diverse and relevant content types.',
       '',
       `Observation: ${insightSummary}`,
     ].join('\n');

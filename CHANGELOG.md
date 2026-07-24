@@ -8,6 +8,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Sprint 011:** Analytics & Learning Engine Feedback Loop (`packages/application/src/opportunity/`, `packages/application/src/reasoning/`).
+  - Added engagement and view-count analytics collection via `GetPublishedContentHandler` (Product Bible §11: Measure step).
+  - Integrated historical performance metrics (average view counts per content type) into `RunReasoningPassHandler` to prioritize high-leverage content types during opportunity generation (Product Bible §11: Learn step).
+- **Sprint 010:** Multi-Channel Publishing Engine & External Platform Sync (`platform/publishing/`, `packages/application/src/opportunity/`).
+  - Implemented multi-platform publishing providers: `DevToPublishingProvider`, `GhostPublishingProvider`, `SubstackPublishingProvider`, `TwitterPublishingProvider`, `LinkedInPublishingProvider`, `WebsitePublishingProvider`.
+  - Added `PublishContentDraftHandler` CQRS handler linking opportunity drafts to external multi-channel publishing targets.
+- **Sprint 009:** Specialized Autonomous Agents & Background Automations Engine (`packages/domain/src/agent/`, `packages/application/src/agent/`, `apps/api/src/routes/agent-routes.ts`).
+  - Added Agent aggregate lifecycle state machine: `AgentTask`, `AgentTaskId`, `AgentTaskRepository`, and task event publisher.
+  - Implemented application handlers: `CreateAgentTaskHandler`, `ExecuteAgentTaskHandler`, `ListAgentTasksHandler`.
+  - Registered Fastify endpoints `GET /v1/agents/tasks` and `POST /v1/agents/tasks`.
+  - Added Vitest unit test suite `packages/application/src/agent/handlers/__tests__/agent-handlers.test.ts`.
+- **Sprint 008:** Knowledge Graph Persistence & Multi-Layer Reasoning Engine (`packages/domain/src/graph/`, `packages/application/src/reasoning/`, `packages/infrastructure/src/read-models/postgres/`).
+  - Extended `GraphReadModel` port with `getConcepts` and `getRelationships` methods.
+  - Implemented `getConcepts` and `getRelationships` on `PostgresGraphReadModel` querying Postgres `concepts` and `concept_relationships` tables.
+  - Registered `/v1/graph/concepts` and `/v1/graph/relationships` REST endpoints in `apps/api/src/routes/graph-routes.ts`.
+  - Added unit test coverage for Graph topology read models in `get-graph-topology-handler.test.ts`.
+- **Sprint 007:** Ingestion Engine & Public Webhook API (`packages/application/src/capture/` & `apps/api/src/routes/webhook-routes.ts`).
+  - Added CQRS command & handler: `IngestWebhookCommand`, `IngestWebhookHandler` with content-hash deduplication and optional reasoning pass trigger.
+  - Added Vitest unit test suite: `packages/application/src/capture/handlers/__tests__/ingest-webhook-handler.test.ts`.
+  - Added Fastify public endpoint: `POST /v1/webhooks/ingest` with `x-api-key` validation and tenant context resolution.
+  - Added body validation schemas in `apps/api/src/validation/webhook-schemas.ts`.
+  - Updated DI container module: `CaptureModule` in `apps/api/src/container/modules/capture-module.ts` and `CAPTURE_HANDLERS` token in `apps/api/src/container/tokens.ts`.
+  - Added Webhook Ingestion API specification in `docs/api/webhooks.md`.
+- **Sprint 006:** Opportunity Engine Application Layer & HTTP Integration (`packages/application/src/opportunity/`).
+  - CQRS commands & helper functions: `CreateOpportunityCommand`, `DismissOpportunityCommand`.
+  - Application command handlers: `CreateOpportunityHandler`, `DismissOpportunityHandler`.
+  - Unit test suite: Comprehensive Vitest handler tests (`packages/application/src/opportunity/handlers/__tests__/opportunity-handlers.test.ts`).
+  - Refactored `POST /v1/opportunities` and added `POST /v1/opportunities/:id/dismiss` in `apps/api/src/routes/opportunity-routes.ts`.
 - **Sprint 005:** Knowledge REST API Endpoints & Fastify Integration (`apps/api/src/routes/knowledge-routes.ts`).
   - Added REST API routes: `PATCH /v1/knowledge/:id`, `DELETE /v1/knowledge/:id`, `POST /v1/knowledge/:id/visibility`, `POST /v1/knowledge/:id/import`.
   - Added Fastify body validation schemas in `apps/api/src/validation/knowledge-schemas.ts`.

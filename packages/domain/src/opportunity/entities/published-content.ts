@@ -17,6 +17,10 @@ export interface CreatePublishedContentProps {
   readonly slug: PublishedSlug;
   readonly title: ContentTitle;
   readonly body: ContentBody;
+  /** The plugin capability that produced this record, e.g. `publishing.website`. */
+  readonly providerCapability: string;
+  /** Where this content lives, as reported by the provider that published it. */
+  readonly externalUrl: string;
 }
 
 /** Full state needed to rehydrate an existing published record (no events are raised). */
@@ -30,6 +34,8 @@ export interface PublishedContentSnapshot {
   readonly body: ContentBody;
   readonly viewCount: number;
   readonly publishedAt: IsoTimestamp;
+  readonly providerCapability: string;
+  readonly externalUrl: string;
 }
 
 /**
@@ -47,6 +53,8 @@ export class PublishedContent extends AggregateRoot<PublishedContentId> {
   private readonly _body: ContentBody;
   private _viewCount: number;
   private readonly _publishedAt: IsoTimestamp;
+  private readonly _providerCapability: string;
+  private readonly _externalUrl: string;
 
   private constructor(snapshot: PublishedContentSnapshot) {
     super(snapshot.id);
@@ -58,6 +66,8 @@ export class PublishedContent extends AggregateRoot<PublishedContentId> {
     this._body = snapshot.body;
     this._viewCount = snapshot.viewCount;
     this._publishedAt = snapshot.publishedAt;
+    this._providerCapability = snapshot.providerCapability;
+    this._externalUrl = snapshot.externalUrl;
   }
 
   static create(props: CreatePublishedContentProps, clock: Clock): PublishedContent {
@@ -72,6 +82,8 @@ export class PublishedContent extends AggregateRoot<PublishedContentId> {
       body: props.body,
       viewCount: 0,
       publishedAt: now,
+      providerCapability: props.providerCapability,
+      externalUrl: props.externalUrl,
     });
     published.raise({
       ...published.eventEnvelope(now),
@@ -125,6 +137,14 @@ export class PublishedContent extends AggregateRoot<PublishedContentId> {
 
   get publishedAt(): IsoTimestamp {
     return this._publishedAt;
+  }
+
+  get providerCapability(): string {
+    return this._providerCapability;
+  }
+
+  get externalUrl(): string {
+    return this._externalUrl;
   }
 
   private raise(event: AnyOpportunityEvent): void {

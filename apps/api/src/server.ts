@@ -1,6 +1,7 @@
 import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import multipart from '@fastify/multipart';
 import { optionalEnv } from '@wisdum/config';
 import { createKernel } from '@wisdum/kernel';
 import type { Kernel } from '@wisdum/kernel';
@@ -10,14 +11,24 @@ import {
   AiModule,
   CoreModule,
   DocumentModule,
+  GithubModule,
   IdentityModule,
   KnowledgeModule,
+  NotionModule,
+  ObsidianModule,
   OpportunityModule,
   OrganizationModule,
   PluginModule,
   ReasoningModule,
+  SchedulerModule,
   SearchModule,
+  SlackModule,
   WorkspaceModule,
+  AiExportModule,
+  EmailModule,
+  AgentModule,
+  GraphModule,
+  CaptureModule,
 } from './container/modules/index.js';
 import {
   AI_HANDLERS,
@@ -26,12 +37,27 @@ import {
   IDENTITY_HANDLERS,
   KNOWLEDGE_HANDLERS,
   OPPORTUNITY_HANDLERS,
+  OPPORTUNITY_REPOSITORY,
+  INSIGHT_REPOSITORY,
+  CLOCK,
+  ID_GENERATOR,
   ORGANIZATION_HANDLERS,
   PLUGIN_HANDLERS,
   REASONING_HANDLERS,
   SEARCH_HANDLERS,
+  SLUG_GENERATOR,
   TOKEN_SERVICE,
   WORKSPACE_HANDLERS,
+  VECTOR_STORE,
+  EMBEDDING_PROVIDER,
+  EMBEDDING_MODEL,
+  PG_POOL,
+  CONCEPT_REPOSITORY,
+  CONCEPT_RELATIONSHIP_REPOSITORY,
+  KNOWLEDGE_READ_MODEL,
+  AGENT_HANDLERS,
+  GRAPH_HANDLERS,
+  CAPTURE_HANDLERS,
 } from './container/tokens.js';
 import { createAuthHook } from './middleware/auth-context.js';
 import { errorHandler } from './middleware/error-handler.js';
@@ -46,6 +72,9 @@ import {
   registerReasoningRoutes,
   registerSearchRoutes,
   registerWorkspaceRoutes,
+  registerAgentRoutes,
+  registerGraphRoutes,
+  registerWebhookRoutes,
 } from './routes/index.js';
 
 /**
@@ -57,8 +86,8 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
   const kernel = createKernel();
   kernel
     .use(new CoreModule())
-    .use(new KnowledgeModule())
     .use(new DocumentModule())
+    .use(new KnowledgeModule())
     .use(new IdentityModule())
     .use(new WorkspaceModule())
     .use(new OrganizationModule())
@@ -66,15 +95,32 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
     .use(new AiModule())
     .use(new SearchModule())
     .use(new OpportunityModule())
-    .use(new ReasoningModule());
+    .use(new ReasoningModule())
+    .use(new SchedulerModule())
+    .use(new GithubModule())
+    .use(new NotionModule())
+    .use(new SlackModule())
+    .use(new ObsidianModule())
+    .use(new AiExportModule())
+    .use(new EmailModule())
+    .use(new AgentModule())
+    .use(new GraphModule())
+    .use(new CaptureModule());
   await kernel.start();
 
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: true });
+
+  await app.register(multipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB
+    },
+  });
   app.setErrorHandler(errorHandler);
   app.addHook('onRequest', createAuthHook(kernel.container.resolve(TOKEN_SERVICE)));
 
+  const corsOrigin = optionalEnv('CORS_ORIGIN', 'http://localhost:3000').split(',');
   await app.register(cors, {
-    origin: optionalEnv('CORS_ORIGIN', 'http://localhost:3000').split(','),
+    origin: optionalEnv('WISDUM_ENV', 'development') === 'development' ? true : corsOrigin,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 
@@ -87,16 +133,51 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
 
   app.get('/health', async () => kernel.report());
 
-  registerKnowledgeRoutes(app, kernel.container.resolve(KNOWLEDGE_HANDLERS));
+  registerKnowledgeRoutes(
+    app,
+    kernel.container.resolve(KNOWLEDGE_HANDLERS),
+    kernel.container.resolve(DOCUMENT_HANDLERS),
+  );
   registerDocumentRoutes(app, kernel.container.resolve(DOCUMENT_HANDLERS));
-  registerIdentityRoutes(app, kernel.container.resolve(IDENTITY_HANDLERS));
+  registerSearchRoutes(
+    app,
+    kernel.container.resolve(SEARCH_HANDLERS),
+    kernel.container.resolve(PG_POOL),
+    kernel.container.resolve(VECTOR_STORE),
+    kernel.container.resolve(EMBEDDING_PROVIDER),
+    kernel.container.resolve(EMBEDDING_MODEL),
+  );
+  registerIdentityRoutes(
+    app,
+    kernel.container.resolve(IDENTITY_HANDLERS),
+    kernel.container.resolve(PG_POOL),
+    kernel.container.resolve(TOKEN_SERVICE),
+    kernel.container.resolve(ID_GENERATOR),
+    kernel.container.resolve(CLOCK),
+  );
   registerWorkspaceRoutes(app, kernel.container.resolve(WORKSPACE_HANDLERS));
   registerOrganizationRoutes(app, kernel.container.resolve(ORGANIZATION_HANDLERS));
   registerPluginRoutes(app, kernel.container.resolve(PLUGIN_HANDLERS));
   registerAiRoutes(app, kernel.container.resolve(AI_HANDLERS), kernel.container.resolve(CONVERSATION_RUNTIME));
-  registerSearchRoutes(app, kernel.container.resolve(SEARCH_HANDLERS));
-  registerOpportunityRoutes(app, kernel.container.resolve(OPPORTUNITY_HANDLERS));
-  registerReasoningRoutes(app, kernel.container.resolve(REASONING_HANDLERS));
+  registerOpportunityRoutes(
+    app,
+    kernel.container.resolve(OPPORTUNITY_HANDLERS),
+    kernel.container.resolve(OPPORTUNITY_REPOSITORY),
+    kernel.container.resolve(INSIGHT_REPOSITORY),
+    kernel.container.resolve(KNOWLEDGE_READ_MODEL),
+    kernel.container.resolve(CLOCK),
+    kernel.container.resolve(ID_GENERATOR),
+    kernel.container.resolve(PG_POOL),
+  );
+  registerReasoningRoutes(
+    app,
+    kernel.container.resolve(REASONING_HANDLERS),
+    kernel.container.resolve(CONCEPT_REPOSITORY),
+    kernel.container.resolve(CONCEPT_RELATIONSHIP_REPOSITORY),
+  );
+  registerAgentRoutes(app, kernel.container.resolve(AGENT_HANDLERS));
+  registerGraphRoutes(app, kernel.container.resolve(GRAPH_HANDLERS));
+  registerWebhookRoutes(app, kernel.container.resolve(CAPTURE_HANDLERS));
 
   return { app, kernel };
 }

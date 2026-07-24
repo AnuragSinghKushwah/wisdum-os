@@ -15,7 +15,6 @@ interface LoginResponse {
 export default function SignInPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [tenantId, setTenantId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +25,13 @@ export default function SignInPage() {
     setError(null);
     setIsSubmitting(true);
     try {
+      // 1. Resolve tenant ID first by email
+      const { tenantId } = await apiFetch<{ tenantId: string }>('/v1/auth/resolve-tenant', {
+        method: 'POST',
+        body: { email },
+      });
+
+      // 2. Perform authentic login
       const result = await apiFetch<LoginResponse>('/v1/auth/login', {
         method: 'POST',
         tenantId,
@@ -45,20 +51,10 @@ export default function SignInPage() {
       <h1 className="text-center text-xl font-semibold">Sign in</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
-          Tenant ID
-          <input
-            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700"
-            value={tenantId}
-            onChange={(event) => setTenantId(event.target.value)}
-            placeholder="e.g. af3da7a6-8cd5-4ab6-b217-41d45320a8a8"
-            required
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
           Email
           <input
             type="email"
-            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700"
+            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 bg-transparent"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
@@ -68,7 +64,7 @@ export default function SignInPage() {
           Password
           <input
             type="password"
-            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700"
+            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 bg-transparent"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
@@ -83,9 +79,14 @@ export default function SignInPage() {
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
-      <Link href="/sign-up" className="text-center text-sm underline">
-        Need an account? Sign up
-      </Link>
+      <div className="flex flex-col gap-2 items-center text-sm">
+        <Link href="/forgot-password" className="underline text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
+          Forgot your password?
+        </Link>
+        <Link href="/sign-up" className="underline">
+          Need an account? Sign up
+        </Link>
+      </div>
     </div>
   );
 }

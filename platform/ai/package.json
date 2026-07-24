@@ -19,6 +19,7 @@
   "dependencies": {
     "@wisdum/contracts": "*",
     "@wisdum/errors": "*",
-    "@wisdum/domain": "*"
+    "@wisdum/domain": "*",
+    "@xenova/transformers": "^2.17.2"
   }
 }

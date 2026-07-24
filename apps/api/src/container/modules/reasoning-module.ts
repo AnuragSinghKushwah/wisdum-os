@@ -26,7 +26,10 @@ import {
   LLM_PROVIDER,
   OPPORTUNITY_REPOSITORY,
   PG_POOL,
+  PUBLISHED_CONTENT_REPOSITORY,
   REASONING_HANDLERS,
+  CONCEPT_REPOSITORY,
+  CONCEPT_RELATIONSHIP_REPOSITORY,
 } from '../tokens.js';
 import type { ReasoningHandlers } from '../tokens.js';
 
@@ -72,6 +75,7 @@ export class ReasoningModule implements KernelModule {
         relationships,
         container.resolve(INSIGHT_REPOSITORY),
         container.resolve(OPPORTUNITY_REPOSITORY),
+        container.resolve(PUBLISHED_CONTENT_REPOSITORY),
         llm,
         ids,
         events,
@@ -79,5 +83,7 @@ export class ReasoningModule implements KernelModule {
       ),
     };
     container.registerValue(REASONING_HANDLERS, handlers);
+    container.registerValue(CONCEPT_REPOSITORY, concepts);
+    container.registerValue(CONCEPT_RELATIONSHIP_REPOSITORY, relationships);
   }
 }

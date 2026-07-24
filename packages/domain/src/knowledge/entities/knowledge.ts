@@ -406,6 +406,10 @@ export class Knowledge extends AggregateRoot<KnowledgeId> {
     return this._properties;
   }
 
+  updateProperty(key: string, value: string): void {
+    (this._properties as Record<string, string>)[key] = value;
+  }
+
   get contentReferences(): readonly ContentReference[] {
     return this._contentReferences;
   }

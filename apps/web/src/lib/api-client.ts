@@ -1,4 +1,4 @@
-import { loadSession } from './session';
+import { loadSession, clearSession } from './session';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -53,6 +53,13 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
   const data: unknown = text.length > 0 ? JSON.parse(text) : undefined;
 
   if (!response.ok) {
+    if (response.status === 401 && path !== '/v1/auth/login') {
+      clearSession();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/sign-in';
+      }
+    }
+
     const envelope = data as { error?: { message?: string; code?: string } } | undefined;
     throw new ApiError(
       envelope?.error?.message ?? `Request failed with status ${response.status}`,

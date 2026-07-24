@@ -13,6 +13,7 @@ import type {
   InsightId,
   Opportunity,
   OpportunityId,
+  PublishedContent,
 } from '@wisdum/domain';
 import type {
   Clock,
@@ -21,6 +22,7 @@ import type {
   ConceptRepository,
   InsightRepository,
   OpportunityRepository,
+  PublishedContentRepository,
 } from '@wisdum/domain';
 import type { DocumentDto, DocumentReadModel } from '../../document/index.js';
 import type { KnowledgeContentReferenceDto, KnowledgeDto, KnowledgeReadModel } from '../../knowledge/index.js';
@@ -199,6 +201,29 @@ class FakeOpportunityRepository implements OpportunityRepository {
   }
 }
 
+class FakePublishedContentRepository implements PublishedContentRepository {
+  private readonly items: PublishedContent[] = [];
+  findById(): Promise<Option<PublishedContent>> {
+    throw new Error('not implemented');
+  }
+  findBySlug(): Promise<Option<PublishedContent>> {
+    throw new Error('not implemented');
+  }
+  findByDraftId(): Promise<Option<PublishedContent>> {
+    throw new Error('not implemented');
+  }
+  listByTenant(tenantId: TenantId): Promise<readonly PublishedContent[]> {
+    return Promise.resolve(this.items.filter((item) => item.tenantId === tenantId));
+  }
+  save(published: PublishedContent): Promise<void> {
+    this.items.push(published);
+    return Promise.resolve();
+  }
+  delete(): Promise<void> {
+    throw new Error('not implemented');
+  }
+}
+
 /** Always extracts the same two co-occurring concepts, and always proposes one opportunity per insight. */
 class ScriptedLlmCompletionPort implements LlmCompletionPort {
   calls: string[] = [];
@@ -260,6 +285,7 @@ function knowledgeAsset(id: string, documentId: string): KnowledgeDto {
     contentReferences: [contentRef(documentId)],
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
+    properties: {},
   };
 }
 
@@ -295,6 +321,7 @@ describe('RunReasoningPassHandler', () => {
     const relationships = new FakeConceptRelationshipRepository();
     const insights = new FakeInsightRepository();
     const opportunities = new FakeOpportunityRepository();
+    const published = new FakePublishedContentRepository();
     const llm = new ScriptedLlmCompletionPort();
 
     const handler = new RunReasoningPassHandler(
@@ -305,6 +332,7 @@ describe('RunReasoningPassHandler', () => {
       relationships,
       insights,
       opportunities,
+      published,
       llm,
       ids,
       events,
@@ -348,6 +376,7 @@ describe('RunReasoningPassHandler', () => {
     const relationships = new FakeConceptRelationshipRepository();
     const insights = new FakeInsightRepository();
     const opportunities = new FakeOpportunityRepository();
+    const published = new FakePublishedContentRepository();
     const llm = new SingleConceptLlmCompletionPort();
 
     const handler = new RunReasoningPassHandler(
@@ -358,6 +387,7 @@ describe('RunReasoningPassHandler', () => {
       relationships,
       insights,
       opportunities,
+      published,
       llm,
       ids,
       events,
@@ -371,5 +401,60 @@ describe('RunReasoningPassHandler', () => {
     const allConcepts = await concepts.listByTenant(TENANT_ID);
     expect(allConcepts).toHaveLength(1);
     expect(allConcepts[0]?.mentionCount).toBe(1);
+  });
+
+  it('queries historical publishing performance and includes it in the opportunity proposal prompt', async () => {
+    const knowledgeReads = new FakeKnowledgeReadModel([
+      knowledgeAsset('11111111-1111-1111-1111-111111111111', 'doc-1'),
+    ]);
+    const documentReads = new FakeDocumentReadModel(
+      new Map([['doc-1', document('doc-1', 'Notes about scaling Redis in production.')]]),
+    );
+    const concepts = new FakeConceptRepository();
+    const mentions = new FakeConceptMentionRepository();
+    const relationships = new FakeConceptRelationshipRepository();
+    const insights = new FakeInsightRepository();
+    const opportunities = new FakeOpportunityRepository();
+    const published = new FakePublishedContentRepository();
+    
+    // Seed an opportunity and a published content record for it
+    const opportunityId = '33333333-3333-3333-3333-333333333333' as UUID;
+    const mockOpportunity = {
+      getId: () => ({ value: () => opportunityId }),
+      tenantId: TENANT_ID,
+      type: { value: 'blog_post' },
+    } as any;
+    await opportunities.save(mockOpportunity);
+    
+    const mockPublished = {
+      tenantId: TENANT_ID,
+      opportunityId,
+      viewCount: 150,
+    } as any;
+    await published.save(mockPublished);
+
+    const llm = new ScriptedLlmCompletionPort();
+
+    const handler = new RunReasoningPassHandler(
+      knowledgeReads,
+      documentReads,
+      concepts,
+      mentions,
+      relationships,
+      insights,
+      opportunities,
+      published,
+      llm,
+      ids,
+      events,
+      clock,
+    );
+
+    await handler.execute(runReasoningPassCommand({ tenantId: TENANT_ID }));
+
+    // Verify that the prompt sent to the LLM contains our performance history
+    const proposePrompt = llm.calls.find((prompt) => prompt.includes('historical performance'));
+    expect(proposePrompt).toBeDefined();
+    expect(proposePrompt).toContain('Opportunity Type "blog_post": 1 published, average views = 150');
   });
 });

@@ -1,15 +1,22 @@
 import {
+  createOpportunityCommand,
+  dismissOpportunityCommand,
   generateContentDraftCommand,
   getContentDraftQuery,
   getOpportunityQuery,
   getPublishedContentQuery,
+  listContentDraftsQuery,
   listOpportunitiesQuery,
+  listPublishedContentQuery,
   publishContentDraftCommand,
   updateContentDraftCommand,
 } from '@wisdum/application';
+import type { IdGenerator, KnowledgeReadModel } from '@wisdum/application';
+import type { OpportunityRepository, InsightRepository, Clock } from '@wisdum/domain';
 import type { FastifyInstance } from 'fastify';
 import type { OpportunityHandlers } from '../container/tokens.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
+import type { PgPool } from '@wisdum/database';
 import {
   draftIdParamsSchema,
   opportunityIdParamsSchema,
@@ -17,17 +24,78 @@ import {
   updateContentDraftBodySchema,
 } from '../validation/opportunity-schemas.js';
 
+interface CreateOpportunityBody {
+  readonly title: string;
+  readonly type: string;
+  readonly rationale: string;
+}
+
 interface UpdateContentDraftBody {
   readonly title: string;
   readonly body: string;
 }
 
 /** Wires the Opportunity context's handlers to HTTP — Create/Publish/Measure steps of the Core Loop. */
-export function registerOpportunityRoutes(app: FastifyInstance, handlers: OpportunityHandlers): void {
+export function registerOpportunityRoutes(
+  app: FastifyInstance,
+  handlers: OpportunityHandlers,
+  repository: OpportunityRepository,
+  insights: InsightRepository,
+  knowledgeReads: KnowledgeReadModel,
+  clock: Clock,
+  ids: IdGenerator,
+  pool?: PgPool,
+): void {
   app.get('/v1/opportunities', async (request) => {
     const tenantId = requireTenantId(request);
     return handlers.list.execute(listOpportunitiesQuery({ tenantId }));
   });
+
+  app.get('/v1/dashboard/stats', async (request) => {
+    const tenantId = requireTenantId(request);
+    const [knowledge, opportunities, drafts, published] = await Promise.all([
+      knowledgeReads.listByTenant(tenantId),
+      handlers.list.execute(listOpportunitiesQuery({ tenantId })),
+      handlers.listDrafts.execute(listContentDraftsQuery({ tenantId })),
+      handlers.listPublished.execute(listPublishedContentQuery({ tenantId })),
+    ]);
+    return {
+      knowledgeCount: knowledge.length,
+      opportunityCount: opportunities.length,
+      draftCount: drafts.length,
+      publishedCount: published.length,
+    };
+  });
+
+  app.post(
+    '/v1/opportunities',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['title', 'type', 'rationale'],
+          properties: {
+            title: { type: 'string', minLength: 1 },
+            type: { type: 'string' },
+            rationale: { type: 'string', minLength: 1 },
+          },
+          additionalProperties: false,
+        },
+      },
+    },
+    async (request, reply) => {
+      const tenantId = requireTenantId(request);
+      const body = request.body as CreateOpportunityBody;
+
+      const result = await handlers.create.execute(
+        createOpportunityCommand({
+          tenantId,
+          ...body,
+        }),
+      );
+      await reply.status(201).send(result);
+    },
+  );
 
   app.get(
     '/v1/opportunities/:id',
@@ -36,6 +104,17 @@ export function registerOpportunityRoutes(app: FastifyInstance, handlers: Opport
       const tenantId = requireTenantId(request);
       const { id } = request.params as { id: string };
       return handlers.get.execute(getOpportunityQuery({ tenantId, opportunityId: id }));
+    },
+  );
+
+  app.post(
+    '/v1/opportunities/:id/dismiss',
+    { schema: { params: opportunityIdParamsSchema } },
+    async (request) => {
+      const tenantId = requireTenantId(request);
+      const { id } = request.params as { id: string };
+      await handlers.dismiss.execute(dismissOpportunityCommand({ tenantId, opportunityId: id }));
+      return { status: 'dismissed' };
     },
   );
 
@@ -51,6 +130,11 @@ export function registerOpportunityRoutes(app: FastifyInstance, handlers: Opport
       await reply.status(201).send(result);
     },
   );
+
+  app.get('/v1/drafts', async (request) => {
+    const tenantId = requireTenantId(request);
+    return handlers.listDrafts.execute(listContentDraftsQuery({ tenantId }));
+  });
 
   app.get('/v1/drafts/:id', { schema: { params: draftIdParamsSchema } }, async (request) => {
     const tenantId = requireTenantId(request);
@@ -82,7 +166,11 @@ export function registerOpportunityRoutes(app: FastifyInstance, handlers: Opport
     },
   );
 
-  // Public, unauthenticated route — the Measure step (Product Bible §11).
+  app.get('/v1/published', async (request) => {
+    const tenantId = requireTenantId(request);
+    return handlers.listPublished.execute(listPublishedContentQuery({ tenantId }));
+  });
+
   app.get(
     '/v1/published/:id',
     { schema: { params: publishedContentIdParamsSchema } },

@@ -31,6 +31,8 @@ import type {
   CreateUserHandler,
   CreateWorkspaceHandler,
   CreateApiKeyHandler,
+  CreateOpportunityHandler,
+  DismissOpportunityHandler,
   RevokeApiKeyHandler,
   ListApiKeysHandler,
   ApiKeyReadModel,
@@ -75,6 +77,7 @@ import type {
   GetGraphTopologyHandler,
   GetGraphNeighborsHandler,
   GraphReadModel,
+  IngestWebhookHandler,
 } from '@wisdum/application';
 import type { EventBus } from '@wisdum/events';
 import type { ConversationRuntime, LlmProvider, EmbeddingProvider } from '@wisdum/platform-ai';
@@ -199,6 +202,8 @@ export interface SearchHandlers {
 export const SEARCH_HANDLERS = createToken<SearchHandlers>('api.search-handlers');
 
 export interface OpportunityHandlers {
+  readonly create: CreateOpportunityHandler;
+  readonly dismiss: DismissOpportunityHandler;
   readonly get: GetOpportunityHandler;
   readonly list: ListOpportunitiesHandler;
   readonly generateDraft: GenerateContentDraftHandler;
@@ -254,4 +259,9 @@ export interface GraphHandlers {
 }
 export const GRAPH_HANDLERS = createToken<GraphHandlers>('api.graph-handlers');
 export const GRAPH_READ_MODEL = createToken<GraphReadModel>('api.graph-read-model');
+
+export interface CaptureHandlers {
+  readonly ingestWebhook: IngestWebhookHandler;
+}
+export const CAPTURE_HANDLERS = createToken<CaptureHandlers>('api.capture-handlers');
 

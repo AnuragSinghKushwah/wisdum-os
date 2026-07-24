@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ApiError, apiFetch } from '../../../lib/api-client';
+import { useAuth } from '../../../lib/auth-context';
 
 interface KnowledgeDto {
   readonly id: string;
@@ -13,6 +14,7 @@ interface KnowledgeDto {
   readonly type: string;
   readonly visibility: string;
   readonly updatedAt: string;
+  readonly properties?: Record<string, string>;
 }
 
 const KNOWLEDGE_TYPES = [
@@ -32,15 +34,48 @@ const KNOWLEDGE_TYPES = [
 const VISIBILITIES = ['private', 'workspace', 'public'] as const;
 
 export default function KnowledgePage() {
+  const { session } = useAuth();
   const [items, setItems] = useState<readonly KnowledgeDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [type, setType] = useState<(typeof KNOWLEDGE_TYPES)[number]>('note');
   const [visibility, setVisibility] = useState<(typeof VISIBILITIES)[number]>('private');
   const [isCreating, setIsCreating] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Upload/Ingest File States
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  function renderStatusBadge(val?: string) {
+    const status = val || 'pending';
+    if (status === 'completed') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+          ● Done
+        </span>
+      );
+    }
+    if (status === 'failed') {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-450 border border-rose-500/20">
+          ● Failed
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-amber-500/10 text-amber-700 dark:text-amber-455 border border-amber-500/20 animate-pulse">
+        ● Pending
+      </span>
+    );
+  }
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -49,7 +84,7 @@ export default function KnowledgePage() {
       const result = await apiFetch<readonly KnowledgeDto[]>('/v1/knowledge');
       setItems(result);
     } catch (cause) {
-      setError(cause instanceof ApiError ? cause.message : 'Failed to load knowledge assets.');
+      setError(cause instanceof Error ? cause.message : 'Failed to load knowledge assets.');
     } finally {
       setIsLoading(false);
     }
@@ -59,8 +94,47 @@ export default function KnowledgePage() {
     void load();
   }, [load]);
 
+  // Client-side content validation rules
+  function validateInput(mediumType: string, textContent: string): string | null {
+    const trimmed = textContent.trim();
+    if (trimmed.length === 0) return null; // content is optional
+
+    if (mediumType === 'webpage') {
+      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        return 'For webpage medium, content must be a valid URL starting with http:// or https://';
+      }
+    }
+    if (mediumType === 'pdf') {
+      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        return 'For PDF medium, content must be a valid URL pointing to a PDF file.';
+      }
+    }
+    if (mediumType === 'video') {
+      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        return 'For video medium, content must be a valid video URL starting with http:// or https://';
+      }
+      if (!trimmed.includes('youtube.com') && !trimmed.includes('youtu.be') && !trimmed.includes('vimeo.com')) {
+        return 'For video medium, please provide a valid YouTube or Vimeo link.';
+      }
+    }
+    return null;
+  }
+
+  // Validate on field changes
+  useEffect(() => {
+    setValidationError(validateInput(type, content));
+  }, [type, content]);
+
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    
+    // Final validation check
+    const checkError = validateInput(type, content);
+    if (checkError) {
+      setValidationError(checkError);
+      return;
+    }
+
     setIsCreating(true);
     setError(null);
     try {
@@ -80,112 +154,375 @@ export default function KnowledgePage() {
         });
       }
 
+      // Reset & Close Modal
       setTitle('');
       setContent('');
+      setType('note');
+      setVisibility('private');
+      setValidationError(null);
+      setIsModalOpen(false);
       await load();
     } catch (cause) {
-      setError(cause instanceof ApiError ? cause.message : 'Failed to create knowledge asset.');
+      setError(cause instanceof Error ? cause.message : 'Failed to create knowledge asset.');
     } finally {
       setIsCreating(false);
     }
   }
 
+  // Ingest local document upload action
+  async function handleUploadSubmit() {
+    if (!selectedFile) return;
+    setIsUploading(true);
+    setUploadError(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+      const headers: Record<string, string> = {};
+      if (session?.token) {
+        headers.authorization = `Bearer ${session.token}`;
+      }
+
+      const response = await fetch(`${API_URL}/v1/knowledge/upload`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        const errData = text ? JSON.parse(text) : {};
+        throw new Error(errData.message ?? `Ingest failed with status ${response.status}`);
+      }
+
+      setIsUploadModalOpen(false);
+      setSelectedFile(null);
+      await load();
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Ingestion failed.');
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   return (
-    <div>
-      <h1 className="text-2xl font-semibold">Knowledge</h1>
-
-      <form onSubmit={handleCreate} className="mt-4 flex flex-col gap-3">
-        <div className="flex flex-wrap items-end gap-2">
-        <label className="flex flex-col gap-1 text-sm">
-          Title
-          <input
-            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            required
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Type
-          <select
-            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700"
-            value={type}
-            onChange={(event) => setType(event.target.value as (typeof KNOWLEDGE_TYPES)[number])}
-          >
-            {KNOWLEDGE_TYPES.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Visibility
-          <select
-            className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700"
-            value={visibility}
-            onChange={(event) => setVisibility(event.target.value as (typeof VISIBILITIES)[number])}
-          >
-            {VISIBILITIES.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
+    <div className="max-w-5xl mx-auto space-y-8">
+      
+      {/* Header Panel */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-6">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white">Knowledge Base</h1>
+          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400 max-w-xl leading-relaxed">
+            Ingest raw notes, webpage URLs, YouTube scripts, datasets, and markdown assets directly into your active reasoning graph.
+          </p>
         </div>
-        <label className="flex flex-col gap-1 text-sm">
-          Content
-          <textarea
-            className="min-h-32 rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700"
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            placeholder="Optional — leave blank to create a draft with no content yet."
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={isCreating}
-          className="self-start rounded bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
-        >
-          {isCreating ? 'Creating…' : 'Create'}
-        </button>
-      </form>
+        
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setUploadError(null);
+              setIsUploadModalOpen(true);
+            }}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-250 dark:border-neutral-800 px-5 py-2.5 text-xs font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-all cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
+          >
+            📥 Ingest File
+          </button>
 
-      {error !== null && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-      <div className="mt-6">
-        {isLoading ? (
-          <p className="text-sm text-neutral-500">Loading…</p>
-        ) : items.length === 0 ? (
-          <p className="text-sm text-neutral-500">No knowledge assets yet.</p>
-        ) : (
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-neutral-200 dark:border-neutral-800">
-                <th className="py-2 font-medium">Title</th>
-                <th className="py-2 font-medium">Type</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium">Visibility</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-b border-neutral-100 dark:border-neutral-900">
-                  <td className="py-2">
-                    <Link href={`/knowledge/${item.id}`} className="underline">
-                      {item.title}
-                    </Link>
-                  </td>
-                  <td className="py-2">{item.type}</td>
-                  <td className="py-2">{item.status}</td>
-                  <td className="py-2">{item.visibility}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setValidationError(null);
+              setIsModalOpen(true);
+            }}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:opacity-95 transition-all cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
+          >
+            <svg className="h-4 w-4 stroke-current" fill="none" viewBox="0 0 24 24" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Asset
+          </button>
+        </div>
       </div>
+
+      {error !== null && (
+        <div className="rounded-xl bg-rose-500/5 dark:bg-rose-950/10 border border-rose-500/20 p-4 text-sm font-medium text-rose-700 dark:text-rose-455 flex items-center gap-2">
+          <span>⚠️</span>
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Grid Dashboard items */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((idx) => (
+            <div
+              key={idx}
+              className="h-[148px] rounded-2xl border border-neutral-200/60 dark:border-neutral-800 bg-neutral-50/40 dark:bg-neutral-900/10 animate-pulse"
+            />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-16 rounded-2xl border-2 border-dashed border-neutral-200 dark:border-neutral-800 bg-white/40 dark:bg-neutral-950/20">
+          <span className="text-3xl block">🗂️</span>
+          <p className="mt-2 text-sm font-semibold text-neutral-800 dark:text-neutral-200">No knowledge assets found</p>
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 max-w-xs mx-auto leading-relaxed">
+            Ingest raw text notes or configure data connectors to build out your cognitive index.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {items.map((item) => {
+            const hasStatus = item.properties?.parsingStatus !== undefined;
+            return (
+              <div
+                key={item.id}
+                className="group flex flex-col justify-between rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-5 shadow-sm hover:shadow-md hover:border-neutral-300 dark:hover:border-neutral-750 transition-all duration-200"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-4">
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 rounded px-1.5 py-0.5 font-mono">
+                      {item.type}
+                    </span>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider rounded px-1.5 py-0.5 border ${
+                      item.visibility === 'public'
+                        ? 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20'
+                        : item.visibility === 'workspace'
+                        ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20'
+                        : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500 border-neutral-200 dark:border-neutral-750'
+                    }`}>
+                      {item.visibility}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-neutral-900 dark:text-white line-clamp-1 group-hover:text-amber-600 transition-colors">
+                    {item.title}
+                  </h3>
+                  <p className="text-[11px] text-neutral-500 dark:text-neutral-450 line-clamp-2 leading-relaxed">
+                    {item.properties?.description || 'No description provided.'}
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-neutral-100 dark:border-neutral-900/60 flex items-center justify-between">
+                  <span className="text-[9px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">
+                    {new Date(item.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </span>
+                  
+                  {hasStatus ? (
+                    renderStatusBadge(item.properties?.parsingStatus)
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-neutral-100 dark:bg-neutral-850 text-neutral-500 border border-neutral-200 dark:border-neutral-750">
+                      ● Active
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Manual Input Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-lg rounded-2xl border border-neutral-200/80 bg-white dark:border-neutral-800 dark:bg-neutral-950/95 p-6 shadow-2xl flex flex-col gap-4">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900 pb-3">
+              <h3 className="text-base font-extrabold text-neutral-900 dark:text-white">Ingest Raw Knowledge</h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-250 cursor-pointer text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-1.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                  Asset Title
+                  <input
+                    type="text"
+                    placeholder="e.g. Q3 Roadmap Review"
+                    className="w-full rounded-xl border border-neutral-250/70 dark:border-neutral-800 px-3.5 py-2 bg-white dark:bg-neutral-900 text-sm focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 focus:outline-none transition-all"
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    required
+                  />
+                </label>
+
+                <label className="flex flex-col gap-1.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                  Visibility
+                  <select
+                    className="w-full rounded-xl border border-neutral-250/70 dark:border-neutral-800 px-3 py-2 bg-white dark:bg-neutral-900 text-sm focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 focus:outline-none transition-all cursor-pointer"
+                    value={visibility}
+                    onChange={(event) => setVisibility(event.target.value as (typeof VISIBILITIES)[number])}
+                  >
+                    {VISIBILITIES.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <label className="flex flex-col gap-1.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                Medium Type
+                <select
+                  className="w-full rounded-xl border border-neutral-250/70 dark:border-neutral-800 px-3 py-2 bg-white dark:bg-neutral-900 text-sm focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 focus:outline-none transition-all cursor-pointer"
+                  value={type}
+                  onChange={(event) => setType(event.target.value as (typeof KNOWLEDGE_TYPES)[number])}
+                >
+                  {KNOWLEDGE_TYPES.map((option) => (
+                    <option key={option} value={option}>
+                      {option.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-1.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                {type === 'webpage' || type === 'pdf' || type === 'video'
+                  ? 'Source URL / Link'
+                  : 'Source Content (Raw Text, CSV rows, or JSON logs)'}
+                <textarea
+                  className="min-h-32 w-full rounded-xl border border-neutral-250/70 dark:border-neutral-800 px-3 py-2 bg-transparent font-mono text-xs focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 focus:outline-none transition-all leading-relaxed"
+                  value={content}
+                  onChange={(event) => setContent(event.target.value)}
+                  placeholder={
+                    type === 'webpage'
+                      ? 'https://example.com/article'
+                      : type === 'pdf'
+                      ? 'https://example.com/manual.pdf'
+                      : type === 'video'
+                      ? 'https://youtube.com/watch?v=...'
+                      : 'Paste note text, datasets or logs here.'
+                  }
+                  required={type === 'webpage' || type === 'pdf' || type === 'video'}
+                />
+              </label>
+
+              {/* Validation Warning Alert */}
+              {validationError && (
+                <div className="rounded-lg bg-rose-500/5 border border-rose-500/20 p-2.5 text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                  ⚠️ {validationError}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="rounded-xl border border-neutral-200 dark:border-neutral-800 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreating || validationError !== null}
+                  className="rounded-xl bg-neutral-950 dark:bg-white text-white dark:text-neutral-950 px-5 py-2 text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer shadow-md"
+                >
+                  {isCreating ? 'Ingesting…' : 'Ingest to Graph'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* File Ingestion Modal */}
+      {isUploadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-lg rounded-2xl border border-neutral-200/80 bg-white dark:border-neutral-800 dark:bg-neutral-950/95 p-6 shadow-2xl flex flex-col gap-4">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900 pb-3">
+              <h3 className="text-base font-extrabold text-neutral-900 dark:text-white">Ingest Local Document</h3>
+              <button
+                onClick={() => {
+                  setIsUploadModalOpen(false);
+                  setSelectedFile(null);
+                  setUploadError(null);
+                }}
+                className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-250 cursor-pointer text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            {uploadError && (
+              <div className="text-xs text-rose-600 bg-rose-50/5 border border-rose-500/20 p-3 rounded-xl">
+                ⚠️ {uploadError}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl p-8 text-center bg-neutral-50/20 dark:bg-neutral-950/10 hover:border-neutral-350 transition-colors relative cursor-pointer">
+                <input
+                  type="file"
+                  accept=".pdf,.txt,.md"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setSelectedFile(e.target.files[0]);
+                      setUploadError(null);
+                    }
+                  }}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                />
+                <span className="text-3xl block">📤</span>
+                {selectedFile ? (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs font-bold text-neutral-800 dark:text-neutral-200 truncate max-w-xs mx-auto">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-[10px] text-neutral-400 font-mono">
+                      {Math.round(selectedFile.size / 1024)} KB
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-2">
+                    <p className="text-xs font-semibold text-neutral-850 dark:text-neutral-250">
+                      Choose a file or drag it here
+                    </p>
+                    <p className="text-[10px] text-neutral-400 mt-0.5 leading-relaxed">
+                      Supports PDF, TXT, or MD files (Max 10MB)
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 pt-4 border-t border-neutral-100 dark:border-neutral-900">
+              <button
+                onClick={() => {
+                  setIsUploadModalOpen(false);
+                  setSelectedFile(null);
+                  setUploadError(null);
+                }}
+                disabled={isUploading}
+                className="rounded-xl border border-neutral-200 dark:border-neutral-800 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void handleUploadSubmit()}
+                disabled={isUploading || !selectedFile}
+                className="rounded-xl bg-neutral-950 dark:bg-white text-white dark:text-neutral-950 px-5 py-2 text-xs font-bold shadow-md hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                {isUploading ? 'Ingesting…' : 'Ingest Document'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

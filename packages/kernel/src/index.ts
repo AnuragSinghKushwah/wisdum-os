@@ -6,6 +6,7 @@
  */
 export * from './di/index.js';
 export * from './registry/index.js';
+export * from './capabilities/index.js';
 export * from './modules/index.js';
 export * from './lifecycle/index.js';
 export * from './health/index.js';

@@ -14,6 +14,18 @@
     },
     {
       "path": "../domain"
+    },
+    {
+      "path": "../kernel"
+    },
+    {
+      "path": "../../platform/publishing"
+    },
+    {
+      "path": "../../platform/inputs"
+    },
+    {
+      "path": "../../platform/search"
     }
   ]
 }

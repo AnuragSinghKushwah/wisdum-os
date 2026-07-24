@@ -19,6 +19,10 @@
   "dependencies": {
     "@wisdum/types": "*",
     "@wisdum/errors": "*",
-    "@wisdum/domain": "*"
+    "@wisdum/domain": "*",
+    "@wisdum/kernel": "*",
+    "@wisdum/platform-publishing": "*",
+    "@wisdum/platform-inputs": "*",
+    "@wisdum/platform-search": "*"
   }
 }

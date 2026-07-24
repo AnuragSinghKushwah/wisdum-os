@@ -3,6 +3,7 @@ import {
   enablePluginCommand,
   getPluginQuery,
   installPluginCommand,
+  listPluginsQuery,
 } from '@wisdum/application';
 import type { FastifyInstance } from 'fastify';
 import type { PluginHandlers } from '../container/tokens.js';
@@ -19,6 +20,11 @@ interface InstallPluginBody {
 }
 
 export function registerPluginRoutes(app: FastifyInstance, handlers: PluginHandlers): void {
+  app.get('/v1/plugins', async (request) => {
+    const tenantId = requireTenantId(request);
+    return handlers.list.execute(listPluginsQuery({ tenantId }));
+  });
+
   app.post('/v1/plugins', { schema: { body: installPluginBodySchema } }, async (request, reply) => {
     const tenantId = requireTenantId(request);
     const body = request.body as InstallPluginBody;

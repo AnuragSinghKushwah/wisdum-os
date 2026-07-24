@@ -17,14 +17,14 @@ This ambiguity must be resolved before the first bounded context is implemented.
 
 **Python is reserved for runtimes, ML, OCR, embeddings, and computational workloads.** When the platform needs to call into heavy ML (semantic search, RAG, embeddings, OCR, vision, language models), it does so via plugin boundaries: `platform/ai` exposes provider contracts that plugin implementations under `plugins/` satisfy (possibly by shelling out to Python services or calling remote APIs).
 
-**The API application** (`apps/api`) is a TypeScript/FastAPI composition root — it wires together TypeScript domain packages and exposes their logic through REST endpoints. When substantial Python work is needed (e.g., embedding generation), the API layer invokes a Python plugin, not Python domain logic.
+**The API application** (`apps/api`) is a TypeScript/Fastify composition root — it wires together TypeScript domain packages and exposes their logic through REST endpoints. When substantial Python work is needed (e.g., embedding generation), the API layer invokes a Python plugin, not Python domain logic.
 
 ## Consequences
 
 - **Unified domain layer:** bounded contexts are TypeScript, versioned as one workspace, tested together, no cross-language integration friction at the domain boundary.
 - **Python plugins are first-class.** The AI subsystem is the primary surface; other heavy-compute workloads can follow the same pattern (vision, OCR, NLP).
 - **Type safety end-to-end.** No JSON round-tripping at domain boundaries within the core application.
-- **FastAPI is relegated to routing and middleware** (see updated ADR 0003 alternatives): authentication, tenancy resolution, request/response translation. Business logic is in TypeScript, orchestrated through FastAPI — not distributed between them.
+- **Fastify is relegated to routing and middleware** (see updated ADR 0003 alternatives): authentication, tenancy resolution, request/response translation. Business logic is in TypeScript, orchestrated through Fastify — not distributed between them.
 - **Python service development becomes future work.** For now, Python lives in plugins and local CLI tools, not in the `services/` directory. As the platform grows and AI becomes a bottleneck, a follow-up ADR may introduce Python services under `services/py/` or similar, but the core domain stays TypeScript.
 
 ## Alternatives considered

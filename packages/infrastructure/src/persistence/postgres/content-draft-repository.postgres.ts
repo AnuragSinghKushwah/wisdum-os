@@ -67,6 +67,14 @@ export class PostgresContentDraftRepository implements ContentDraftRepository {
     await this.pool.query('DELETE FROM content_drafts WHERE id = $1', [draft.getId().value()]);
   }
 
+  async listByTenant(tenantId: TenantId): Promise<readonly ContentDraft[]> {
+    const result = await this.pool.query<ContentDraftRow>(
+      'SELECT * FROM content_drafts WHERE tenant_id = $1 ORDER BY updated_at DESC',
+      [tenantId],
+    );
+    return result.rows.map((row) => ContentDraft.reconstitute(toSnapshot(row)));
+  }
+
   private async findOneWhere(clause: string, params: unknown[]): Promise<Option<ContentDraft>> {
     const result = await this.pool.query<ContentDraftRow>(
       `SELECT * FROM content_drafts WHERE ${clause}`,

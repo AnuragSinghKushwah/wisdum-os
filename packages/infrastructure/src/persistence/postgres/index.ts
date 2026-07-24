@@ -20,3 +20,6 @@ export * from './insight-repository.postgres.js';
 export * from './opportunity-repository.postgres.js';
 export * from './content-draft-repository.postgres.js';
 export * from './published-content-repository.postgres.js';
+export * from './tenant-directory.postgres.js';
+export * from './vector-store.postgres.js';
+export * from './agent-task-repository.postgres.js';

@@ -3,6 +3,7 @@ import {
   EnablePluginHandler,
   GetPluginHandler,
   InstallPluginHandler,
+  ListPluginsHandler,
 } from '@wisdum/application';
 import type { PluginReadModel } from '@wisdum/application';
 import type { PluginRepository } from '@wisdum/domain';
@@ -14,7 +15,14 @@ import {
   PostgresPluginRepository,
 } from '@wisdum/infrastructure';
 import type { Container, KernelModule } from '@wisdum/kernel';
-import { CLOCK, EVENT_BUS, ID_GENERATOR, PG_POOL, PLUGIN_HANDLERS } from '../tokens.js';
+import {
+  CLOCK,
+  EVENT_BUS,
+  ID_GENERATOR,
+  PG_POOL,
+  PLUGIN_HANDLERS,
+  PLUGIN_REPOSITORY,
+} from '../tokens.js';
 import type { PluginHandlers } from '../tokens.js';
 
 export class PluginModule implements KernelModule {
@@ -43,7 +51,9 @@ export class PluginModule implements KernelModule {
       enable: new EnablePluginHandler(repository, events, clock),
       disable: new DisablePluginHandler(repository, events, clock),
       get: new GetPluginHandler(readModel),
+      list: new ListPluginsHandler(readModel),
     };
     container.registerValue(PLUGIN_HANDLERS, handlers);
+    container.registerValue(PLUGIN_REPOSITORY, repository);
   }
 }

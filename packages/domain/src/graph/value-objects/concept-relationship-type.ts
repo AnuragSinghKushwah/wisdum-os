@@ -23,6 +23,30 @@ export class ConceptRelationshipType extends ValueObject<ConceptRelationshipType
     return new ConceptRelationshipType('co_occurs');
   }
 
+  static relatesTo(): ConceptRelationshipType {
+    return new ConceptRelationshipType('relates_to');
+  }
+
+  static dependsOn(): ConceptRelationshipType {
+    return new ConceptRelationshipType('depends_on');
+  }
+
+  static extends(): ConceptRelationshipType {
+    return new ConceptRelationshipType('extends');
+  }
+
+  static contradicts(): ConceptRelationshipType {
+    return new ConceptRelationshipType('contradicts');
+  }
+
+  static complements(): ConceptRelationshipType {
+    return new ConceptRelationshipType('complements');
+  }
+
+  static implementedBy(): ConceptRelationshipType {
+    return new ConceptRelationshipType('implemented_by');
+  }
+
   get value(): ConceptRelationshipTypeValue {
     return this.type;
   }

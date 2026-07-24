@@ -9,3 +9,17 @@ export * from './ai-module.js';
 export * from './search-module.js';
 export * from './opportunity-module.js';
 export * from './reasoning-module.js';
+export * from './scheduler-module.js';
+export * from './github-module.js';
+export * from './notion-module.js';
+export * from './slack-module.js';
+export * from './obsidian-module.js';
+export * from './ai-export-module.js';
+export * from './email-module.js';
+export * from './agent-module.js';
+export * from './graph-module.js';
+export * from './capture-module.js';
+
+
+
+

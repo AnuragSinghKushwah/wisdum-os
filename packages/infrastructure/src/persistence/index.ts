@@ -9,4 +9,6 @@ export * from './ai-repositories.js';
 export * from './search-index-repository.js';
 export * from './graph-repository.js';
 export * from './opportunity-repository.js';
+export * from './tenant-directory.js';
+export * from './agent-task-repository.js';
 export * from './postgres/index.js';

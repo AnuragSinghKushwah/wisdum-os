@@ -13,6 +13,7 @@ export interface WorkspaceRepository extends Repository<Workspace> {
   /** Slug is the tenant-scoped natural key used in URLs. */
   findBySlug(tenantId: TenantId, slug: WorkspaceSlug): Promise<Option<Workspace>>;
   findByOrganization(tenantId: TenantId, organizationId: UUID): Promise<readonly Workspace[]>;
+  findByTenant(tenantId: TenantId): Promise<readonly Workspace[]>;
   exists(id: WorkspaceId): Promise<boolean>;
   save(workspace: Workspace): Promise<void>;
   delete(workspace: Workspace): Promise<void>;

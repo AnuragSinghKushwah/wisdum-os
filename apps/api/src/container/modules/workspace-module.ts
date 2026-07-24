@@ -2,6 +2,8 @@ import {
   AddWorkspaceMemberHandler,
   CreateWorkspaceHandler,
   GetWorkspaceHandler,
+  ListWorkspacesHandler,
+  UpdateWorkspaceSettingsHandler,
 } from '@wisdum/application';
 import type { WorkspaceReadModel } from '@wisdum/application';
 import type { WorkspaceRepository } from '@wisdum/domain';
@@ -49,6 +51,8 @@ export class WorkspaceModule implements KernelModule {
       create: new CreateWorkspaceHandler(repository, ids, slugs, events, clock),
       addMember: new AddWorkspaceMemberHandler(repository, events, clock),
       get: new GetWorkspaceHandler(readModel),
+      list: new ListWorkspacesHandler(readModel),
+      updateSettings: new UpdateWorkspaceSettingsHandler(repository, events, clock),
     };
     container.registerValue(WORKSPACE_HANDLERS, handlers);
   }

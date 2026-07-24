@@ -83,6 +83,14 @@ export class PostgresWorkspaceRepository implements WorkspaceRepository {
     return Promise.all(rows.rows.map((row) => this.hydrate(row)));
   }
 
+  async findByTenant(tenantId: TenantId): Promise<readonly Workspace[]> {
+    const rows = await this.pool.query<WorkspaceRow>(
+      'SELECT * FROM workspaces WHERE tenant_id = $1',
+      [tenantId],
+    );
+    return Promise.all(rows.rows.map((row) => this.hydrate(row)));
+  }
+
   async exists(id: WorkspaceId): Promise<boolean> {
     const result = await this.pool.query('SELECT 1 FROM workspaces WHERE id = $1', [id.value()]);
     return result.rowCount !== null && result.rowCount > 0;

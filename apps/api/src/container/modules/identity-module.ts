@@ -3,9 +3,12 @@ import {
   AuthenticateUserHandler,
   CreateUserHandler,
   GetUserHandler,
+  CreateApiKeyHandler,
+  RevokeApiKeyHandler,
+  ListApiKeysHandler,
 } from '@wisdum/application';
-import type { UserReadModel } from '@wisdum/application';
-import type { UserRepository } from '@wisdum/domain';
+import type { UserReadModel, ApiKeyReadModel } from '@wisdum/application';
+import type { UserRepository, ApiKeyRepository } from '@wisdum/domain';
 import {
   EventBusDomainEventPublisher,
   InMemoryUserReadModel,
@@ -13,6 +16,10 @@ import {
   PostgresUserReadModel,
   PostgresUserRepository,
   ScryptPasswordHasher,
+  PostgresApiKeyRepository,
+  InMemoryApiKeyRepository,
+  PostgresApiKeyReadModel,
+  InMemoryApiKeyReadModel,
 } from '@wisdum/infrastructure';
 import type { Container, KernelModule } from '@wisdum/kernel';
 import {
@@ -22,6 +29,7 @@ import {
   IDENTITY_HANDLERS,
   PG_POOL,
   TOKEN_SERVICE,
+  API_KEY_READ_MODEL,
 } from '../tokens.js';
 import type { IdentityHandlers } from '../tokens.js';
 
@@ -33,14 +41,22 @@ export class IdentityModule implements KernelModule {
     const pool = container.resolve(PG_POOL);
     let repository: UserRepository;
     let readModel: UserReadModel;
+    let apiKeys: ApiKeyRepository;
+    let apiKeyReads: ApiKeyReadModel;
+
     if (pool !== undefined) {
       const postgresRepository = new PostgresUserRepository(pool);
       repository = postgresRepository;
       readModel = new PostgresUserReadModel(postgresRepository);
+      apiKeys = new PostgresApiKeyRepository(pool);
+      apiKeyReads = new PostgresApiKeyReadModel(pool);
     } else {
       const inMemoryRepository = new InMemoryUserRepository();
       repository = inMemoryRepository;
       readModel = new InMemoryUserReadModel(inMemoryRepository);
+      const inMemoryApiKeys = new InMemoryApiKeyRepository();
+      apiKeys = inMemoryApiKeys;
+      apiKeyReads = new InMemoryApiKeyReadModel(inMemoryApiKeys);
     }
     const hasher = new ScryptPasswordHasher();
     const events = new EventBusDomainEventPublisher(container.resolve(EVENT_BUS));
@@ -53,7 +69,11 @@ export class IdentityModule implements KernelModule {
       assignRole: new AssignRoleHandler(repository, events, clock),
       getUser: new GetUserHandler(readModel),
       authenticate: new AuthenticateUserHandler(repository, hasher, tokens),
+      createApiKey: new CreateApiKeyHandler(apiKeys, hasher, ids, events, clock),
+      revokeApiKey: new RevokeApiKeyHandler(apiKeys, events, clock),
+      listApiKeys: new ListApiKeysHandler(apiKeyReads),
     };
     container.registerValue(IDENTITY_HANDLERS, handlers);
+    container.registerValue(API_KEY_READ_MODEL, apiKeyReads);
   }
 }

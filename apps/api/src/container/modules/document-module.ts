@@ -18,6 +18,9 @@ import {
   CLOCK,
   DOCUMENT_HANDLERS,
   DOCUMENT_READ_MODEL,
+  DOCUMENT_REPOSITORY,
+  EMBEDDING_MODEL,
+  EMBEDDING_PIPELINE,
   EVENT_BUS,
   ID_GENERATOR,
   PG_POOL,
@@ -46,12 +49,24 @@ export class DocumentModule implements KernelModule {
     const clock = container.resolve(CLOCK);
     const ids = container.resolve(ID_GENERATOR);
 
+    const embeddingPipeline = container.resolve(EMBEDDING_PIPELINE);
+    const embeddingModel = container.resolve(EMBEDDING_MODEL);
+
     const handlers: DocumentHandlers = {
-      create: new CreateDocumentHandler(repository, ids, hasher, events, clock),
+      create: new CreateDocumentHandler(
+        repository,
+        ids,
+        hasher,
+        events,
+        clock,
+        embeddingPipeline,
+        embeddingModel,
+      ),
       replaceContent: new ReplaceDocumentContentHandler(repository, hasher, events, clock),
       get: new GetDocumentHandler(readModel),
     };
     container.registerValue(DOCUMENT_HANDLERS, handlers);
     container.registerValue(DOCUMENT_READ_MODEL, readModel);
+    container.registerValue(DOCUMENT_REPOSITORY, repository);
   }
 }

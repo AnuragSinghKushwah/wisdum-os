@@ -11,24 +11,101 @@ import type {
   PublishedContentRepository,
 } from '@wisdum/domain';
 import type { Clock } from '@wisdum/domain';
+import type { CapabilityRegistry } from '@wisdum/kernel';
+import type { PublishingProvider } from '@wisdum/platform-publishing';
 import type { CommandHandler } from '../../shared/messages.js';
-import { NotFoundError } from '../../shared/errors.js';
+import { NotFoundError, PluginDisabledError } from '../../shared/errors.js';
 import type { DomainEventPublisher, IdGenerator, SlugGenerator } from '../../shared/ports.js';
+import type { CapabilityPluginProvisioner } from '../../plugin/services/capability-plugin-provisioner.js';
 import type { PublishContentDraftCommand } from '../commands/publish-content-draft-command.js';
+
+/** The only publishing capability this POC ships with. Phase 5 adds real external providers alongside it. */
+interface DefaultCapabilityManifest {
+  readonly pluginName: string;
+  readonly capability: string;
+  readonly displayName: string;
+  readonly description: string;
+  readonly version: string;
+}
+
+const PUBLISHING_MANIFESTS: Record<string, DefaultCapabilityManifest> = {
+  'publishing.website': {
+    pluginName: 'wisdum/website-publishing',
+    capability: 'publishing.website',
+    displayName: 'Website Publishing',
+    description: 'Publishes content to Wisdum-hosted public pages.',
+    version: '1.0.0',
+  },
+  'publishing.devto': {
+    pluginName: 'wisdum/devto-publishing',
+    capability: 'publishing.devto',
+    displayName: 'Dev.to Publishing',
+    description: 'Publishes content to Dev.to.',
+    version: '1.0.0',
+  },
+  'publishing.ghost': {
+    pluginName: 'wisdum/ghost-publishing',
+    capability: 'publishing.ghost',
+    displayName: 'Ghost Publishing',
+    description: 'Publishes content to a Ghost blog.',
+    version: '1.0.0',
+  },
+  'publishing.substack': {
+    pluginName: 'wisdum/substack-publishing',
+    capability: 'publishing.substack',
+    displayName: 'Substack Publishing',
+    description: 'Publishes content to Substack via webhook.',
+    version: '1.0.0',
+  },
+  'publishing.linkedin': {
+    pluginName: 'wisdum/linkedin-publishing',
+    capability: 'publishing.linkedin',
+    displayName: 'LinkedIn Publishing',
+    description: 'Publishes updates to LinkedIn.',
+    version: '1.0.0',
+  },
+  'publishing.twitter': {
+    pluginName: 'wisdum/twitter-publishing',
+    capability: 'publishing.twitter',
+    displayName: 'Twitter/X Publishing',
+    description: 'Publishes tweets to Twitter/X.',
+    version: '1.0.0',
+  },
+};
+
+function getCapabilityForType(type: string): string {
+  switch (type) {
+    case 'blog_post':
+      return 'publishing.website';
+    case 'linkedin_post':
+      return 'publishing.linkedin';
+    case 'newsletter':
+      return 'publishing.substack';
+    case 'twitter_post':
+    case 'tweet':
+      return 'publishing.twitter';
+    default:
+      return 'publishing.website';
+  }
+}
 
 /**
  * The Publish step (Product Bible §10): snapshots a draft's current
  * content as a publicly viewable `PublishedContent` record, then marks
- * both the draft and its opportunity `published`.
+ * both the draft and its opportunity `published`. Publishing is itself a
+ * plugin capability (`publishing.website` today) — a tenant can disable it,
+ * which must fail this handler before any side effect occurs.
  */
 export class PublishContentDraftHandler implements CommandHandler<
   PublishContentDraftCommand,
-  { publishedId: string; slug: string }
+  { publishedId: string; slug: string; externalUrl?: string }
 > {
   constructor(
     private readonly drafts: ContentDraftRepository,
     private readonly opportunities: OpportunityRepository,
     private readonly published: PublishedContentRepository,
+    private readonly provisioner: CapabilityPluginProvisioner,
+    private readonly providers: CapabilityRegistry<PublishingProvider>,
     private readonly slugs: SlugGenerator,
     private readonly ids: IdGenerator,
     private readonly events: DomainEventPublisher,
@@ -37,7 +114,7 @@ export class PublishContentDraftHandler implements CommandHandler<
 
   async execute(
     command: PublishContentDraftCommand,
-  ): Promise<{ publishedId: string; slug: string }> {
+  ): Promise<{ publishedId: string; slug: string; externalUrl?: string }> {
     const foundDraft = await this.drafts.findById(ContentDraftId.create(command.draftId));
     if (!foundDraft.some || foundDraft.value.tenantId !== command.tenantId) {
       throw new NotFoundError('Content draft not found', { draftId: command.draftId });
@@ -55,6 +132,7 @@ export class PublishContentDraftHandler implements CommandHandler<
       return {
         publishedId: alreadyPublished.value.getId().value(),
         slug: alreadyPublished.value.slug.value,
+        externalUrl: alreadyPublished.value.externalUrl,
       };
     }
 
@@ -66,17 +144,50 @@ export class PublishContentDraftHandler implements CommandHandler<
     }
     const opportunity = foundOpportunity.value;
 
+    let capability = 'publishing.website';
+    const preferred = getCapabilityForType(opportunity.type.value);
+    if (preferred !== 'publishing.website' && this.providers.resolve(preferred) !== undefined) {
+      capability = preferred;
+    } else if (opportunity.type.value === 'blog_post') {
+      if (this.providers.resolve('publishing.ghost') !== undefined) {
+        capability = 'publishing.ghost';
+      } else if (this.providers.resolve('publishing.devto') !== undefined) {
+        capability = 'publishing.devto';
+      }
+    }
+
+    const manifest = PUBLISHING_MANIFESTS[capability] ?? PUBLISHING_MANIFESTS['publishing.website']!;
+
+    const enabled = await this.provisioner.ensureEnabled(command.tenantId, manifest);
+    if (!enabled) {
+      throw new PluginDisabledError(
+        `The ${manifest.displayName} capability is disabled for this tenant`,
+        { capability },
+      );
+    }
+    const provider = this.providers.require(capability);
+
     const slug = await this.uniqueSlug(command.tenantId, this.slugs.slugify(draft.title.value));
+    const publishedId = PublishedContentId.create(this.ids.nextId());
+    const result = await provider.publish({
+      tenantId: command.tenantId,
+      publishedContentId: publishedId.value(),
+      slug,
+      title: draft.title.value,
+      body: draft.body.value,
+    });
 
     const publishedContent = PublishedContent.create(
       {
-        id: PublishedContentId.create(this.ids.nextId()),
+        id: publishedId,
         tenantId: command.tenantId,
         draftId: draft.getId().value(),
         opportunityId: opportunity.getId().value(),
         slug: PublishedSlug.create(slug),
         title: draft.title,
         body: draft.body,
+        providerCapability: capability,
+        externalUrl: result.externalUrl,
       },
       this.clock,
     );
@@ -94,7 +205,7 @@ export class PublishContentDraftHandler implements CommandHandler<
     await this.events.publishAll(opportunity.pullDomainEvents());
     opportunity.clearDomainEvents();
 
-    return { publishedId: publishedContent.getId().value(), slug };
+    return { publishedId: publishedContent.getId().value(), slug, externalUrl: result.externalUrl };
   }
 
   private async uniqueSlug(

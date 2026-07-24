@@ -15,6 +15,7 @@
     { "path": "../logger" },
     { "path": "../domain" },
     { "path": "../application" },
-    { "path": "../database" }
+    { "path": "../database" },
+    { "path": "../../platform/search" }
   ]
 }

@@ -27,6 +27,7 @@
     "@wisdum/events": "*",
     "@wisdum/kernel": "*",
     "@wisdum/logger": "*",
+    "@wisdum/platform-search": "*",
     "@wisdum/types": "*",
     "ioredis": "^5.11.1",
     "pg": "^8.22.0"

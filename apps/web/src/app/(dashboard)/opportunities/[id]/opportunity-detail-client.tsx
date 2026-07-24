@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, apiFetch } from '../../../../lib/api-client';
@@ -15,9 +16,15 @@ interface OpportunityDto {
   readonly updatedAt: string;
 }
 
+interface ContentDraftDto {
+  readonly id: string;
+  readonly opportunityId: string;
+}
+
 export function OpportunityDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const [opportunity, setOpportunity] = useState<OpportunityDto | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +33,12 @@ export function OpportunityDetailClient({ id }: { id: string }) {
     setIsLoading(true);
     setError(null);
     try {
-      setOpportunity(await apiFetch<OpportunityDto>(`/v1/opportunities/${id}`));
+      const found = await apiFetch<OpportunityDto>(`/v1/opportunities/${id}`);
+      setOpportunity(found);
+      if (found.status !== 'proposed') {
+        const drafts = await apiFetch<readonly ContentDraftDto[]>('/v1/drafts');
+        setDraftId(drafts.find((draft) => draft.opportunityId === id)?.id ?? null);
+      }
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : 'Failed to load this opportunity.');
     } finally {
@@ -92,11 +104,19 @@ export function OpportunityDetailClient({ id }: { id: string }) {
         >
           {isGenerating ? 'Generating…' : 'Generate draft'}
         </button>
-        {opportunity.status !== 'proposed' && (
-          <p className="mt-2 text-xs text-neutral-500">
-            This opportunity is already {opportunity.status}.
-          </p>
-        )}
+        {opportunity.status !== 'proposed' &&
+          (draftId !== null ? (
+            <p className="mt-2 text-xs text-neutral-500">
+              This opportunity is already {opportunity.status}.{' '}
+              <Link href={`/drafts/${draftId}`} className="underline">
+                View draft
+              </Link>
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-neutral-500">
+              This opportunity is already {opportunity.status}.
+            </p>
+          ))}
       </div>
     </div>
   );

@@ -77,7 +77,9 @@ import {
   registerGraphRoutes,
   registerWebhookRoutes,
   registerEventStreamRoutes,
+  registerHealthRoutes,
 } from './routes/index.js';
+
 
 
 /**
@@ -181,7 +183,9 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
   registerGraphRoutes(app, kernel.container.resolve(GRAPH_HANDLERS));
   registerWebhookRoutes(app, kernel.container.resolve(CAPTURE_HANDLERS));
   registerEventStreamRoutes(app, kernel.container.resolve(EVENT_BUS));
+  registerHealthRoutes(app);
 
   return { app, kernel };
 }
+
 

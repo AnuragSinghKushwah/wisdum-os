@@ -8,7 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Sprint 019:** End-to-End (E2E) UI Automation Test Suite (`apps/web/playwright.config.ts`, `apps/web/e2e/`).
+  - Configured Playwright E2E UI automation test runner for `@wisdum/web`.
+  - Added E2E test suite `apps/web/e2e/dashboard.spec.ts` testing Knowledge Graph, Hybrid Search, and SSE stream indicators.
+- **Sprint 018:** Production Observability & Health Metrics (`apps/api/src/routes/health-routes.ts`).
+  - Implemented `/healthz` (liveness probe), `/readyz` (database & redis readiness probe), and `/metrics` (Prometheus text format counter & memory gauge metrics).
+  - Added unit test suite in `apps/api/src/routes/__tests__/health-routes.test.ts`.
+- **Sprint 017:** Wisdum Developer CLI Tooling (`packages/cli/`).
+  - Created `@wisdum/cli` workspace package exporting executable binary `wisdum`.
+  - Implemented CLI commands: `wisdum init`, `wisdum plugin create <name>`, `wisdum sync`, and `wisdum status`.
+  - Added CLI unit test suite in `packages/cli/src/__tests__/cli.test.ts`.
 - **Sprint 016:** Production Containerization & Infrastructure Setup (`docker-compose.prod.yml`, `tools/docker/entrypoint-api.sh`, `.env.production.example`).
+
   - Added enterprise-grade production multi-container Docker Compose orchestration (`docker-compose.prod.yml`) with PostgreSQL (pgvector), Redis, Fastify API, and Next.js standalone web frontend.
   - Implemented production API container entrypoint script (`tools/docker/entrypoint-api.sh`) managing database migrations and readiness checks.
   - Created `.env.production.example` detailing security, database, Redis, AI model, and publishing credentials.

@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Sprint 013:** Automated Input Connectors & Integration Sync Engine (`platform/inputs/`, `packages/application/src/capture/`).
+  - Added input connectors for external sources: GitHub, Notion, Slack, Email, Obsidian, AI Export.
+  - Implemented `SyncInputConnectorHandler` application orchestrator folding captured items into Document deduplication and Knowledge creation pipelines.
+  - Registered interval scheduler support in `platform/jobs/src/interval-scheduler.ts` for background connector sync.
+- **Sprint 012:** Vector Store Semantic Indexing & Hybrid Search Engine (`packages/infrastructure/src/persistence/postgres/vector-store.postgres.ts`, `apps/api/src/routes/search-routes.ts`, `apps/web/src/app/(dashboard)/search/page.tsx`).
+  - Added dense vector search using `PostgresVectorStore` with cosine similarity distance ranking (`0026_add_vector_store.up.sql`).
+  - Implemented unified hybrid search (`GET /v1/search?q=...&mode=hybrid|semantic|keyword`) combining BM25 keyword matches with dense embedding search.
+  - Upgraded Next.js Cognitive Search dashboard (`apps/web/src/app/(dashboard)/search/page.tsx`) with search mode toggle tabs, match percentage scoring, and asset preview drawer.
 - **Sprint 011:** Analytics & Learning Engine Feedback Loop (`packages/application/src/opportunity/`, `packages/application/src/reasoning/`).
   - Added engagement and view-count analytics collection via `GetPublishedContentHandler` (Product Bible §11: Measure step).
   - Integrated historical performance metrics (average view counts per content type) into `RunReasoningPassHandler` to prioritize high-leverage content types during opportunity generation (Product Bible §11: Learn step).

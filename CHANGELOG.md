@@ -8,7 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Sprint 016:** Production Containerization & Infrastructure Setup (`docker-compose.prod.yml`, `tools/docker/entrypoint-api.sh`, `.env.production.example`).
+  - Added enterprise-grade production multi-container Docker Compose orchestration (`docker-compose.prod.yml`) with PostgreSQL (pgvector), Redis, Fastify API, and Next.js standalone web frontend.
+  - Implemented production API container entrypoint script (`tools/docker/entrypoint-api.sh`) managing database migrations and readiness checks.
+  - Created `.env.production.example` detailing security, database, Redis, AI model, and publishing credentials.
+  - Added `npm run docker:prod` and `npm run docker:prod:down` scripts to root `package.json`.
 - **Application Layer Unit Test Backfill & Complete API Documentation Spec Expansion (`packages/application/src/*/handlers/__tests__/`, `docs/api/`).**
+
   - Added unit test suites for `ai`, `organization`, `search`, and `workspace` CQRS application handlers bringing application layer unit test coverage to 100% (229 unit tests passing).
   - Authored complete API markdown specifications covering all 14 Fastify route modules in `docs/api/` (`documents.md`, `identity.md`, `opportunities.md`, `graph.md`, `search.md`, `agents.md`, `reasoning.md`, `events.md`, `plugins.md`, `ai.md`, `organizations.md`, `workspaces.md`).
   - Updated `docs/api/README.md` index linking all REST and event specifications.

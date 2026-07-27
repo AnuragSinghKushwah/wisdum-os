@@ -1,0 +1,95 @@
+name: wisdum-os-prod
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wisdum}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wisdum_prod_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-wisdum_prod}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - wisdum_prod_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wisdum}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wisdum-prod-net
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel notice
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - wisdum_prod_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wisdum-prod-net
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3001}:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      JWT_SECRET: ${JWT_SECRET:-wisdum-prod-jwt-secret-replace-in-production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-wisdum}:${POSTGRES_PASSWORD:-wisdum_prod_secret}@postgres:5432/${POSTGRES_DB:-wisdum_prod}
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      EMBEDDING_ENABLED: ${EMBEDDING_ENABLED:-true}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      LOCAL_EMBEDDING_MODEL: ${LOCAL_EMBEDDING_MODEL:-Xenova/all-MiniLM-L6-v2}
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
+      REASONING_SCHEDULE_INTERVAL_MS: ${REASONING_SCHEDULE_INTERVAL_MS:-10800000}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      GITHUB_REPOSITORIES: ${GITHUB_REPOSITORIES:-}
+      GITHUB_SYNC_TENANT_ID: ${GITHUB_SYNC_TENANT_ID:-}
+      GITHUB_SYNC_INTERVAL_MS: ${GITHUB_SYNC_INTERVAL_MS:-86400000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - wisdum-prod-net
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    depends_on:
+      - api
+    networks:
+      - wisdum-prod-net
+
+networks:
+  wisdum-prod-net:
+    driver: bridge
+
+volumes:
+  wisdum_prod_postgres_data:
+  wisdum_prod_redis_data:

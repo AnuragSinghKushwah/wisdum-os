@@ -27,6 +27,9 @@ const BEARER_PREFIX = 'Bearer ';
  */
 export function createAuthHook(tokens: TokenService) {
   return async (request: FastifyRequest): Promise<void> => {
+    if (request.method === 'OPTIONS') {
+      return;
+    }
     const header = request.headers[AUTH_HEADER];
     const value = Array.isArray(header) ? header[0] : header;
     if (value === undefined || !value.startsWith(BEARER_PREFIX)) {

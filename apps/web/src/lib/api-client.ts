@@ -35,9 +35,8 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
   if (session !== null) {
     headers.authorization = `Bearer ${session.token}`;
   }
-  if (options.tenantId !== undefined) {
-    headers['x-tenant-id'] = options.tenantId;
-  }
+  const tenantId = options.tenantId ?? session?.tenantId ?? '00000000-0000-4000-8000-000000000001';
+  headers['x-tenant-id'] = tenantId;
 
   let response: Response;
   try {

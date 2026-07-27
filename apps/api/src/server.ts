@@ -115,6 +115,13 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
 
   const app = Fastify({ logger: true });
 
+  await app.register(cors, {
+    origin: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id', 'x-api-key', 'Accept'],
+    credentials: true,
+  });
+
   await app.register(multipart, {
     limits: {
       fileSize: 10 * 1024 * 1024, // 10MB
@@ -122,12 +129,6 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
   });
   app.setErrorHandler(errorHandler);
   app.addHook('onRequest', createAuthHook(kernel.container.resolve(TOKEN_SERVICE)));
-
-  const corsOrigin = optionalEnv('CORS_ORIGIN', 'http://localhost:3000').split(',');
-  await app.register(cors, {
-    origin: optionalEnv('WISDUM_ENV', 'development') === 'development' ? true : corsOrigin,
-    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  });
 
   await app.register(swagger, {
     openapi: {

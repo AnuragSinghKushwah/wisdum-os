@@ -87,7 +87,7 @@ export function registerIdentityRoutes(
       }
     }
     // Fallback/Default tenant ID if not found in db or running in-memory
-    return reply.send({ tenantId: 'af3da7a6-8cd5-4ab6-b217-41d45320a8a8' });
+    return reply.send({ tenantId: '00000000-0000-4000-8000-000000000001' });
   });
 
   app.post('/v1/auth/reset-password-request', async (request, reply) => {
@@ -105,7 +105,7 @@ export function registerIdentityRoutes(
       password?: string;
     };
 
-    const tenantId = ids?.nextId() ?? 'af3da7a6-8cd5-4ab6-b217-41d45320a8a8';
+    const tenantId = ids?.nextId() ?? '00000000-0000-4000-8000-000000000001';
     const orgId = ids?.nextId() ?? 'bf3da7a6-8cd5-4ab6-b217-41d45320a8a8';
     const workspaceId = ids?.nextId() ?? 'cf3da7a6-8cd5-4ab6-b217-41d45320a8a8';
 

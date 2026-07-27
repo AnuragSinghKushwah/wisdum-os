@@ -35,6 +35,9 @@ interface IndexSearchDocumentBody {
   readonly chunkCount?: number;
 }
 
+import { listKnowledgeQuery } from '@wisdum/application';
+import type { KnowledgeHandlers } from '../container/tokens.js';
+
 export function registerSearchRoutes(
   app: FastifyInstance,
   handlers: SearchHandlers,
@@ -42,6 +45,7 @@ export function registerSearchRoutes(
   vectorStore?: any,
   embeddings?: any,
   embeddingModel?: string,
+  knowledgeHandlers?: KnowledgeHandlers,
 ): void {
   app.post(
     '/v1/search-indexes',
@@ -179,6 +183,25 @@ export function registerSearchRoutes(
           score: 1.0,
         })),
       );
+    }
+
+    if (knowledgeHandlers !== undefined) {
+      const all = await knowledgeHandlers.list.execute(listKnowledgeQuery({ tenantId }));
+      const qLower = q.toLowerCase();
+      const matched = all
+        .filter(
+          (k) =>
+            k.title.toLowerCase().includes(qLower) ||
+            k.type.toLowerCase().includes(qLower) ||
+            k.description?.toLowerCase().includes(qLower),
+        )
+        .map((k) => ({
+          id: k.id,
+          title: k.title,
+          type: k.type,
+          score: 1.0,
+        }));
+      return reply.send(matched);
     }
 
     return reply.send([]);

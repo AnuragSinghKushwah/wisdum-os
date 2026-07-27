@@ -8,6 +8,7 @@ interface GraphNode {
   readonly label: string;
   readonly type: string;
   readonly weight: number;
+  readonly description?: string;
   x?: number;
   y?: number;
   vx?: number;
@@ -18,6 +19,7 @@ interface GraphEdge {
   readonly source: string;
   readonly target: string;
   readonly label: string;
+  readonly occurrenceCount?: number;
 }
 
 interface GraphData {
@@ -29,23 +31,39 @@ export default function GraphPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [data, setData] = useState<GraphData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
-  // Load graph data
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await apiFetch<GraphData>('/v1/graph');
-        setData(res);
-      } catch {
-        setData(null);
-      } finally {
-        setIsLoading(false);
-      }
+  async function loadGraph() {
+    setIsLoading(true);
+    try {
+      const res = await apiFetch<GraphData>('/v1/graph');
+      setData(res);
+    } catch {
+      setData(null);
+    } finally {
+      setIsLoading(false);
     }
-    void load();
+  }
+
+  useEffect(() => {
+    void loadGraph();
   }, []);
+
+  async function handleRunScan() {
+    setIsScanning(true);
+    setScanError(null);
+    try {
+      await apiFetch('/v1/reasoning/run', { method: 'POST' });
+      await loadGraph();
+    } catch (err) {
+      setScanError(err instanceof Error ? err.message : 'Cognitive scan failed.');
+    } finally {
+      setIsScanning(false);
+    }
+  }
 
   // Force-directed simulation logic inside canvas
   useEffect(() => {
@@ -55,7 +73,6 @@ export default function GraphPage() {
     const ctx = canvas.getContext('2d');
     if (ctx === null) return;
 
-    // Resize handler
     function resize() {
       if (canvasRef.current === null) return;
       const rect = canvasRef.current.parentElement?.getBoundingClientRect();
@@ -65,7 +82,6 @@ export default function GraphPage() {
     resize();
     window.addEventListener('resize', resize);
 
-    // Initialize node positions and velocities
     const nodes = data.nodes.map((node) => ({
       ...node,
       x: node.x ?? Math.random() * canvas.width,
@@ -79,13 +95,11 @@ export default function GraphPage() {
     let dragNode: GraphNode | null = null;
     let isDragging = false;
 
-    // Mouse handlers
     function handleMouseDown(e: MouseEvent) {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      // Find clicked node
       for (const node of nodes) {
         const dx = (node.x || 0) - mouseX;
         const dy = (node.y || 0) - mouseY;
@@ -112,7 +126,6 @@ export default function GraphPage() {
         return;
       }
 
-      // Check hover
       let foundHover: GraphNode | null = null;
       for (const node of nodes) {
         const dx = (node.x || 0) - mouseX;
@@ -137,28 +150,23 @@ export default function GraphPage() {
 
     let animationFrameId: number;
 
-    // Physics Loop
     function step() {
       if (ctx === null || canvasRef.current === null) return;
       const width = canvas.width;
       const height = canvas.height;
 
-      // Clear with dark/light background
       ctx.clearRect(0, 0, width, height);
 
-      // Force logic (Charge, Attraction, Gravity)
       const chargeStrength = 180;
       const linkStrength = 0.05;
       const centerStrength = 0.02;
 
-      // Center force / Gravity
       for (const n of nodes) {
         if (n === dragNode) continue;
         n.vx = (n.vx || 0) + (width / 2 - (n.x || 0)) * centerStrength;
         n.vy = (n.vy || 0) + (height / 2 - (n.y || 0)) * centerStrength;
       }
 
-      // Repulsion between all nodes (Charge)
       for (let i = 0; i < nodes.length; i++) {
         const n1 = nodes[i];
         for (let j = i + 1; j < nodes.length; j++) {
@@ -185,7 +193,6 @@ export default function GraphPage() {
         }
       }
 
-      // Attraction along edges (Link force)
       for (const edge of edges) {
         const n1 = nodes.find((n) => n.id === edge.source);
         const n2 = nodes.find((n) => n.id === edge.target);
@@ -209,7 +216,6 @@ export default function GraphPage() {
         }
       }
 
-      // Update positions and velocities
       const damping = 0.85;
       for (const n of nodes) {
         if (n === dragNode) continue;
@@ -218,13 +224,11 @@ export default function GraphPage() {
         n.vx = (n.vx || 0) * damping;
         n.vy = (n.vy || 0) * damping;
 
-        // Keep inside bounds
         const radius = 8 + (n.weight || 1) * 1.5;
         n.x = Math.max(radius, Math.min(width - radius, n.x));
         n.y = Math.max(radius, Math.min(height - radius, n.y));
       }
 
-      // 1. Draw Edges
       for (const edge of edges) {
         const n1 = nodes.find((n) => n.id === edge.source);
         const n2 = nodes.find((n) => n.id === edge.target);
@@ -233,14 +237,10 @@ export default function GraphPage() {
         ctx.beginPath();
         ctx.moveTo(n1.x || 0, n1.y || 0);
         ctx.lineTo(n2.x || 0, n2.y || 0);
-        ctx.strokeStyle = '#e5e7eb25'; // very light gray in light mode, dark mode handled
-        if (document.documentElement.classList.contains('dark')) {
-          ctx.strokeStyle = '#37415160';
-        }
+        ctx.strokeStyle = document.documentElement.classList.contains('dark') ? '#37415160' : '#e5e7eb80';
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // Draw edge label in middle
         const midX = ((n1.x || 0) + (n2.x || 0)) / 2;
         const midY = ((n1.y || 0) + (n2.y || 0)) / 2;
         ctx.fillStyle = '#9ca3af';
@@ -249,39 +249,33 @@ export default function GraphPage() {
         ctx.fillText(edge.label, midX, midY);
       }
 
-      // 2. Draw Nodes
       for (const n of nodes) {
         const radius = 8 + (n.weight || 1) * 1.5;
         ctx.beginPath();
         ctx.arc(n.x || 0, n.y || 0, radius, 0, 2 * Math.PI);
 
-        // Core colors
         const isHovered = hoveredNode?.id === n.id;
         const isSelected = selectedNode?.id === n.id;
 
         if (isSelected) {
-          ctx.fillStyle = '#f59e0b'; // Amber-500
+          ctx.fillStyle = '#f59e0b';
           ctx.strokeStyle = '#f59e0b30';
           ctx.lineWidth = 6;
           ctx.stroke();
         } else if (isHovered) {
-          ctx.fillStyle = '#d97706'; // Amber-600
+          ctx.fillStyle = '#d97706';
           ctx.strokeStyle = '#d9770620';
           ctx.lineWidth = 4;
           ctx.stroke();
         } else {
-          ctx.fillStyle = '#f59e0b20'; // glass-like amber
+          ctx.fillStyle = '#f59e0b20';
           ctx.strokeStyle = '#f59e0b80';
           ctx.lineWidth = 1.5;
           ctx.stroke();
         }
         ctx.fill();
 
-        // Label
-        ctx.fillStyle = '#111827';
-        if (document.documentElement.classList.contains('dark')) {
-          ctx.fillStyle = '#f9fafb';
-        }
+        ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#f9fafb' : '#111827';
         ctx.font = isSelected ? 'bold 11px Inter' : '10px Inter';
         ctx.textAlign = 'center';
         ctx.fillText(n.label, n.x || 0, (n.y || 0) + radius + 14);
@@ -303,28 +297,52 @@ export default function GraphPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Header Panel */}
-      <div className="border-b border-neutral-200/60 dark:border-neutral-800/60 pb-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white">Knowledge Graph</h1>
-        <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400 max-w-xl leading-relaxed">
-          Visual map of concepts, relationships, and patterns Wisdum has discovered in your knowledge base.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-6">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white">Knowledge Graph</h1>
+          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400 max-w-xl leading-relaxed">
+            Visual map of concepts, relationships, and patterns Wisdum has discovered in your knowledge base.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => void handleRunScan()}
+          disabled={isScanning}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:opacity-95 disabled:opacity-50 transition-all cursor-pointer hover:-translate-y-0.5 active:translate-y-0 shrink-0"
+        >
+          {isScanning ? 'Scanning Base...' : '⚡ Run Cognitive Scan'}
+        </button>
       </div>
+
+      {scanError && (
+        <div className="rounded-xl bg-rose-500/5 border border-rose-500/20 p-4 text-xs font-medium text-rose-600 dark:text-rose-400">
+          ⚠️ {scanError}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="h-96 flex items-center justify-center text-neutral-400 text-sm font-semibold">
           Loading graph model...
         </div>
       ) : data === null || data.nodes.length === 0 ? (
-        <div className="h-96 flex flex-col items-center justify-center border border-dashed border-neutral-250 dark:border-neutral-800 rounded-2xl bg-white/40 dark:bg-neutral-950/20">
+        <div className="h-96 flex flex-col items-center justify-center border border-dashed border-neutral-250 dark:border-neutral-800 rounded-2xl bg-white/40 dark:bg-neutral-950/20 p-6 space-y-3">
           <span className="text-4xl">🕸️</span>
-          <p className="mt-4 text-sm font-bold text-neutral-800 dark:text-neutral-200">No concept nodes yet</p>
-          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 max-w-xs text-center leading-relaxed">
-            Add knowledge assets under the Knowledge tab and trigger a reasoning scan to build your conceptual map.
+          <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200">No concept nodes yet</p>
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-xs text-center leading-relaxed">
+            Add knowledge assets under the Knowledge tab and click "Run Cognitive Scan" to build your conceptual map.
           </p>
+          <button
+            type="button"
+            onClick={() => void handleRunScan()}
+            disabled={isScanning}
+            className="rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 px-4 py-2 text-xs font-bold shadow cursor-pointer disabled:opacity-50 mt-2"
+          >
+            {isScanning ? 'Synthesizing...' : '⚡ Run Cognitive Scan'}
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Visualizer Canvas */}
           <div className="lg:col-span-2 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm relative overflow-hidden h-[500px]">
             <canvas ref={canvasRef} className="absolute inset-0 block w-full h-full cursor-grab active:cursor-grabbing" />
             <div className="absolute bottom-4 left-4 text-[10px] font-mono text-neutral-400 bg-white/80 dark:bg-neutral-950/80 backdrop-blur px-2.5 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 pointer-events-none shadow-sm">
@@ -332,7 +350,6 @@ export default function GraphPage() {
             </div>
           </div>
 
-          {/* Node detail side panel */}
           <div className="rounded-2xl border border-neutral-200/80 bg-white/40 dark:border-neutral-800/80 dark:bg-neutral-950/20 p-6 shadow-sm space-y-4 h-[500px] overflow-y-auto">
             {selectedNode ? (
               <div className="space-y-4">
@@ -342,6 +359,11 @@ export default function GraphPage() {
                   </span>
                   <h3 className="text-lg font-bold text-neutral-950 dark:text-white pt-1">{selectedNode.label}</h3>
                 </div>
+                {selectedNode.description && (
+                  <div className="p-3.5 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/40 text-xs text-neutral-600 dark:text-neutral-350 leading-relaxed">
+                    {selectedNode.description}
+                  </div>
+                )}
                 <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/40">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Mention Count</span>
                   <p className="mt-1 text-sm font-semibold text-neutral-800 dark:text-neutral-200">{selectedNode.weight} times in source assets</p>

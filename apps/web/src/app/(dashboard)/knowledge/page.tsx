@@ -1,18 +1,26 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ApiError, apiFetch } from '../../../lib/api-client';
 import { useAuth } from '../../../lib/auth-context';
 
+interface KnowledgeContentReferenceDto {
+  readonly reference: string;
+  readonly mimeType: string | null;
+}
+
 interface KnowledgeDto {
   readonly id: string;
   readonly title: string;
   readonly slug: string;
+  readonly description?: string;
   readonly status: string;
   readonly type: string;
   readonly visibility: string;
+  readonly labels?: readonly string[];
+  readonly contentReferences?: readonly KnowledgeContentReferenceDto[];
+  readonly createdAt?: string;
   readonly updatedAt: string;
   readonly properties?: Record<string, string>;
 }
@@ -38,8 +46,10 @@ export default function KnowledgePage() {
   const [items, setItems] = useState<readonly KnowledgeDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Modal States
+  // Modals & Detail State
+  const [selectedAsset, setSelectedAsset] = useState<KnowledgeDto | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -55,11 +65,11 @@ export default function KnowledgePage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   function renderStatusBadge(val?: string) {
-    const status = val || 'pending';
-    if (status === 'completed') {
+    const status = val || 'active';
+    if (status === 'completed' || status === 'active') {
       return (
         <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-          ● Done
+          ● Active
         </span>
       );
     }
@@ -94,41 +104,29 @@ export default function KnowledgePage() {
     void load();
   }, [load]);
 
-  // Client-side content validation rules
   function validateInput(mediumType: string, textContent: string): string | null {
     const trimmed = textContent.trim();
-    if (trimmed.length === 0) return null; // content is optional
+    if (trimmed.length === 0) return null;
 
-    if (mediumType === 'webpage') {
+    if (mediumType === 'webpage' || mediumType === 'pdf') {
       if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-        return 'For webpage medium, content must be a valid URL starting with http:// or https://';
-      }
-    }
-    if (mediumType === 'pdf') {
-      if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-        return 'For PDF medium, content must be a valid URL pointing to a PDF file.';
+        return 'For webpage/PDF medium, content must be a valid URL starting with http:// or https://';
       }
     }
     if (mediumType === 'video') {
       if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-        return 'For video medium, content must be a valid video URL starting with http:// or https://';
-      }
-      if (!trimmed.includes('youtube.com') && !trimmed.includes('youtu.be') && !trimmed.includes('vimeo.com')) {
-        return 'For video medium, please provide a valid YouTube or Vimeo link.';
+        return 'For video medium, content must be a valid URL starting with http:// or https://';
       }
     }
     return null;
   }
 
-  // Validate on field changes
   useEffect(() => {
     setValidationError(validateInput(type, content));
   }, [type, content]);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    
-    // Final validation check
     const checkError = validateInput(type, content);
     if (checkError) {
       setValidationError(checkError);
@@ -154,7 +152,6 @@ export default function KnowledgePage() {
         });
       }
 
-      // Reset & Close Modal
       setTitle('');
       setContent('');
       setType('note');
@@ -169,7 +166,6 @@ export default function KnowledgePage() {
     }
   }
 
-  // Ingest local document upload action
   async function handleUploadSubmit() {
     if (!selectedFile) return;
     setIsUploading(true);
@@ -184,6 +180,7 @@ export default function KnowledgePage() {
       if (session?.token) {
         headers.authorization = `Bearer ${session.token}`;
       }
+      headers['x-tenant-id'] = session?.tenantId ?? '00000000-0000-4000-8000-000000000001';
 
       const response = await fetch(`${API_URL}/v1/knowledge/upload`, {
         method: 'POST',
@@ -207,9 +204,15 @@ export default function KnowledgePage() {
     }
   }
 
+  const filteredItems = items.filter(
+    (item) =>
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())),
+  );
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      
       {/* Header Panel */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-6">
         <div>
@@ -248,6 +251,20 @@ export default function KnowledgePage() {
         </div>
       </div>
 
+      {/* Filter / Search Bar */}
+      <div className="flex items-center gap-4">
+        <input
+          type="text"
+          placeholder="Filter assets by title, type, or description..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full max-w-md rounded-xl border border-neutral-250 dark:border-neutral-800 px-4 py-2 bg-white dark:bg-neutral-900 text-xs focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 focus:outline-none transition-all"
+        />
+        <span className="text-xs font-semibold text-neutral-400">
+          Showing {filteredItems.length} of {items.length} assets
+        </span>
+      </div>
+
       {error !== null && (
         <div className="rounded-xl bg-rose-500/5 dark:bg-rose-950/10 border border-rose-500/20 p-4 text-sm font-medium text-rose-700 dark:text-rose-455 flex items-center gap-2">
           <span>⚠️</span>
@@ -265,7 +282,7 @@ export default function KnowledgePage() {
             />
           ))}
         </div>
-      ) : items.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <div className="text-center py-16 rounded-2xl border-2 border-dashed border-neutral-200 dark:border-neutral-800 bg-white/40 dark:bg-neutral-950/20">
           <span className="text-3xl block">🗂️</span>
           <p className="mt-2 text-sm font-semibold text-neutral-800 dark:text-neutral-200">No knowledge assets found</p>
@@ -275,12 +292,13 @@ export default function KnowledgePage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map((item) => {
-            const hasStatus = item.properties?.parsingStatus !== undefined;
+          {filteredItems.map((item) => {
+            const desc = item.description || item.properties?.description || 'No description provided.';
             return (
               <div
                 key={item.id}
-                className="group flex flex-col justify-between rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-5 shadow-sm hover:shadow-md hover:border-neutral-300 dark:hover:border-neutral-750 transition-all duration-200"
+                onClick={() => setSelectedAsset(item)}
+                className="group flex flex-col justify-between rounded-2xl border border-neutral-200/80 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-5 shadow-sm hover:shadow-md hover:border-neutral-300 dark:hover:border-neutral-750 transition-all duration-200 cursor-pointer"
               >
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-4">
@@ -301,7 +319,7 @@ export default function KnowledgePage() {
                     {item.title}
                   </h3>
                   <p className="text-[11px] text-neutral-500 dark:text-neutral-450 line-clamp-2 leading-relaxed">
-                    {item.properties?.description || 'No description provided.'}
+                    {desc}
                   </p>
                 </div>
 
@@ -309,14 +327,7 @@ export default function KnowledgePage() {
                   <span className="text-[9px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-wide">
                     {new Date(item.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </span>
-                  
-                  {hasStatus ? (
-                    renderStatusBadge(item.properties?.parsingStatus)
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold bg-neutral-100 dark:bg-neutral-850 text-neutral-500 border border-neutral-200 dark:border-neutral-750">
-                      ● Active
-                    </span>
-                  )}
+                  {renderStatusBadge(item.status || item.properties?.parsingStatus)}
                 </div>
               </div>
             );
@@ -324,12 +335,75 @@ export default function KnowledgePage() {
         </div>
       )}
 
+      {/* Asset Detail Modal */}
+      {selectedAsset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-lg rounded-2xl border border-neutral-200/80 bg-white dark:border-neutral-800 dark:bg-neutral-950/95 p-6 shadow-2xl flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900 pb-3">
+              <h3 className="text-base font-extrabold text-neutral-900 dark:text-white">{selectedAsset.title}</h3>
+              <button
+                onClick={() => setSelectedAsset(null)}
+                className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-250 cursor-pointer text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <span className="font-bold text-neutral-400 uppercase text-[10px]">ID:</span>{' '}
+                <span className="font-mono text-neutral-700 dark:text-neutral-300">{selectedAsset.id}</span>
+              </div>
+              <div>
+                <span className="font-bold text-neutral-400 uppercase text-[10px]">Type:</span>{' '}
+                <span className="font-semibold capitalize">{selectedAsset.type}</span>
+              </div>
+              <div>
+                <span className="font-bold text-neutral-400 uppercase text-[10px]">Visibility:</span>{' '}
+                <span className="font-semibold capitalize">{selectedAsset.visibility}</span>
+              </div>
+              <div>
+                <span className="font-bold text-neutral-400 uppercase text-[10px]">Status:</span>{' '}
+                <span className="font-semibold capitalize">{selectedAsset.status}</span>
+              </div>
+              {selectedAsset.description && (
+                <div>
+                  <span className="font-bold text-neutral-400 uppercase text-[10px]">Description:</span>
+                  <p className="mt-1 text-neutral-700 dark:text-neutral-300 leading-relaxed bg-neutral-50 dark:bg-neutral-900 p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800">
+                    {selectedAsset.description}
+                  </p>
+                </div>
+              )}
+              {selectedAsset.contentReferences && selectedAsset.contentReferences.length > 0 && (
+                <div>
+                  <span className="font-bold text-neutral-400 uppercase text-[10px]">Attached Content References:</span>
+                  <ul className="mt-1 space-y-1 font-mono text-[11px] text-amber-600 dark:text-amber-400">
+                    {selectedAsset.contentReferences.map((ref) => (
+                      <li key={ref.reference} className="bg-amber-500/5 p-2 rounded border border-amber-500/20">
+                        📄 Document ID: {ref.reference} ({ref.mimeType ?? 'text/plain'})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-neutral-100 dark:border-neutral-900">
+              <button
+                onClick={() => setSelectedAsset(null)}
+                className="rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 px-4 py-2 text-xs font-bold shadow cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Manual Input Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="w-full max-w-lg rounded-2xl border border-neutral-200/80 bg-white dark:border-neutral-800 dark:bg-neutral-950/95 p-6 shadow-2xl flex flex-col gap-4">
-            
-            {/* Header */}
             <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900 pb-3">
               <h3 className="text-base font-extrabold text-neutral-900 dark:text-white">Ingest Raw Knowledge</h3>
               <button
@@ -340,7 +414,6 @@ export default function KnowledgePage() {
               </button>
             </div>
 
-            {/* Form */}
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <label className="flex flex-col gap-1.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
@@ -407,14 +480,12 @@ export default function KnowledgePage() {
                 />
               </label>
 
-              {/* Validation Warning Alert */}
               {validationError && (
                 <div className="rounded-lg bg-rose-500/5 border border-rose-500/20 p-2.5 text-[11px] font-medium text-rose-600 dark:text-rose-400">
                   ⚠️ {validationError}
                 </div>
               )}
 
-              {/* Action Buttons */}
               <div className="flex justify-end gap-2 border-t border-neutral-100 dark:border-neutral-800 pt-4">
                 <button
                   type="button"
@@ -440,8 +511,6 @@ export default function KnowledgePage() {
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
           <div className="w-full max-w-lg rounded-2xl border border-neutral-200/80 bg-white dark:border-neutral-800 dark:bg-neutral-950/95 p-6 shadow-2xl flex flex-col gap-4">
-            
-            {/* Header */}
             <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900 pb-3">
               <h3 className="text-base font-extrabold text-neutral-900 dark:text-white">Ingest Local Document</h3>
               <button
@@ -456,7 +525,6 @@ export default function KnowledgePage() {
               </button>
             </div>
 
-            {/* Body */}
             {uploadError && (
               <div className="text-xs text-rose-600 bg-rose-50/5 border border-rose-500/20 p-3 rounded-xl">
                 ⚠️ {uploadError}
@@ -499,7 +567,6 @@ export default function KnowledgePage() {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="flex justify-end gap-2 pt-4 border-t border-neutral-100 dark:border-neutral-900">
               <button
                 onClick={() => {

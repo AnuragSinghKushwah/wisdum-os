@@ -152,6 +152,7 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
     kernel.container.resolve(VECTOR_STORE),
     kernel.container.resolve(EMBEDDING_PROVIDER),
     kernel.container.resolve(EMBEDDING_MODEL),
+    kernel.container.resolve(KNOWLEDGE_HANDLERS),
   );
   registerIdentityRoutes(
     app,

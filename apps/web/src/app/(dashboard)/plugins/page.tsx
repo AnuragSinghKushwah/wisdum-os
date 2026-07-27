@@ -32,7 +32,12 @@ export default function PluginsPage() {
   const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load installed plugins
+  // Manifest Validation Modal
+  const [isManifestModalOpen, setIsManifestModalOpen] = useState(false);
+  const [manifestJson, setManifestJson] = useState('{\n  "name": "custom-connector",\n  "version": "1.0.0",\n  "displayName": "Custom Connector",\n  "description": "Scaffolding for custom ingestion source",\n  "capabilities": ["custom_read"]\n}');
+  const [manifestResult, setManifestResult] = useState<{ valid: boolean; errors?: readonly string[] } | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+
   const load = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -50,7 +55,6 @@ export default function PluginsPage() {
     void load();
   }, [load]);
 
-  // Install a catalog plugin
   async function handleInstall(name: string, displayName: string, description: string, capabilities: string[]) {
     setIsSubmitting(name);
     setError(null);
@@ -73,7 +77,6 @@ export default function PluginsPage() {
     }
   }
 
-  // Toggle active/inactive plugin status
   async function handleToggle(pluginId: string, currentStatus: string) {
     setIsSubmitting(pluginId);
     setError(null);
@@ -88,16 +91,49 @@ export default function PluginsPage() {
     }
   }
 
+  async function handleValidateManifest() {
+    setIsValidating(true);
+    setManifestResult(null);
+    try {
+      const parsed = JSON.parse(manifestJson);
+      const res = await apiFetch<{ valid: boolean; errors?: readonly string[] }>('/v1/plugins/manifest/validate', {
+        method: 'POST',
+        body: parsed,
+      });
+      setManifestResult(res);
+    } catch (err) {
+      setManifestResult({
+        valid: false,
+        errors: [err instanceof Error ? err.message : 'Invalid JSON format.'],
+      });
+    } finally {
+      setIsValidating(false);
+    }
+  }
+
   const categories = [...new Set(PLUGIN_CATALOG.map((p) => p.category))];
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Header Panel */}
-      <div className="border-b border-neutral-200/60 dark:border-neutral-800/60 pb-6">
-        <h1 className="text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white">Plugin Marketplace</h1>
-        <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400 max-w-xl leading-relaxed">
-          Connect your knowledge sources and publishing destinations. Plugins extend what Wisdum can read and where it can publish.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-b border-neutral-200/60 dark:border-neutral-800/60 pb-6">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-neutral-900 dark:text-white">Plugin Marketplace</h1>
+          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400 max-w-xl leading-relaxed">
+            Connect your knowledge sources and publishing destinations. Plugins extend what Wisdum can read and where it can publish.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setManifestResult(null);
+            setIsManifestModalOpen(true);
+          }}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-250 dark:border-neutral-800 px-5 py-2.5 text-xs font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-all cursor-pointer hover:-translate-y-0.5 shrink-0"
+        >
+          📦 Validate Manifest
+        </button>
       </div>
 
       {error !== null && (
@@ -162,7 +198,6 @@ export default function PluginsPage() {
                         </div>
                       </div>
 
-                      {/* Action Button */}
                       <div className="shrink-0 flex flex-col gap-2">
                         {!isInstalled ? (
                           <button
@@ -203,6 +238,73 @@ export default function PluginsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Manifest Validation Modal */}
+      {isManifestModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-lg rounded-2xl border border-neutral-200/80 bg-white dark:border-neutral-800 dark:bg-neutral-950/95 p-6 shadow-2xl flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-900 pb-3">
+              <h3 className="text-base font-extrabold text-neutral-900 dark:text-white">Validate Plugin Manifest JSON</h3>
+              <button
+                onClick={() => setIsManifestModalOpen(false)}
+                className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-250 cursor-pointer text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="flex flex-col gap-1.5 text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                Plugin Manifest Schema Definition
+                <textarea
+                  value={manifestJson}
+                  onChange={(e) => setManifestJson(e.target.value)}
+                  className="min-h-44 w-full rounded-xl border border-neutral-250/70 dark:border-neutral-800 px-3 py-2 bg-transparent font-mono text-xs focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 focus:outline-none transition-all leading-relaxed"
+                />
+              </label>
+
+              {manifestResult !== null && (
+                <div className={`p-3 rounded-xl border text-xs font-medium ${
+                  manifestResult.valid
+                    ? 'bg-emerald-500/5 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                    : 'bg-rose-500/5 text-rose-700 dark:text-rose-400 border-rose-500/20'
+                }`}>
+                  {manifestResult.valid ? (
+                    <p>✅ Plugin manifest schema is 100% valid!</p>
+                  ) : (
+                    <div className="space-y-1">
+                      <p className="font-bold">❌ Manifest validation errors:</p>
+                      <ul className="list-disc list-inside font-mono text-[11px]">
+                        {manifestResult.errors?.map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsManifestModalOpen(false)}
+                className="rounded-xl border border-neutral-200 dark:border-neutral-800 px-4 py-2 text-xs font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                disabled={isValidating}
+                onClick={() => void handleValidateManifest()}
+                className="rounded-xl bg-neutral-950 dark:bg-white text-white dark:text-neutral-950 px-5 py-2 text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer shadow-md"
+              >
+                {isValidating ? 'Validating…' : 'Validate Schema'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

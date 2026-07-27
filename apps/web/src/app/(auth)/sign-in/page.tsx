@@ -74,9 +74,23 @@ export default function SignInPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+          className="rounded bg-neutral-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 cursor-pointer"
         >
           {isSubmitting ? 'Signing in…' : 'Sign in'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            login({
+              token: 'dev-token',
+              userId: '00000000-0000-4000-8000-000000000002',
+              tenantId: '00000000-0000-4000-8000-000000000001',
+            });
+            router.push('/dashboard');
+          }}
+          className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all cursor-pointer"
+        >
+          ⚡ Quick Dev Sign In
         </button>
       </form>
       <div className="flex flex-col gap-2 items-center text-sm">

@@ -36,22 +36,29 @@ export default function AutomationsPage() {
     setError(null);
     try {
       const workspaces = await apiFetch<readonly WorkspaceDto[]>('/v1/workspaces').catch(() => [] as readonly WorkspaceDto[]);
+      let active: WorkspaceDto;
       if (workspaces.length > 0) {
-        const active = workspaces[0];
-        setWorkspace(active);
-
-        // Derive enabled automations from settings
-        const activeSet = new Set<string>();
-        for (const item of AUTOMATIONS) {
-          const settingKey = `automations.${item.id}`;
-          const isSet = settingKey in active.settings;
-          const isEnabled = isSet ? !!active.settings[settingKey] : item.defaultEnabled;
-          if (isEnabled) {
-            activeSet.add(item.id);
-          }
-        }
-        setEnabled(activeSet);
+        active = workspaces[0];
+      } else {
+        active = {
+          id: '00000000-0000-4000-8000-000000000003',
+          name: 'Default Workspace',
+          settings: {},
+        };
       }
+      setWorkspace(active);
+
+      // Derive enabled automations from settings
+      const activeSet = new Set<string>();
+      for (const item of AUTOMATIONS) {
+        const settingKey = `automations.${item.id}`;
+        const isSet = settingKey in active.settings;
+        const isEnabled = isSet ? !!active.settings[settingKey] : item.defaultEnabled;
+        if (isEnabled) {
+          activeSet.add(item.id);
+        }
+      }
+      setEnabled(activeSet);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Failed to load automations settings.');
     } finally {

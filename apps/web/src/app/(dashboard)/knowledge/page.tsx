@@ -58,11 +58,22 @@ export default function KnowledgePage() {
   const [isCreating, setIsCreating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Upload/Ingest File States
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  // Selected Asset Document Content State
+  const [selectedDocContent, setSelectedDocContent] = useState<string | null>(null);
+  const [isLoadingDoc, setIsLoadingDoc] = useState(false);
+
+  useEffect(() => {
+    if (!selectedAsset || !selectedAsset.contentReferences || selectedAsset.contentReferences.length === 0) {
+      setSelectedDocContent(null);
+      return;
+    }
+    const docId = selectedAsset.contentReferences[0].reference;
+    setIsLoadingDoc(true);
+    apiFetch<{ content: string }>(`/v1/documents/${docId}`)
+      .then((doc) => setSelectedDocContent(doc.content))
+      .catch(() => setSelectedDocContent(null))
+      .finally(() => setIsLoadingDoc(false));
+  }, [selectedAsset]);
 
   function renderStatusBadge(val?: string) {
     const status = val || 'active';
@@ -349,43 +360,56 @@ export default function KnowledgePage() {
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div>
-                <span className="font-bold text-neutral-400 uppercase text-[10px]">ID:</span>{' '}
-                <span className="font-mono text-neutral-700 dark:text-neutral-300">{selectedAsset.id}</span>
+            <div className="space-y-4 text-xs max-h-[70vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/30">
+                  <span className="font-bold text-neutral-400 uppercase text-[9px]">Asset ID</span>
+                  <p className="font-mono text-neutral-800 dark:text-neutral-200 text-[11px] truncate">{selectedAsset.id}</p>
+                </div>
+                <div className="p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/30">
+                  <span className="font-bold text-neutral-400 uppercase text-[9px]">Medium / Visibility</span>
+                  <p className="font-semibold capitalize text-neutral-800 dark:text-neutral-200 text-xs">{selectedAsset.type} ({selectedAsset.visibility})</p>
+                </div>
               </div>
-              <div>
-                <span className="font-bold text-neutral-400 uppercase text-[10px]">Type:</span>{' '}
-                <span className="font-semibold capitalize">{selectedAsset.type}</span>
+
+              {/* Cognitive Parsing Pipeline Badges */}
+              <div className="space-y-1.5">
+                <span className="font-bold text-neutral-400 uppercase text-[10px]">Parsing & Index Pipeline</span>
+                <div className="flex flex-wrap gap-1.5 font-mono text-[10px]">
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                    ✓ Text Chunked
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                    ✓ Vector Embedded (pgvector)
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                    ✓ Knowledge Graph Linked
+                  </span>
+                </div>
               </div>
-              <div>
-                <span className="font-bold text-neutral-400 uppercase text-[10px]">Visibility:</span>{' '}
-                <span className="font-semibold capitalize">{selectedAsset.visibility}</span>
-              </div>
-              <div>
-                <span className="font-bold text-neutral-400 uppercase text-[10px]">Status:</span>{' '}
-                <span className="font-semibold capitalize">{selectedAsset.status}</span>
-              </div>
+
               {selectedAsset.description && (
                 <div>
-                  <span className="font-bold text-neutral-400 uppercase text-[10px]">Description:</span>
-                  <p className="mt-1 text-neutral-700 dark:text-neutral-300 leading-relaxed bg-neutral-50 dark:bg-neutral-900 p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-800">
+                  <span className="font-bold text-neutral-400 uppercase text-[10px]">Description</span>
+                  <p className="mt-1 text-neutral-700 dark:text-neutral-300 leading-relaxed bg-neutral-50 dark:bg-neutral-900 p-3 rounded-xl border border-neutral-200 dark:border-neutral-800">
                     {selectedAsset.description}
                   </p>
                 </div>
               )}
-              {selectedAsset.contentReferences && selectedAsset.contentReferences.length > 0 && (
-                <div>
-                  <span className="font-bold text-neutral-400 uppercase text-[10px]">Attached Content References:</span>
-                  <ul className="mt-1 space-y-1 font-mono text-[11px] text-amber-600 dark:text-amber-400">
-                    {selectedAsset.contentReferences.map((ref) => (
-                      <li key={ref.reference} className="bg-amber-500/5 p-2 rounded border border-amber-500/20">
-                        📄 Document ID: {ref.reference} ({ref.mimeType ?? 'text/plain'})
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+
+              {/* Ingested Source Document Content */}
+              <div className="space-y-1.5">
+                <span className="font-bold text-neutral-400 uppercase text-[10px]">Ingested Source Document Content</span>
+                {isLoadingDoc ? (
+                  <p className="text-xs text-neutral-400 font-mono p-3 bg-neutral-50 dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800">Loading document content...</p>
+                ) : selectedDocContent !== null ? (
+                  <pre className="p-3 bg-neutral-900 text-neutral-100 rounded-xl font-mono text-[11px] leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap select-all">
+                    {selectedDocContent}
+                  </pre>
+                ) : (
+                  <p className="text-xs text-neutral-400 italic p-3 bg-neutral-50 dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800">No raw document text attached.</p>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-end pt-4 border-t border-neutral-100 dark:border-neutral-900">

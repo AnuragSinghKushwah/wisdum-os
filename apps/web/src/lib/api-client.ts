@@ -23,8 +23,8 @@ interface ApiRequestOptions {
 /**
  * Thin fetch wrapper for the Wisdum API: attaches the bearer token from
  * the current session automatically, falls back to an explicit
- * `tenantId` header for pre-auth requests, and normalizes error
- * responses into `ApiError`.
+ * `tenantId` header for pre-auth requests, normalizes network failures,
+ * and converts error responses into `ApiError`.
  */
 export async function apiFetch<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const session = loadSession();
@@ -39,11 +39,20 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
     headers['x-tenant-id'] = options.tenantId;
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    method: options.method ?? 'GET',
-    headers,
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      method: options.method ?? 'GET',
+      headers,
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    });
+  } catch (cause: unknown) {
+    throw new ApiError(
+      `Unable to connect to Wisdum API at ${API_URL}. Please ensure the backend server is running.`,
+      0,
+      'network_error',
+    );
+  }
 
   if (response.status === 204) {
     return undefined as T;

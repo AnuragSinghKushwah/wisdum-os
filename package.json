@@ -20,6 +20,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
+    "dev:api": "npm run dev --workspace @wisdum/api",
+    "dev:web": "npm run dev --workspace @wisdum/web",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:prod": "docker compose -f docker-compose.prod.yml up -d --build",

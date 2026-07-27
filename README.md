@@ -94,10 +94,10 @@ npm run test
 
 # 4. Start local development servers
 # Terminal 1 — Fastify API
-npm run dev --workspace @wisdum/api   # http://localhost:3001
+npm run dev:api   # (or npm run dev --workspace @wisdum/api) -> http://localhost:3001
 
 # Terminal 2 — Next.js Web Dashboard
-npm run dev --workspace @wisdum/web   # http://localhost:3000
+npm run dev:web   # (or npm run dev --workspace @wisdum/web) -> http://localhost:3000
 ```
 
 ---

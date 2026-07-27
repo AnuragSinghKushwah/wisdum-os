@@ -57,6 +57,11 @@ export default function KnowledgePage() {
   const [visibility, setVisibility] = useState<(typeof VISIBILITIES)[number]>('private');
   const [isCreating, setIsCreating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  // Upload/Ingest File States
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Selected Asset Document Content State
   const [selectedDocContent, setSelectedDocContent] = useState<string | null>(null);

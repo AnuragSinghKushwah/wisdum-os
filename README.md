@@ -1,117 +1,192 @@
-# Wisdum
+# Wisdum OS
 
-**Wisdum is an open-source, AI-native Knowledge Operations Platform.**
+<p align="center">
+  <img src="https://raw.githubusercontent.com/AnuragSinghKushwah/wisdum-os/main/docs/assets/banner.png" alt="Wisdum OS Banner" width="100%" error="true" />
+</p>
 
-It is infrastructure for knowledge-driven work: it enables individuals and organizations to transform raw information into connected knowledge, turn knowledge into business outcomes, and continuously improve through AI-assisted workflows.
+<p align="center">
+  <strong>The Open-Source, AI-Native Knowledge Operations Platform</strong>
+</p>
 
-> **Status: pre-alpha.** Wisdum is in early foundational development. The API and web dashboard run end to end (see [Getting started](#getting-started)), but coverage across bounded contexts is uneven and APIs and structure will change without notice.
+<p align="center">
+  <a href="#license"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
+  <a href="#technology-stack"><img src="https://img.shields.io/badge/Node.js-18%2B-green.svg" alt="Node.js"></a>
+  <a href="#technology-stack"><img src="https://img.shields.io/badge/TypeScript-5.7-blue.svg" alt="TypeScript"></a>
+  <a href="#quick-start--installation"><img src="https://img.shields.io/badge/Docker-Ready-blue.svg" alt="Docker"></a>
+  <a href="#tests--quality"><img src="https://img.shields.io/badge/Tests-235%20Passing-brightgreen.svg" alt="Tests"></a>
+</p>
 
-## What Wisdum is not
+---
 
-Wisdum is deliberately **not**:
+## 🌟 What is Wisdum OS?
 
-- a note-taking application
-- a CMS
-- an AI writing tool
-- a project management application
+**Wisdum OS** is infrastructure for knowledge-driven work. It enables individuals and organizations to transform raw information into connected knowledge, turn knowledge into measurable business outcomes, and continuously improve through AI-assisted workflows.
 
-Those are features other products offer. Wisdum is the platform layer underneath knowledge-driven work — the UI is only one implementation of it.
+Wisdum is **not** a simple note-taking app or CMS. It is an open-source, multi-tenant Knowledge Operations Platform designed with Domain-Driven Design (DDD), Event-Driven Architecture (EDA), and vendor-neutral AI abstractions.
 
-## Architecture at a glance
+---
 
-Wisdum is designed around a small set of non-negotiable principles:
+## ✨ Key Features
 
-- **API-first** — every capability is exposed through versioned, documented APIs; the UI consumes the same APIs as everyone else.
-- **Domain-driven** — the platform is composed of self-contained domains with explicit boundaries, communicating through events.
-- **Event-driven** — domains publish and consume domain events (`[domain].[entity].[action]`) rather than calling into each other.
-- **Plugin architecture** — external providers (AI, auth, search, storage, publishing, analytics) are plugins; the core stays vendor-independent.
-- **AI-native** — AI is a first-class subsystem exposed as reusable services behind provider abstractions, not logic scattered through the codebase.
-- **Self-hostable and multi-tenant** — designed to run on your own infrastructure from day one.
+- 🕸️ **Knowledge Graph & Reasoning Engine**: Automatically extracts domain concepts, computes co-occurrence relationships, and executes reasoning passes over captured assets.
+- 🔍 **Hybrid Cognitive Search**: Combines BM25 keyword matching with `pgvector` dense vector embeddings for semantic precision.
+- 📡 **Real-Time Event Streaming**: Stream live platform events (`knowledge.asset.*`, `opportunity.*`, `agent.task.*`) directly to web clients over Server-Sent Events (SSE).
+- 🤖 **Autonomous Writing & Publishing Agents**: Agent task orchestration engine for automated opportunity draft generation and task execution.
+- 📢 **Multi-Channel Publishing**: Native publishing connectors for **Dev.to**, **Ghost**, **Substack**, **LinkedIn**, **Twitter/X**, and **Websites**.
+- 🔌 **Plugin SDK & Marketplace**: Extend platform capabilities with `@wisdum/plugin-sdk` and pre-flight manifest validation (`POST /v1/plugins/manifest/validate`).
+- ⚡ **Wisdum CLI Tooling**: Programmatic workspace initialization, plugin scaffolding, and connector synchronization via `@wisdum/cli`.
+- 📊 **Production Observability**: Built-in `/healthz` (liveness), `/readyz` (database & redis readiness), and `/metrics` (Prometheus metrics format).
 
-See [docs/architecture/overview.md](docs/architecture/overview.md) for the full picture and [docs/adr/](docs/adr/) for the decisions behind it.
+---
 
-## Repository layout
+## 🚀 Quick Start & Installation
 
-| Directory | Purpose |
-| --- | --- |
-| [`product/`](product/) | Product strategy, vision, and planning |
-| [`docs/`](docs/) | Architecture, ADRs, domain models, API specifications |
-| [`apps/`](apps/) | User-facing applications — composition layers only |
-| [`packages/`](packages/) | Shared libraries: domain, contracts, events, and infrastructure |
-| [`platform/`](platform/) | Platform capability packages (auth, ai, plugins, search, storage, jobs) |
-| [`services/`](services/) | Backend domain services |
-| [`plugins/`](plugins/) | External provider integrations |
-| [`tools/`](tools/) | Development and operations utilities |
-| [`examples/`](examples/) | Example implementations and integrations |
+### Prerequisites
 
-## Technology stack
+- **Node.js**: `18.18+` or `22.x`
+- **npm**: `9.x+`
+- **Docker & Docker Compose**: (Recommended for persistent database & cache stack)
 
-| Layer | Technology |
-| --- | --- |
-| Frontend | Next.js, React, TypeScript, Tailwind CSS |
-| Backend | FastAPI (Python, async-first) |
-| Primary datastore | PostgreSQL |
-| Cache & queues | Redis, Celery |
-| Full-text search | Meilisearch |
-| Media & files | S3-compatible object storage |
+---
 
-The rationale is recorded in [ADR 0003](docs/adr/0003-core-technology-stack.md).
+### Option 1: Quickstart with Docker Compose (Recommended)
 
-## Getting started
+Run the full production-ready stack (PostgreSQL + pgvector, Redis, Fastify API, Next.js Web Dashboard) with a single command:
 
-The monorepo builds from the root (Node.js 18.18+):
+```bash
+# 1. Clone the repository
+git clone https://github.com/AnuragSinghKushwah/wisdum-os.git
+cd wisdum-os
 
-```sh
-npm install
-npm run build      # compile all packages (TypeScript project references)
-npm run typecheck  # full type check
-npm run lint       # ESLint across the workspace
-npm run test       # unit tests (Vitest)
-npm run format     # Prettier
+# 2. Copy the production environment template
+cp .env.production.example .env.production
+
+# 3. Build and launch the container stack
+npm run docker:prod
 ```
 
-### Running the platform
+Once running, access:
+- 🌐 **Web Dashboard UI**: [http://localhost:3000](http://localhost:3000)
+- 🔌 **Fastify REST API**: [http://localhost:3001](http://localhost:3001)
+- 🏥 **API Health Check**: `curl http://localhost:3001/healthz`
+- 📊 **Prometheus Metrics**: `curl http://localhost:3001/metrics`
 
-The API (`apps/api`, Fastify) and web dashboard (`apps/web`, Next.js) are
-runnable end to end. The API falls back to in-memory adapters for
-anything not configured (Postgres, Redis), so the fastest way to try it
-is with just a signing secret:
+To stop the containers:
+```bash
+npm run docker:prod:down
+```
 
-```sh
-# Terminal 1 — API (in-memory persistence/cache; no Postgres/Redis required)
-JWT_SECRET=dev-secret npm run build --workspace @wisdum/api && \
-  node apps/api/dist/main.js   # http://localhost:3001
+---
 
-# Terminal 2 — web dashboard
+### Option 2: Local Monorepo Development
+
+If you prefer to run the platform locally for development:
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Build all 25 workspace packages (TypeScript project references)
+npm run build
+
+# 3. Execute the full unit test suite (Vitest)
+npm run test
+
+# 4. Start local development servers
+# Terminal 1 — Fastify API
+npm run dev --workspace @wisdum/api   # http://localhost:3001
+
+# Terminal 2 — Next.js Web Dashboard
 npm run dev --workspace @wisdum/web   # http://localhost:3000
 ```
 
-For a persistent setup with real Postgres and Redis, copy `.env.example`
-to `.env` and fill in `JWT_SECRET`, then:
+---
 
-```sh
-docker compose up --build
+### Option 3: Using Wisdum CLI (`@wisdum/cli`)
+
+Initialize configurations, scaffold custom plugins, or trigger connector syncs using the Wisdum CLI:
+
+```bash
+# Initialize a new workspace configuration (.wisdumrc.json)
+npx wisdum init
+
+# Scaffold a new plugin template
+npx wisdum plugin create "My Custom Connector"
+
+# Check API health status
+npx wisdum status
+
+# Trigger connector sync
+npx wisdum sync --connector github
 ```
 
-This starts Postgres, Redis, the API (migrating on startup), and the web
-dashboard (`http://localhost:3000`). Set `ANTHROPIC_API_KEY` or
-`OPENAI_API_KEY` in `.env` to enable AI conversation replies; both are
-optional.
+---
 
-To learn the architecture rather than just run it:
+## 📚 API Specifications
 
-1. Read [docs/architecture/overview.md](docs/architecture/overview.md).
-2. Read the ADRs in [docs/adr/](docs/adr/) — [ADR 0004](docs/adr/0004-typescript-workspace-topology.md) explains the workspace layout.
-3. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
+Every API endpoint in Wisdum OS is fully versioned, documented, and tenant-scoped. See the [`docs/api/`](docs/api/README.md) directory for full Markdown specifications:
 
-## Contributing
+| Domain / Feature | Specification Document | Key Capabilities |
+| :--- | :--- | :--- |
+| **Knowledge** | [docs/api/knowledge.md](docs/api/knowledge.md) | Knowledge CRUD, import/export, lifecycle |
+| **Document** | [docs/api/documents.md](docs/api/documents.md) | Raw document upload & processing |
+| **Hybrid Search** | [docs/api/search.md](docs/api/search.md) | BM25 keyword + pgvector dense search |
+| **Knowledge Graph** | [docs/api/graph.md](docs/api/graph.md) | Graph concepts & relationship topology |
+| **Opportunities** | [docs/api/opportunities.md](docs/api/opportunities.md) | Discovered creation opportunities & publishing |
+| **Real-Time Events** | [docs/api/events.md](docs/api/events.md) | Server-Sent Events (SSE) live push stream |
+| **Plugin Marketplace**| [docs/api/plugins.md](docs/api/plugins.md) | Manifest validation & plugin setup |
+| **Identity & Auth** | [docs/api/identity.md](docs/api/identity.md) | User authentication & API keys |
+| **Autonomous Agents**| [docs/api/agents.md](docs/api/agents.md) | Background writing & publishing agent tasks |
 
-Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). All participants are expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md). Project decision-making is described in [GOVERNANCE.md](GOVERNANCE.md).
+---
 
-## Security
+## 📂 Repository Layout
 
-Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md) — never through public issues.
+| Directory | Description |
+| :--- | :--- |
+| [`apps/`](apps/) | Executable application layers (`apps/api` Fastify server, `apps/web` Next.js dashboard UI) |
+| [`packages/`](packages/) | Shared libraries (`domain`, `application`, `infrastructure`, `contracts`, `events`, `plugin-sdk`, `cli`) |
+| [`platform/`](platform/) | Platform capability engines (`ai`, `publishing`, `inputs`, `plugins`, `search`, `storage`, `auth`, `jobs`) |
+| [`docs/`](docs/) | Architecture overview, ADRs, domain models, and API specifications |
+| [`tools/`](tools/) | Production container entrypoint scripts & dev utilities |
 
-## License
+---
 
-Wisdum is licensed under the [Apache License 2.0](LICENSE).
+## 🛠️ Technology Stack
+
+- **Frontend**: Next.js 15, React 19, Tailwind CSS, TypeScript
+- **Backend API**: Fastify, Async CQRS Pattern, Dependency Injection
+- **Database & Search**: PostgreSQL 16 with `pgvector`, Redis 7
+- **AI Infrastructure**: OpenAI, Anthropic, and Local Transformers (`@xenova/transformers`)
+- **CLI & SDK**: Node.js ESM `@wisdum/cli` & `@wisdum/plugin-sdk`
+
+---
+
+## 🧪 Tests & Quality
+
+Run the complete automated test suite across all packages:
+
+```bash
+# Run 235+ unit tests across 63 test suites
+npm run test
+
+# Run type check
+npm run typecheck
+
+# Run linter
+npm run lint
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on the development workflow, branching strategies, and code formatting.
+
+All community participants are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
+
+## 📄 License
+
+Wisdum OS is open-source software licensed under the [Apache License 2.0](LICENSE).

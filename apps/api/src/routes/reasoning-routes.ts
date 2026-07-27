@@ -16,26 +16,4 @@ export function registerReasoningRoutes(
     return handlers.run.execute(runReasoningPassCommand({ tenantId }));
   });
 
-  app.get('/v1/graph', async (request, reply) => {
-    const tenantId = requireTenantId(request);
-
-    const [conceptList, relationshipList] = await Promise.all([
-      concepts.listByTenant(tenantId),
-      relationships.listByTenant(tenantId),
-    ]);
-
-    return reply.send({
-      nodes: conceptList.map((concept) => ({
-        id: concept.getId().value(),
-        label: concept.name.value,
-        type: 'concept',
-        weight: concept.mentionCount,
-      })),
-      edges: relationshipList.map((rel) => ({
-        source: rel.conceptAId.value(),
-        target: rel.conceptBId.value(),
-        label: rel.relationshipType.value,
-      })),
-    });
-  });
 }

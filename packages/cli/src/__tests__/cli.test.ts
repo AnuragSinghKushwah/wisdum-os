@@ -16,7 +16,8 @@ describe('Wisdum CLI Commands', () => {
   });
 
   it('runPluginCreate generates plugin scaffold directory', async () => {
-    const res = await runPluginCreate({ name: 'Test Plugin', targetDir: './.temp-test-plugins' });
+    const targetDir = `./.temp-test-plugins-${Date.now()}`;
+    const res = await runPluginCreate({ name: 'Test Plugin', targetDir });
     expect(res.success).toBe(true);
     expect(res.message).toContain("Scaffolding created for plugin 'test-plugin'");
   });

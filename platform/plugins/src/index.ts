@@ -16,3 +16,5 @@ export * from './registry/index.js';
 export * from './capability/index.js';
 export * from './dependency/index.js';
 export * from './lifecycle/index.js';
+export * from './manifest/index.js';
+

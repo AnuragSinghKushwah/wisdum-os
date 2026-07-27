@@ -8,7 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Application Layer Unit Test Backfill & Complete API Documentation Spec Expansion (`packages/application/src/*/handlers/__tests__/`, `docs/api/`).**
+  - Added unit test suites for `ai`, `organization`, `search`, and `workspace` CQRS application handlers bringing application layer unit test coverage to 100% (229 unit tests passing).
+  - Authored complete API markdown specifications covering all 14 Fastify route modules in `docs/api/` (`documents.md`, `identity.md`, `opportunities.md`, `graph.md`, `search.md`, `agents.md`, `reasoning.md`, `events.md`, `plugins.md`, `ai.md`, `organizations.md`, `workspaces.md`).
+  - Updated `docs/api/README.md` index linking all REST and event specifications.
+- **Sprint 015:** Plugin SDK & Dynamic Capability Provisioning Engine (`packages/plugin-sdk/`, `platform/plugins/src/manifest/`).
+
+  - Created `@wisdum/plugin-sdk` workspace package exporting `defineWisdumPlugin()`, `WisdumPluginManifest` interface, and permission contracts (`read_content`, `publish_content`, `network_access`).
+  - Implemented `PluginManifestValidator` in `platform/plugins/src/manifest/plugin-manifest-validator.ts` for automated plugin manifest specification, semver, and capability checking.
+  - Added REST API validation endpoint `POST /v1/plugins/manifest/validate` in `apps/api/src/routes/plugin-routes.ts`.
+- **Sprint 014:** Real-Time Event Streaming & SSE Engine (`apps/api/src/routes/event-routes.ts`, `apps/api/src/validation/event-schemas.ts`).
+
+  - Added Server-Sent Events (SSE) streaming endpoint `GET /v1/events/stream` for real-time client event push updates.
+  - Connected SSE response streams directly to `EVENT_BUS` domain event publications (`knowledge.asset.*`, `opportunity.*`, `agent.task.*`) with tenant boundary isolation.
+  - Implemented automatic heartbeat pings and listener cleanup on client connection disconnect.
 - **Sprint 013:** Automated Input Connectors & Integration Sync Engine (`platform/inputs/`, `packages/application/src/capture/`).
+
   - Added input connectors for external sources: GitHub, Notion, Slack, Email, Obsidian, AI Export.
   - Implemented `SyncInputConnectorHandler` application orchestrator folding captured items into Document deduplication and Knowledge creation pipelines.
   - Registered interval scheduler support in `platform/jobs/src/interval-scheduler.ts` for background connector sync.

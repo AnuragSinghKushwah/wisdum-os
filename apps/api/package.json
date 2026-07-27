@@ -34,9 +34,12 @@
     "@wisdum/platform-ai": "*",
     "@wisdum/platform-inputs": "*",
     "@wisdum/platform-jobs": "*",
+    "@wisdum/platform-plugins": "*",
     "@wisdum/platform-publishing": "*",
     "@wisdum/platform-search": "*",
+    "@wisdum/plugin-sdk": "*",
     "@wisdum/types": "*",
+
     "fastify": "^5.10.0",
     "ioredis": "^5.11.1",
     "openai": "^6.45.0",

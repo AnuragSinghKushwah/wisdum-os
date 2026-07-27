@@ -7,7 +7,9 @@
     { "path": "packages/config" },
     { "path": "packages/contracts" },
     { "path": "packages/events" },
+    { "path": "packages/plugin-sdk" },
     { "path": "packages/domain" },
+
     { "path": "packages/kernel" },
     { "path": "packages/application" },
     { "path": "packages/infrastructure" },

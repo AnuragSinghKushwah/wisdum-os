@@ -17,3 +17,18 @@ export const pluginIdParamsSchema = {
   required: ['id'],
   properties: { id: { type: 'string' } },
 } as const;
+
+export const validateManifestBodySchema = {
+  type: 'object',
+  required: ['name', 'version', 'displayName', 'description'],
+  properties: {
+    name: { type: 'string' },
+    version: { type: 'string' },
+    displayName: { type: 'string' },
+    description: { type: 'string' },
+    author: { type: 'string' },
+    capabilities: { type: 'array', items: { type: 'string' } },
+    permissions: { type: 'array', items: { type: 'string' } },
+  },
+} as const;
+

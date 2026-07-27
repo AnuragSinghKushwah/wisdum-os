@@ -58,6 +58,7 @@ import {
   AGENT_HANDLERS,
   GRAPH_HANDLERS,
   CAPTURE_HANDLERS,
+  EVENT_BUS,
 } from './container/tokens.js';
 import { createAuthHook } from './middleware/auth-context.js';
 import { errorHandler } from './middleware/error-handler.js';
@@ -75,7 +76,9 @@ import {
   registerAgentRoutes,
   registerGraphRoutes,
   registerWebhookRoutes,
+  registerEventStreamRoutes,
 } from './routes/index.js';
+
 
 /**
  * Composes the kernel (every bounded context's module) and the Fastify
@@ -175,9 +178,10 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
     kernel.container.resolve(CONCEPT_REPOSITORY),
     kernel.container.resolve(CONCEPT_RELATIONSHIP_REPOSITORY),
   );
-  registerAgentRoutes(app, kernel.container.resolve(AGENT_HANDLERS));
   registerGraphRoutes(app, kernel.container.resolve(GRAPH_HANDLERS));
   registerWebhookRoutes(app, kernel.container.resolve(CAPTURE_HANDLERS));
+  registerEventStreamRoutes(app, kernel.container.resolve(EVENT_BUS));
 
   return { app, kernel };
 }
+

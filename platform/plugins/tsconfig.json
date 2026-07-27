@@ -9,6 +9,8 @@
     { "path": "../../packages/contracts" },
     { "path": "../../packages/errors" },
     { "path": "../../packages/domain" },
-    { "path": "../../packages/kernel" }
+    { "path": "../../packages/kernel" },
+    { "path": "../../packages/plugin-sdk" }
   ]
 }
+

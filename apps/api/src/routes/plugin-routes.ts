@@ -8,7 +8,10 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type { PluginHandlers } from '../container/tokens.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
-import { installPluginBodySchema, pluginIdParamsSchema } from '../validation/plugin-schemas.js';
+import { PluginManifestValidator } from '@wisdum/platform-plugins';
+import { installPluginBodySchema, pluginIdParamsSchema, validateManifestBodySchema } from '../validation/plugin-schemas.js';
+
+
 
 interface InstallPluginBody {
   readonly pluginName: string;
@@ -19,11 +22,19 @@ interface InstallPluginBody {
   readonly permissions?: readonly string[];
 }
 
+const manifestValidator = new PluginManifestValidator();
+
 export function registerPluginRoutes(app: FastifyInstance, handlers: PluginHandlers): void {
+  app.post('/v1/plugins/manifest/validate', { schema: { body: validateManifestBodySchema } }, async (request) => {
+    const body = request.body as Record<string, unknown>;
+    return manifestValidator.validate(body);
+  });
+
   app.get('/v1/plugins', async (request) => {
     const tenantId = requireTenantId(request);
     return handlers.list.execute(listPluginsQuery({ tenantId }));
   });
+
 
   app.post('/v1/plugins', { schema: { body: installPluginBodySchema } }, async (request, reply) => {
     const tenantId = requireTenantId(request);

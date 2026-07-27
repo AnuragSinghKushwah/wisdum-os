@@ -18,7 +18,10 @@
     { "path": "../../platform/ai" },
     { "path": "../../platform/inputs" },
     { "path": "../../platform/jobs" },
+    { "path": "../../platform/plugins" },
     { "path": "../../platform/publishing" },
-    { "path": "../../platform/search" }
+    { "path": "../../platform/search" },
+    { "path": "../../packages/plugin-sdk" }
   ]
 }
+

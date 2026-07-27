@@ -32,13 +32,26 @@ Domain events are a public contract with the same discipline as REST endpoints:
 - Schemas live in shared packages and are versioned for backward compatibility.
 - Consumers must tolerate unknown fields; producers must never repurpose existing ones.
 
-## Domain APIs
+## Domain APIs & Feature Specs
 
-- [Knowledge API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/knowledge.md)
+- 📖 [Knowledge API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/knowledge.md) — Knowledge CRUD, import, export, and status
+- 📄 [Document API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/documents.md) — Raw document ingestion and processing
+- 🔐 [Identity API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/identity.md) — Session auth and API key management
+- 💡 [Opportunities API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/opportunities.md) — Discovered creation opportunities & multi-channel publishing
+- 🕸️ [Graph Topology API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/graph.md) — Knowledge graph concepts & relationships
+- 🔍 [Hybrid Search API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/search.md) — Hybrid BM25 & dense vector search
+- 🤖 [Autonomous Agents API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/agents.md) — Writing & publishing agent task orchestration
+- 🧠 [Reasoning Engine API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/reasoning.md) — Multi-tenant graph reasoning passes
+- 📡 [Real-Time Events API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/events.md) — Server-Sent Events (SSE) stream endpoint
+- 🔌 [Plugin Marketplace API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/plugins.md) — Plugin management & manifest pre-flight validation
+- 💬 [AI Conversations API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/ai.md) — AI assistant sessions & messaging
+- 🏢 [Organizations API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/organizations.md) — Enterprise organizations & workspace attachment
+- 📂 [Workspaces API Specification](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/workspaces.md) — Tenant workspace management & membership
 
-## Webhooks
+## Ingestion Webhooks
 
 For external ingestion services, see the [Webhook Ingestion API](file:///Users/Anurag/PycharmProjects/wisdum-os/docs/api/webhooks.md) specification.
+
 
 ## Change control
 

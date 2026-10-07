@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- ADRs 0008 to 0015 recording decisions already implemented since ADR 0007: layering, PostgreSQL persistence, search, event delivery, the HTTP API and authentication, the plugin system, AI providers, and blob storage. Each states its known gaps. ADR 0003 is marked partially superseded.
+- Design documents in `docs/domains/` for the ten bounded contexts that lacked one (agent, ai, document, graph, identity, opportunity, organization, plugin, search, workspace), and an index; `knowledge.md` brought up to date with the code.
+- `cwd` option on the CLI's `runInit`, and tests that write to a temporary directory.
+- Committed in-progress platform work: Gemini and Ollama LLM providers with a provider factory, a password hasher, web-scraper and YouTube-transcript input connectors, and an in-process job queue processor.
 - **Sprint 019:** End-to-End (E2E) UI Automation Test Suite (`apps/web/playwright.config.ts`, `apps/web/e2e/`).
   - Configured Playwright E2E UI automation test runner for `@wisdum/web`.
   - Added E2E test suite `apps/web/e2e/dashboard.spec.ts` testing Knowledge Graph, Hybrid Search, and SSE stream indicators.
@@ -113,3 +117,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Architecture Decision Record (ADR) process with founding decisions (ADR 0001–0003).
 - Contribution files: CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, GOVERNANCE, issue and PR templates.
 - Apache License 2.0.
+
+### Changed
+
+- ESLint resolves its 112 outstanding errors: unused imports and variables removed, `any` replaced with real types, type-only imports marked. `no-console` is now allowed in `packages/cli` (terminal output is its interface) and for `console.warn` and `console.error` in `apps/web/src` (browser code has no log transport).
+- `QueueProcessor` logs job failures through `@wisdum/logger` (accepting an injected `Logger`) instead of `console`; `@wisdum/platform-jobs` now depends on `@wisdum/logger`.
+- `search-routes.ts` and `core-module.ts` use the real `VectorStore` and `EmbeddingProvider` types instead of `any` or ad-hoc shapes.
+
+### Fixed
+
+- `GET` and `POST /v1/agents/tasks` are served again. The `registerAgentRoutes` call was dropped from `server.ts` in `8a89aa0`, so the documented endpoints returned 404.
+- `npm test` no longer overwrites a developer's `.wisdumrc.json` or leaves `.temp-test-plugins-*` directories in the repository root; `.wisdumrc.json` is now gitignored.
+- `ExecuteAgentTaskHandler` falls back to a default message when a thrown error has an empty message.

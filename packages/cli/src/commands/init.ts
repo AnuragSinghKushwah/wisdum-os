@@ -5,10 +5,14 @@ export interface InitOptions {
   readonly tenantId?: string;
   readonly apiUrl?: string;
   readonly force?: boolean;
+  /** Directory to write `.wisdumrc.json` into. Defaults to the current working directory. */
+  readonly cwd?: string;
 }
 
-export async function runInit(options: InitOptions = {}): Promise<{ success: boolean; message: string }> {
-  const targetPath = resolve(process.cwd(), '.wisdumrc.json');
+export async function runInit(
+  options: InitOptions = {},
+): Promise<{ success: boolean; message: string }> {
+  const targetPath = resolve(options.cwd ?? process.cwd(), '.wisdumrc.json');
   if (existsSync(targetPath) && !options.force) {
     return {
       success: false,

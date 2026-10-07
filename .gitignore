@@ -59,3 +59,6 @@ logs/
 .cache/
 tmp/
 temp/
+
+# --- Local Wisdum CLI configuration (written by `wisdum init`) ---
+/.wisdumrc.json

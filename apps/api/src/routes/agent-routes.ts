@@ -15,7 +15,7 @@ export function registerAgentRoutes(app: FastifyInstance, handlers: AgentHandler
     { schema: { body: createAgentTaskBodySchema } },
     async (request, reply) => {
       const tenantId = requireTenantId(request);
-      const { agentType, payload } = request.body as { agentType: string; payload: Record<string, any> };
+      const { agentType, payload } = request.body as { agentType: string; payload: Record<string, unknown> };
 
       const { taskId } = await handlers.create.execute(
         createAgentTaskCommand({

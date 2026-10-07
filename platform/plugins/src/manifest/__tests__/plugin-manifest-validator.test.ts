@@ -1,3 +1,4 @@
+import type { PluginPermission } from '@wisdum/plugin-sdk';
 import { describe, expect, it } from 'vitest';
 import { PluginManifestValidator } from '../plugin-manifest-validator.js';
 
@@ -53,7 +54,7 @@ describe('PluginManifestValidator', () => {
       version: '1.0.0',
       description: 'Description text',
       capabilities: ['input_connector'],
-      permissions: ['admin_root_access' as any],
+      permissions: ['admin_root_access' as unknown as PluginPermission],
     });
 
     expect(result.isValid).toBe(false);

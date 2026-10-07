@@ -10,11 +10,7 @@ import {
   OpportunityRationale,
   OpportunityTitle,
   OpportunityType,
-  Plugin,
   PluginCapability,
-  PublishedContent,
-  PublishedContentId,
-  PublishedSlug,
 } from '@wisdum/domain';
 import type {
   Clock,
@@ -23,6 +19,10 @@ import type {
   PluginId,
   PluginRepository,
   PublishedContentRepository,
+  Plugin,
+  PublishedContent,
+  PublishedContentId,
+  PublishedSlug,
 } from '@wisdum/domain';
 import { CapabilityPluginProvisioner } from '../../plugin/services/capability-plugin-provisioner.js';
 import { CapabilityRegistry } from '@wisdum/kernel';
@@ -154,7 +154,9 @@ class RecordingPublishingProvider implements PublishingProvider {
   callCount = 0;
   publish(target: PublishTarget): Promise<PublishResult> {
     this.callCount += 1;
-    return Promise.resolve({ externalUrl: `https://wisdum.test/published/${target.publishedContentId}` });
+    return Promise.resolve({
+      externalUrl: `https://wisdum.test/published/${target.publishedContentId}`,
+    });
   }
 }
 
@@ -265,7 +267,9 @@ describe('PublishContentDraftHandler', () => {
     const handler = buildHandler({ drafts, opportunities, published, plugins, provider });
 
     await expect(
-      handler.execute(publishContentDraftCommand({ tenantId: TENANT_ID, draftId: draft.getId().value() })),
+      handler.execute(
+        publishContentDraftCommand({ tenantId: TENANT_ID, draftId: draft.getId().value() }),
+      ),
     ).rejects.toBeInstanceOf(PluginDisabledError);
 
     expect(provider.callCount).toBe(0);
@@ -287,7 +291,10 @@ describe('PublishContentDraftHandler', () => {
     await drafts.save(draft);
 
     const handler = buildHandler({ drafts, opportunities, published, plugins, provider });
-    const command = publishContentDraftCommand({ tenantId: TENANT_ID, draftId: draft.getId().value() });
+    const command = publishContentDraftCommand({
+      tenantId: TENANT_ID,
+      draftId: draft.getId().value(),
+    });
 
     const first = await handler.execute(command);
     const second = await handler.execute(command);

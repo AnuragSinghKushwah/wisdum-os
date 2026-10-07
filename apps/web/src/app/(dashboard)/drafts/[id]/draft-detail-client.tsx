@@ -50,10 +50,8 @@ export function DraftDetailClient({ id }: { id: string }) {
       setBodyDraft(found.body);
 
       // Resolve opportunity type
-      let typeValue = 'blog_post';
       try {
         const opp = await apiFetch<{ type: string }>(`/v1/opportunities/${found.opportunityId}`);
-        typeValue = opp.type;
         setOppType(opp.type);
       } catch {
         setOppType('blog_post');
@@ -69,24 +67,36 @@ export function DraftDetailClient({ id }: { id: string }) {
       }
 
       // Parse Slides
-      const parsedSlides = displayBody.split('---').map(s => s.trim()).filter(s => s.length > 0);
+      const parsedSlides = displayBody
+        .split('---')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
       setSlides(parsedSlides.length > 0 ? parsedSlides : ['# Slide 1\n- Point A\n- Point B']);
 
       // Parse Video Scripts
-      const lines = displayBody.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      const hookLines = lines.filter(l => !l.startsWith('#') && !l.startsWith('**') && !l.startsWith('*Host'));
-      const dialogueLines = lines.filter(l => l.startsWith('*Host') || l.startsWith('**['));
-      const hashtagLine = lines.find(l => l.includes('#') && !l.startsWith('# '));
+      const lines = displayBody
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
+      const hookLines = lines.filter(
+        (l) => !l.startsWith('#') && !l.startsWith('**') && !l.startsWith('*Host'),
+      );
+      const dialogueLines = lines.filter((l) => l.startsWith('*Host') || l.startsWith('**['));
+      const hashtagLine = lines.find((l) => l.includes('#') && !l.startsWith('# '));
 
-      setScriptHook(hookLines.slice(0, 3).join('\n') || 'Enter your video hook/intro paragraph here.');
-      setScriptDialogue(dialogueLines.join('\n') || '*Host*: Welcome to the video script.\n**[Visual: Camera pans to host]**');
+      setScriptHook(
+        hookLines.slice(0, 3).join('\n') || 'Enter your video hook/intro paragraph here.',
+      );
+      setScriptDialogue(
+        dialogueLines.join('\n') ||
+          '*Host*: Welcome to the video script.\n**[Visual: Camera pans to host]**',
+      );
       setScriptHashtags(hashtagLine || '#AI #KnowledgeOS #DeveloperLeverage');
-      
+
       // Dynamic Higgsfield Video Generation Prompt construction
       setHiggsfieldPrompt(
-        `Dynamic Higgsfield motion graphics style: photorealistic digital neural connection nodes glowing in gold and cyan, concept lines spreading across a dark sleek grid, cinematic camera zoom and rotations, high contrast, smooth 60fps render.`
+        `Dynamic Higgsfield motion graphics style: photorealistic digital neural connection nodes glowing in gold and cyan, concept lines spreading across a dark sleek grid, cinematic camera zoom and rotations, high contrast, smooth 60fps render.`,
       );
-
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : 'Failed to load this draft.');
     } finally {
@@ -115,9 +125,9 @@ export function DraftDetailClient({ id }: { id: string }) {
         'target_audience: "LinkedIn Network"',
         '---',
         '',
-        slides.join('\n\n---\n\n')
+        slides.join('\n\n---\n\n'),
       ].join('\n');
-    } 
+    }
     // Serialize YouTube Video Script
     else if (oppType === 'youtube_script' || oppType === 'podcast_outline') {
       finalBody = [
@@ -134,7 +144,7 @@ export function DraftDetailClient({ id }: { id: string }) {
         '# Script Dialogue & Visuals',
         scriptDialogue,
         '',
-        scriptHashtags
+        scriptHashtags,
       ].join('\n');
     }
 
@@ -196,14 +206,15 @@ export function DraftDetailClient({ id }: { id: string }) {
     const before = text.substring(0, start);
     const after = text.substring(end, text.length);
     const selected = text.substring(start, end) || 'text';
-    
+
     let replacement = '';
     if (syntax === 'bold') replacement = `**${selected}**`;
     else if (syntax === 'italic') replacement = `*${selected}*`;
     else if (syntax === 'h1') replacement = `# ${selected}`;
     else if (syntax === 'h2') replacement = `## ${selected}`;
     else if (syntax === 'code') replacement = `\`\`\`typescript\n${selected}\n\`\`\``;
-    else if (syntax === 'mermaid') replacement = `\`\`\`mermaid\ngraph TD\n  A[Start] --> B[Process]\n\`\`\``;
+    else if (syntax === 'mermaid')
+      replacement = `\`\`\`mermaid\ngraph TD\n  A[Start] --> B[Process]\n\`\`\``;
 
     setBodyDraft(before + replacement + after);
     setTimeout(() => {
@@ -214,17 +225,20 @@ export function DraftDetailClient({ id }: { id: string }) {
 
   function renderPreview() {
     let displayBody = bodyDraft;
-    let frontmatter: Record<string, string> = {};
-    
+    const frontmatter: Record<string, string> = {};
+
     if (bodyDraft.startsWith('---')) {
       const parts = bodyDraft.split('---');
       if (parts.length >= 3) {
         displayBody = parts.slice(2).join('---').trim();
-        parts[1].split('\n').forEach(line => {
+        parts[1].split('\n').forEach((line) => {
           const colonIdx = line.indexOf(':');
           if (colonIdx > 0) {
             const key = line.slice(0, colonIdx).trim();
-            const val = line.slice(colonIdx + 1).trim().replace(/^["']|["']$/g, '');
+            const val = line
+              .slice(colonIdx + 1)
+              .trim()
+              .replace(/^["']|["']$/g, '');
             if (key) frontmatter[key] = val;
           }
         });
@@ -234,7 +248,10 @@ export function DraftDetailClient({ id }: { id: string }) {
     if (oppType === 'linkedin_post' || oppType === 'marketing_campaign') {
       const slideIndex = Math.min(currentSlide, slides.length - 1);
       const slideText = slides[slideIndex] || '';
-      const lines = slideText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const lines = slideText
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
       const slideHeader = lines[0] || 'Slide';
       const slideContent = lines.slice(1);
 
@@ -242,7 +259,9 @@ export function DraftDetailClient({ id }: { id: string }) {
         <div className="flex flex-col h-full justify-between min-h-[350px]">
           <div className="flex items-center justify-between text-xs text-neutral-400 mb-2">
             <span className="font-semibold uppercase text-neutral-500">Carousel Preview</span>
-            <span>Slide {slideIndex + 1} of {slides.length}</span>
+            <span>
+              Slide {slideIndex + 1} of {slides.length}
+            </span>
           </div>
 
           <div className="flex-1 rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 p-8 flex flex-col justify-center items-center text-center shadow-lg border border-slate-800 min-h-[250px]">
@@ -262,14 +281,14 @@ export function DraftDetailClient({ id }: { id: string }) {
 
           <div className="mt-4 flex justify-between gap-4">
             <button
-              onClick={() => setCurrentSlide(prev => Math.max(0, prev - 1))}
+              onClick={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
               disabled={slideIndex === 0}
               className="px-3 py-1.5 text-xs font-semibold rounded border border-neutral-300 dark:border-neutral-700 disabled:opacity-50 bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200"
             >
               Previous
             </button>
             <button
-              onClick={() => setCurrentSlide(prev => Math.min(slides.length - 1, prev + 1))}
+              onClick={() => setCurrentSlide((prev) => Math.min(slides.length - 1, prev + 1))}
               disabled={slideIndex === slides.length - 1}
               className="px-3 py-1.5 text-xs font-semibold rounded bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 disabled:opacity-50"
             >
@@ -281,27 +300,42 @@ export function DraftDetailClient({ id }: { id: string }) {
     }
 
     if (oppType === 'youtube_script' || oppType === 'podcast_outline') {
-      const lines = scriptDialogue.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const lines = scriptDialogue
+        .split('\n')
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
       return (
         <div className="flex flex-col h-full min-h-[350px] gap-3">
-          <div className="text-xs text-neutral-400 uppercase font-semibold">Teleprompter / Script Preview</div>
+          <div className="text-xs text-neutral-400 uppercase font-semibold">
+            Teleprompter / Script Preview
+          </div>
           <div className="border border-neutral-100 dark:border-neutral-800 rounded-lg p-3 bg-neutral-50/50 dark:bg-neutral-950/20 max-h-[120px] overflow-y-auto">
             <span className="text-[10px] text-neutral-400 uppercase font-bold">Hook & Intro</span>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 italic mt-1 leading-relaxed">{scriptHook}</p>
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 italic mt-1 leading-relaxed">
+              {scriptHook}
+            </p>
           </div>
           <div className="flex-1 overflow-y-auto max-h-[220px] pr-2 space-y-3 border border-neutral-100 dark:border-neutral-800 rounded-lg p-3 bg-neutral-50/50 dark:bg-neutral-950/20">
-            <span className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">Timeline & Speech</span>
+            <span className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">
+              Timeline & Speech
+            </span>
             {lines.map((line, idx) => {
               if (line.startsWith('#')) {
                 return (
-                  <h4 key={idx} className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-2 uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-850 pb-1">
+                  <h4
+                    key={idx}
+                    className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-2 uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-850 pb-1"
+                  >
                     {line.replace(/^#+\s*/, '')}
                   </h4>
                 );
               }
               if (line.startsWith('**[')) {
                 return (
-                  <div key={idx} className="text-[10px] italic bg-neutral-100 dark:bg-neutral-800/65 text-neutral-500 rounded px-2 py-1 border-l border-neutral-400">
+                  <div
+                    key={idx}
+                    className="text-[10px] italic bg-neutral-100 dark:bg-neutral-800/65 text-neutral-500 rounded px-2 py-1 border-l border-neutral-400"
+                  >
                     {line.replace(/^\*\*\[|\]\*\*$/g, '')}
                   </div>
                 );
@@ -310,13 +344,22 @@ export function DraftDetailClient({ id }: { id: string }) {
                 const speech = line.replace(/^\*Host.*?\*:/, '').trim();
                 return (
                   <div key={idx} className="flex gap-2">
-                    <span className="text-[8px] font-bold uppercase bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded px-1 py-0.5 h-fit mt-0.5">Host</span>
-                    <p className="text-xs leading-relaxed text-neutral-700 dark:text-neutral-300 font-mono">{speech}</p>
+                    <span className="text-[8px] font-bold uppercase bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded px-1 py-0.5 h-fit mt-0.5">
+                      Host
+                    </span>
+                    <p className="text-xs leading-relaxed text-neutral-700 dark:text-neutral-300 font-mono">
+                      {speech}
+                    </p>
                   </div>
                 );
               }
               return (
-                <p key={idx} className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">{line}</p>
+                <p
+                  key={idx}
+                  className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400"
+                >
+                  {line}
+                </p>
               );
             })}
           </div>
@@ -328,12 +371,33 @@ export function DraftDetailClient({ id }: { id: string }) {
       <div className="flex flex-col h-full min-h-[350px] overflow-y-auto max-h-[450px] pr-2">
         {Object.keys(frontmatter).length > 0 && (
           <div className="mb-6 rounded-lg bg-neutral-50 dark:bg-neutral-950 p-4 border border-neutral-100 dark:border-neutral-900 text-xs">
-            <span className="font-semibold text-neutral-400 uppercase tracking-wider text-[10px] block mb-2">SEO & Metadata</span>
+            <span className="font-semibold text-neutral-400 uppercase tracking-wider text-[10px] block mb-2">
+              SEO & Metadata
+            </span>
             <div className="grid grid-cols-1 gap-2">
-              {frontmatter.title && <div><span className="font-semibold text-neutral-500">Title:</span> {frontmatter.title}</div>}
-              {frontmatter.seo_description && <div><span className="font-semibold text-neutral-500">Description:</span> {frontmatter.seo_description}</div>}
-              {frontmatter.seo_keywords && <div><span className="font-semibold text-neutral-500">Keywords:</span> {frontmatter.seo_keywords}</div>}
-              {frontmatter.target_audience && <div><span className="font-semibold text-neutral-500">Audience:</span> {frontmatter.target_audience}</div>}
+              {frontmatter.title && (
+                <div>
+                  <span className="font-semibold text-neutral-500">Title:</span> {frontmatter.title}
+                </div>
+              )}
+              {frontmatter.seo_description && (
+                <div>
+                  <span className="font-semibold text-neutral-500">Description:</span>{' '}
+                  {frontmatter.seo_description}
+                </div>
+              )}
+              {frontmatter.seo_keywords && (
+                <div>
+                  <span className="font-semibold text-neutral-500">Keywords:</span>{' '}
+                  {frontmatter.seo_keywords}
+                </div>
+              )}
+              {frontmatter.target_audience && (
+                <div>
+                  <span className="font-semibold text-neutral-500">Audience:</span>{' '}
+                  {frontmatter.target_audience}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -342,31 +406,69 @@ export function DraftDetailClient({ id }: { id: string }) {
           {displayBody.split('\n').map((line, idx) => {
             const trimmed = line.trim();
             if (trimmed.startsWith('# ')) {
-              return <h1 key={idx} className="text-xl font-bold mt-4 mb-2 text-neutral-900 dark:text-neutral-50 border-b pb-1 border-neutral-100 dark:border-neutral-800">{trimmed.replace('# ', '')}</h1>;
+              return (
+                <h1
+                  key={idx}
+                  className="text-xl font-bold mt-4 mb-2 text-neutral-900 dark:text-neutral-50 border-b pb-1 border-neutral-100 dark:border-neutral-800"
+                >
+                  {trimmed.replace('# ', '')}
+                </h1>
+              );
             }
             if (trimmed.startsWith('## ')) {
-              return <h2 key={idx} className="text-lg font-semibold mt-4 mb-2 text-neutral-900 dark:text-neutral-100">{trimmed.replace('## ', '')}</h2>;
+              return (
+                <h2
+                  key={idx}
+                  className="text-lg font-semibold mt-4 mb-2 text-neutral-900 dark:text-neutral-100"
+                >
+                  {trimmed.replace('## ', '')}
+                </h2>
+              );
             }
             if (trimmed.startsWith('### ')) {
-              return <h3 key={idx} className="text-base font-semibold mt-3 mb-1 text-neutral-800 dark:text-neutral-200">{trimmed.replace('### ', '')}</h3>;
+              return (
+                <h3
+                  key={idx}
+                  className="text-base font-semibold mt-3 mb-1 text-neutral-800 dark:text-neutral-200"
+                >
+                  {trimmed.replace('### ', '')}
+                </h3>
+              );
             }
             if (trimmed.startsWith('```mermaid')) {
               return null;
             }
-            if (trimmed.startsWith('graph ') || trimmed.startsWith('sequenceDiagram') || (trimmed.includes('-->') && !line.includes('http'))) {
+            if (
+              trimmed.startsWith('graph ') ||
+              trimmed.startsWith('sequenceDiagram') ||
+              (trimmed.includes('-->') && !line.includes('http'))
+            ) {
               return (
-                <div key={idx} className="my-4 rounded-lg bg-neutral-900 text-neutral-200 border border-neutral-850 p-4 font-mono text-[11px] overflow-x-auto shadow-inner flex flex-col gap-1.5">
-                  <span className="text-[10px] text-amber-500 uppercase tracking-widest font-semibold">Mermaid Graph Structure</span>
+                <div
+                  key={idx}
+                  className="my-4 rounded-lg bg-neutral-900 text-neutral-200 border border-neutral-850 p-4 font-mono text-[11px] overflow-x-auto shadow-inner flex flex-col gap-1.5"
+                >
+                  <span className="text-[10px] text-amber-500 uppercase tracking-widest font-semibold">
+                    Mermaid Graph Structure
+                  </span>
                   <div className="border-t border-neutral-800 pt-1.5 leading-normal">{trimmed}</div>
                 </div>
               );
             }
             if (trimmed === '```') return null;
             if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
-              return <li key={idx} className="ml-4 list-disc text-sm my-0.5">{trimmed.replace(/^[*+-]\s*/, '')}</li>;
+              return (
+                <li key={idx} className="ml-4 list-disc text-sm my-0.5">
+                  {trimmed.replace(/^[*+-]\s*/, '')}
+                </li>
+              );
             }
             if (trimmed.length === 0) return <div key={idx} className="h-2" />;
-            return <p key={idx} className="text-sm leading-relaxed my-1.5">{trimmed}</p>;
+            return (
+              <p key={idx} className="text-sm leading-relaxed my-1.5">
+                {trimmed}
+              </p>
+            );
           })}
         </div>
       </div>
@@ -391,14 +493,17 @@ export function DraftDetailClient({ id }: { id: string }) {
 
           <div className="flex items-center justify-between mt-2">
             <div className="flex flex-col">
-              <span className="text-sm font-semibold text-neutral-500 uppercase tracking-wider text-[11px]">Slides Manager</span>
+              <span className="text-sm font-semibold text-neutral-500 uppercase tracking-wider text-[11px]">
+                Slides Manager
+              </span>
               <span className="text-[10px] text-neutral-400 font-medium">
-                {slides.join(' ').trim().split(/\s+/).filter(Boolean).length} words across {slides.length} slides
+                {slides.join(' ').trim().split(/\s+/).filter(Boolean).length} words across{' '}
+                {slides.length} slides
               </span>
             </div>
             <button
               onClick={() => {
-                setSlides(prev => [...prev, '# New Slide\n- Bullet point detail']);
+                setSlides((prev) => [...prev, '# New Slide\n- Bullet point detail']);
                 setCurrentSlide(slides.length);
               }}
               disabled={isPublished}
@@ -410,7 +515,10 @@ export function DraftDetailClient({ id }: { id: string }) {
 
           <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
             {slides.map((slide, idx) => (
-              <div key={idx} className={`p-4 rounded-xl border ${idx === currentSlide ? 'border-blue-500 bg-blue-50/5 dark:bg-blue-950/5' : 'border-neutral-200 dark:border-neutral-800'} flex flex-col gap-2 relative`}>
+              <div
+                key={idx}
+                className={`p-4 rounded-xl border ${idx === currentSlide ? 'border-blue-500 bg-blue-50/5 dark:bg-blue-950/5' : 'border-neutral-200 dark:border-neutral-800'} flex flex-col gap-2 relative`}
+              >
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-neutral-400">Slide {idx + 1}</span>
                   <button
@@ -460,8 +568,13 @@ export function DraftDetailClient({ id }: { id: string }) {
           </label>
 
           <div className="text-[10px] font-mono text-neutral-400">
-            {[scriptHook, scriptDialogue].join(' ').trim().split(/\s+/).filter(Boolean).length} words •{' '}
-            {Math.ceil([scriptHook, scriptDialogue].join(' ').trim().split(/\s+/).filter(Boolean).length / 130)} min script (~130 wpm speaking rate)
+            {[scriptHook, scriptDialogue].join(' ').trim().split(/\s+/).filter(Boolean).length}{' '}
+            words •{' '}
+            {Math.ceil(
+              [scriptHook, scriptDialogue].join(' ').trim().split(/\s+/).filter(Boolean).length /
+                130,
+            )}{' '}
+            min script (~130 wpm speaking rate)
           </div>
 
           <label className="flex flex-col gap-1 text-sm font-medium">
@@ -500,7 +613,9 @@ export function DraftDetailClient({ id }: { id: string }) {
           {/* Higgsfield Prompt Card */}
           <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/20 p-4 flex flex-col gap-2 shadow-inner">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Higgsfield AI Video Prompt</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                Higgsfield AI Video Prompt
+              </span>
               <button
                 type="button"
                 onClick={handleCopyPrompt}
@@ -568,16 +683,54 @@ export function DraftDetailClient({ id }: { id: string }) {
 
         {/* Formatting Toolbar */}
         <div className="flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl border border-neutral-250 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950">
-          <button type="button" onClick={() => insertMarkdown('bold')} className="px-2.5 py-1 text-xs font-bold rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors">B</button>
-          <button type="button" onClick={() => insertMarkdown('italic')} className="px-2.5 py-1 text-xs italic rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors">I</button>
-          <button type="button" onClick={() => insertMarkdown('h1')} className="px-2.5 py-1 text-xs font-bold rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors">H1</button>
-          <button type="button" onClick={() => insertMarkdown('h2')} className="px-2.5 py-1 text-xs font-bold rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors">H2</button>
-          <button type="button" onClick={() => insertMarkdown('code')} className="px-2.5 py-1 text-xs font-mono rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors">Code</button>
-          <button type="button" onClick={() => insertMarkdown('mermaid')} className="px-2.5 py-1 text-xs font-bold rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors">Mermaid</button>
+          <button
+            type="button"
+            onClick={() => insertMarkdown('bold')}
+            className="px-2.5 py-1 text-xs font-bold rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors"
+          >
+            B
+          </button>
+          <button
+            type="button"
+            onClick={() => insertMarkdown('italic')}
+            className="px-2.5 py-1 text-xs italic rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors"
+          >
+            I
+          </button>
+          <button
+            type="button"
+            onClick={() => insertMarkdown('h1')}
+            className="px-2.5 py-1 text-xs font-bold rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors"
+          >
+            H1
+          </button>
+          <button
+            type="button"
+            onClick={() => insertMarkdown('h2')}
+            className="px-2.5 py-1 text-xs font-bold rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors"
+          >
+            H2
+          </button>
+          <button
+            type="button"
+            onClick={() => insertMarkdown('code')}
+            className="px-2.5 py-1 text-xs font-mono rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors"
+          >
+            Code
+          </button>
+          <button
+            type="button"
+            onClick={() => insertMarkdown('mermaid')}
+            className="px-2.5 py-1 text-xs font-bold rounded border border-transparent hover:border-neutral-300 dark:hover:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-850 transition-colors"
+          >
+            Mermaid
+          </button>
         </div>
 
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">Content Body</span>
+          <span className="text-xs font-semibold text-neutral-600 dark:text-neutral-400">
+            Content Body
+          </span>
           {activeEditorTab === 'rich' ? (
             <textarea
               id="markdown-editor"
@@ -619,10 +772,8 @@ export function DraftDetailClient({ id }: { id: string }) {
 
       {/* Grid Layout: Editor on the left, Rich Preview on the right */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
-        
         {/* Left Side: Dynamic Workspace Editor */}
         <div className="flex flex-col gap-4">
-          
           {renderEditor()}
 
           {error !== null && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
@@ -677,15 +828,15 @@ export function DraftDetailClient({ id }: { id: string }) {
         {/* Right Side: Visual Preview */}
         <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40 p-6 shadow-sm flex flex-col min-h-[450px]">
           <div className="flex items-center justify-between pb-4 border-b border-neutral-100 dark:border-neutral-800">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400">Layout Preview</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+              Layout Preview
+            </h2>
             <span className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 uppercase tracking-wider">
               {oppType.replace('_', ' ')}
             </span>
           </div>
-          
-          <div className="mt-4 flex-1">
-            {renderPreview()}
-          </div>
+
+          <div className="mt-4 flex-1">{renderPreview()}</div>
         </div>
       </div>
     </div>

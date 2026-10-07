@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { IsoTimestamp, Option, TenantId, UUID } from '@wisdum/types';
-import {
-  Knowledge,
-  KnowledgeId,
-  KnowledgeSlug,
-} from '@wisdum/domain';
-import type { Clock, KnowledgeRepository } from '@wisdum/domain';
+import { KnowledgeId } from '@wisdum/domain';
+import type { Clock, KnowledgeRepository, Knowledge, KnowledgeSlug } from '@wisdum/domain';
 import type { DomainEventPublisher, IdGenerator, SlugGenerator } from '../../../shared/ports.js';
 import { CreateKnowledgeHandler } from '../create-knowledge-handler.js';
 import { UpdateKnowledgeHandler } from '../update-knowledge-handler.js';
@@ -34,7 +30,11 @@ const ids: IdGenerator = {
 };
 
 const slugs: SlugGenerator = {
-  slugify: (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+  slugify: (text: string) =>
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, ''),
 };
 
 class FakeKnowledgeRepository implements KnowledgeRepository {
@@ -69,7 +69,7 @@ class FakeKnowledgeRepository implements KnowledgeRepository {
   }
 
   list(tenantId: TenantId): Promise<readonly Knowledge[]> {
-    return Promise.resolve(Array.from(this.items.values()).filter(k => k.tenantId === tenantId));
+    return Promise.resolve(Array.from(this.items.values()).filter((k) => k.tenantId === tenantId));
   }
 }
 
@@ -129,7 +129,7 @@ describe('Knowledge Application Layer Handlers', () => {
     if (fetched.some) {
       expect(fetched.value.title.value).toBe('Updated Title');
       expect(fetched.value.description.value).toBe('Updated Description');
-      expect(fetched.value.labels.map(l => l.value)).toEqual(['v2']);
+      expect(fetched.value.labels.map((l) => l.value)).toEqual(['v2']);
     }
   });
 

@@ -7,7 +7,7 @@ import { useAuth } from '../../../lib/auth-context';
 interface WorkspaceDto {
   readonly id: string;
   readonly name: string;
-  readonly settings: Record<string, any>;
+  readonly settings: Record<string, unknown>;
 }
 
 const AUTOMATIONS = [

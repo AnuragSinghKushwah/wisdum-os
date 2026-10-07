@@ -15,6 +15,8 @@ import {
 } from '../validation/search-schemas.js';
 
 import type { PgPool } from '@wisdum/database';
+import type { EmbeddingProvider } from '@wisdum/platform-ai';
+import type { VectorStore } from '@wisdum/platform-search';
 
 interface CreateSearchIndexBody {
   readonly name: string;
@@ -42,8 +44,8 @@ export function registerSearchRoutes(
   app: FastifyInstance,
   handlers: SearchHandlers,
   pool?: PgPool,
-  vectorStore?: any,
-  embeddings?: any,
+  vectorStore?: VectorStore,
+  embeddings?: EmbeddingProvider,
   embeddingModel?: string,
   knowledgeHandlers?: KnowledgeHandlers,
 ): void {
@@ -110,7 +112,7 @@ export function registerSearchRoutes(
         const hits = await vectorStore.query(indexName, queryVector, 10);
         
         // Resolve knowledge titles and metadata for these hits from DB
-        const ids = hits.map((h: any) => h.id.split('#')[0]); // vector id is `${sourceId}#${chunkIndex}`
+        const ids = hits.map((h: { id: string }) => h.id.split('#')[0]); // vector id is `${sourceId}#${chunkIndex}`
         const uniqueIds = [...new Set(ids)];
         
         if (uniqueIds.length > 0 && pool) {
@@ -120,8 +122,8 @@ export function registerSearchRoutes(
           );
           const dbMap = new Map(dbResult.rows.map((row) => [row.id, row]));
           
-          const semanticResults = hits.map((hit: any) => {
-            const sourceId = hit.id.split('#')[0];
+          const semanticResults = hits.map((hit: { id: string; score: number }) => {
+            const sourceId = hit.id.split('#')[0] as string;
             const row = dbMap.get(sourceId);
             return {
               id: sourceId,
@@ -129,7 +131,7 @@ export function registerSearchRoutes(
               type: row?.type ?? 'concept',
               score: hit.score,
             };
-          }).filter((item: any) => item.title !== 'Untitled Knowledge');
+          }).filter((item: { title: string }) => item.title !== 'Untitled Knowledge');
 
           // If mode is just semantic, return these results
           if (mode === 'semantic') {

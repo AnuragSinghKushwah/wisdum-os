@@ -70,7 +70,7 @@ export function registerWorkspaceRoutes(app: FastifyInstance, handlers: Workspac
     { schema: { params: workspaceIdParamsSchema } },
     async (request) => {
       const { id } = request.params as { id: string };
-      const { key, value } = request.body as { key: string; value: any };
+      const { key, value } = request.body as { key: string; value: unknown };
       const tenantId = requireTenantId(request);
       await handlers.updateSettings.execute(
         updateWorkspaceSettingsCommand({ tenantId, workspaceId: id, key, value }),

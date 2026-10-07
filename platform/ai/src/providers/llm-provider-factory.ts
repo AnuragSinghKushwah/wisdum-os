@@ -1,8 +1,6 @@
 import type { LlmCompletionRequest, LlmCompletionResult, LlmProvider } from './llm-provider.js';
 import { GeminiLlmProvider } from './gemini-llm-provider.js';
 import { OllamaLlmProvider } from './ollama-llm-provider.js';
-import { OpenAiLlmProvider } from './openai-llm-provider.js';
-import { AnthropicLlmProvider } from './anthropic-llm-provider.js';
 
 export class LlmProviderFactory implements LlmProvider {
   private readonly gemini = new GeminiLlmProvider();

@@ -5,8 +5,8 @@ export interface AgentTaskRow {
   readonly tenant_id: UUID;
   readonly agent_type: string;
   readonly status: string;
-  readonly payload: any;
-  readonly result?: any | null;
+  readonly payload: unknown;
+  readonly result?: unknown | null;
   readonly error?: string | null;
   readonly created_at: IsoTimestamp;
   readonly updated_at: IsoTimestamp;

@@ -1,22 +1,15 @@
-import {
-  AgentTask,
-  AgentTaskId,
-  type AgentTaskRepository,
-} from '@wisdum/domain';
+import { AgentTaskId, type AgentTaskRepository } from '@wisdum/domain';
 import type { Clock } from '@wisdum/domain';
 import type { CommandHandler } from '../../shared/messages.js';
 import { NotFoundError } from '../../shared/errors.js';
 import type { DomainEventPublisher } from '../../shared/ports.js';
 import type { ExecuteAgentTaskCommand } from '../commands/execute-agent-task-command.js';
-import { GenerateContentDraftHandler } from '../../opportunity/handlers/generate-content-draft-handler.js';
-import { PublishContentDraftHandler } from '../../opportunity/handlers/publish-content-draft-handler.js';
+import type { GenerateContentDraftHandler } from '../../opportunity/handlers/generate-content-draft-handler.js';
+import type { PublishContentDraftHandler } from '../../opportunity/handlers/publish-content-draft-handler.js';
 import { generateContentDraftCommand } from '../../opportunity/commands/generate-content-draft-command.js';
 import { publishContentDraftCommand } from '../../opportunity/commands/publish-content-draft-command.js';
 
-export class ExecuteAgentTaskHandler implements CommandHandler<
-  ExecuteAgentTaskCommand,
-  void
-> {
+export class ExecuteAgentTaskHandler implements CommandHandler<ExecuteAgentTaskCommand, void> {
   constructor(
     private readonly tasks: AgentTaskRepository,
     private readonly generateDraft: GenerateContentDraftHandler,
@@ -36,7 +29,7 @@ export class ExecuteAgentTaskHandler implements CommandHandler<
       task.startExecution(this.clock);
       await this.tasks.save(task);
 
-      let resultPayload: Record<string, any> = {};
+      let resultPayload: Record<string, unknown> = {};
 
       if (task.agentType === 'writing') {
         const opportunityId = task.payload.opportunityId;
@@ -47,7 +40,7 @@ export class ExecuteAgentTaskHandler implements CommandHandler<
         const { draftId } = await this.generateDraft.execute(
           generateContentDraftCommand({
             tenantId: task.tenantId,
-            opportunityId,
+            opportunityId: opportunityId as string,
           }),
         );
         resultPayload = { draftId };
@@ -60,7 +53,7 @@ export class ExecuteAgentTaskHandler implements CommandHandler<
         const { publishedId, externalUrl } = await this.publishDraft.execute(
           publishContentDraftCommand({
             tenantId: task.tenantId,
-            draftId,
+            draftId: draftId as string,
           }),
         );
         resultPayload = { publishedContentId: publishedId, externalUrl };
@@ -72,9 +65,9 @@ export class ExecuteAgentTaskHandler implements CommandHandler<
       await this.tasks.save(task);
       await this.events.publishAll(task.pullDomainEvents());
       task.clearDomainEvents();
-
-    } catch (err: any) {
-      const errorMessage = err?.message || 'Unknown error occurred during execution';
+    } catch (err: unknown) {
+      const errorMessage =
+        (err instanceof Error ? err.message : String(err)) || 'Unknown error occurred during execution';
       task.fail(errorMessage, this.clock);
       await this.tasks.save(task);
       await this.events.publishAll(task.pullDomainEvents());

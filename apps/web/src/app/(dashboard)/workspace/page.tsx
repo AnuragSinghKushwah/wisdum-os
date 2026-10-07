@@ -17,7 +17,7 @@ interface WorkspaceDto {
 
 export default function WorkspacePage() {
   const { session } = useAuth();
-  const [workspaces, setWorkspaces] = useState<readonly WorkspaceDto[]>([]);
+  const [, setWorkspaces] = useState<readonly WorkspaceDto[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceDto | null>(null);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);

@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { IsoTimestamp, Option, TenantId, UUID } from '@wisdum/types';
-import {
+import { OpportunityId } from '@wisdum/domain';
+import type {
+  Clock,
+  InsightRepository,
+  OpportunityRepository,
   Insight,
   InsightId,
   Opportunity,
-  OpportunityId,
 } from '@wisdum/domain';
-import type { Clock, InsightRepository, OpportunityRepository } from '@wisdum/domain';
 import type { DomainEventPublisher, IdGenerator } from '../../../shared/ports.js';
 import { CreateOpportunityHandler } from '../create-opportunity-handler.js';
 import { DismissOpportunityHandler } from '../dismiss-opportunity-handler.js';
@@ -63,7 +65,7 @@ class FakeOpportunityRepository implements OpportunityRepository {
   }
 
   listByTenant(tenantId: TenantId): Promise<readonly Opportunity[]> {
-    return Promise.resolve(Array.from(this.items.values()).filter(o => o.tenantId === tenantId));
+    return Promise.resolve(Array.from(this.items.values()).filter((o) => o.tenantId === tenantId));
   }
 
   save(opportunity: Opportunity): Promise<void> {

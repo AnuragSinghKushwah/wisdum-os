@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { IsoTimestamp, Option, TenantId, UUID } from '@wisdum/types';
 import { some, none } from '@wisdum/types';
-import { SearchIndex, SearchIndexId } from '@wisdum/domain';
-import type { SearchIndexRepository, Clock, SearchResult } from '@wisdum/domain';
+import { SearchIndexId } from '@wisdum/domain';
+import type { SearchIndexRepository, Clock, SearchResult, SearchIndex } from '@wisdum/domain';
 import { createSearchIndexCommand } from '../../commands/create-search-index-command.js';
 import { indexSearchDocumentCommand } from '../../commands/index-search-document-command.js';
 import { searchIndexQuery } from '../../queries/search-query.js';
@@ -38,13 +38,14 @@ class FakeSearchIndexRepository implements SearchIndexRepository {
     return some(item);
   }
 
-
   async findAll(tenantId: TenantId): Promise<readonly SearchIndex[]> {
     return Array.from(this.items.values()).filter((idx) => idx.tenantId === tenantId);
   }
 
   async delete(): Promise<void> {}
-  async listByTenant(): Promise<readonly SearchIndex[]> { return []; }
+  async listByTenant(): Promise<readonly SearchIndex[]> {
+    return [];
+  }
 }
 
 class FakeSearchIndexer implements SearchIndexer {
@@ -54,7 +55,7 @@ class FakeSearchIndexer implements SearchIndexer {
     this.indexedDocs.push({ searchIndexId, sourceId, text });
   }
 
-  async remove(_searchIndexId: string, _sourceId: string): Promise<void> {}
+  async remove(): Promise<void> {}
 }
 
 class FakeSearchQueryExecutor implements SearchQueryExecutor {
@@ -83,7 +84,9 @@ class FakeSearchIndexReadModel implements SearchIndexReadModel {
     };
   }
 
-  async listByTenant(): Promise<readonly SearchIndexDto[]> { return []; }
+  async listByTenant(): Promise<readonly SearchIndexDto[]> {
+    return [];
+  }
 }
 
 const mockClock: Clock = {
@@ -119,7 +122,12 @@ describe('Search Handlers', () => {
   it('IndexSearchDocumentHandler delegates document indexing to SearchIndexer', async () => {
     const repo = new FakeSearchIndexRepository();
     const indexer = new FakeSearchIndexer();
-    const createHandler = new CreateSearchIndexHandler(repo, mockIdGenerator, mockEvents, mockClock);
+    const createHandler = new CreateSearchIndexHandler(
+      repo,
+      mockIdGenerator,
+      mockEvents,
+      mockClock,
+    );
     const indexHandler = new IndexSearchDocumentHandler(repo, indexer, mockEvents, mockClock);
 
     const { searchIndexId } = await createHandler.execute(
@@ -160,7 +168,12 @@ describe('Search Handlers', () => {
   it('GetSearchIndexHandler retrieves search index metadata DTO', async () => {
     const repo = new FakeSearchIndexRepository();
     const readModel = new FakeSearchIndexReadModel(repo);
-    const createHandler = new CreateSearchIndexHandler(repo, mockIdGenerator, mockEvents, mockClock);
+    const createHandler = new CreateSearchIndexHandler(
+      repo,
+      mockIdGenerator,
+      mockEvents,
+      mockClock,
+    );
     const getHandler = new GetSearchIndexHandler(readModel);
 
     const { searchIndexId } = await createHandler.execute(

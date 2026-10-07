@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { ApiError, apiFetch } from '../../../lib/api-client';
+import { apiFetch } from '../../../lib/api-client';
 
 interface ReasoningResultDto {
   readonly conceptsFound: number;
@@ -15,8 +15,8 @@ interface AgentTaskDto {
   readonly tenantId: string;
   readonly agentType: 'writing' | 'publishing';
   readonly status: 'pending' | 'running' | 'completed' | 'failed';
-  readonly payload: Record<string, any>;
-  readonly result: Record<string, any> | null;
+  readonly payload: Record<string, unknown>;
+  readonly result: Record<string, unknown> | null;
   readonly error: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;

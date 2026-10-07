@@ -1,7 +1,7 @@
 import type { IsoTimestamp, TenantId } from '@wisdum/types';
 import { AggregateRoot } from '../../shared/index.js';
 import type { Clock } from '../../shared/index.js';
-import { AgentTaskId } from '../value-objects/agent-task-ids.js';
+import type { AgentTaskId } from '../value-objects/agent-task-ids.js';
 import {
   AGENT_TASK_COMPLETED,
   AGENT_TASK_CREATED,
@@ -13,7 +13,7 @@ export interface CreateAgentTaskProps {
   readonly id: AgentTaskId;
   readonly tenantId: TenantId;
   readonly agentType: string;
-  readonly payload: Record<string, any>;
+  readonly payload: Record<string, unknown>;
 }
 
 export interface AgentTaskSnapshot {
@@ -21,8 +21,8 @@ export interface AgentTaskSnapshot {
   readonly tenantId: TenantId;
   readonly agentType: string;
   readonly status: 'pending' | 'running' | 'completed' | 'failed';
-  readonly payload: Record<string, any>;
-  readonly result?: Record<string, any> | null;
+  readonly payload: Record<string, unknown>;
+  readonly result?: Record<string, unknown> | null;
   readonly error?: string | null;
   readonly createdAt: IsoTimestamp;
   readonly updatedAt: IsoTimestamp;
@@ -32,8 +32,8 @@ export class AgentTask extends AggregateRoot<AgentTaskId> {
   private readonly _tenantId: TenantId;
   private readonly _agentType: string;
   private _status: 'pending' | 'running' | 'completed' | 'failed';
-  private readonly _payload: Record<string, any>;
-  private _result?: Record<string, any> | null;
+  private readonly _payload: Record<string, unknown>;
+  private _result?: Record<string, unknown> | null;
   private _error?: string | null;
   private readonly _createdAt: IsoTimestamp;
   private _updatedAt: IsoTimestamp;
@@ -87,7 +87,7 @@ export class AgentTask extends AggregateRoot<AgentTaskId> {
     this._updatedAt = clock.now();
   }
 
-  complete(result: Record<string, any>, clock: Clock): void {
+  complete(result: Record<string, unknown>, clock: Clock): void {
     const now = clock.now();
     this._status = 'completed';
     this._result = result;
@@ -134,11 +134,11 @@ export class AgentTask extends AggregateRoot<AgentTaskId> {
     return this._status;
   }
 
-  get payload(): Record<string, any> {
+  get payload(): Record<string, unknown> {
     return this._payload;
   }
 
-  get result(): Record<string, any> | null | undefined {
+  get result(): Record<string, unknown> | null | undefined {
     return this._result;
   }
 

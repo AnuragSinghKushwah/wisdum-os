@@ -4,10 +4,8 @@ import {
   syncInputConnectorCommand,
 } from '@wisdum/application';
 import type { DefaultCapabilityManifest } from '@wisdum/application';
-import { CapabilityRegistry } from '@wisdum/kernel';
 import type { Container, KernelModule } from '@wisdum/kernel';
 import { GitHubReadmeConnector, RestGitHubClient } from '@wisdum/platform-inputs';
-import type { InputConnector } from '@wisdum/platform-inputs';
 import { optionalEnv } from '@wisdum/config';
 import { createLogger } from '@wisdum/logger';
 import { EventBusDomainEventPublisher } from '@wisdum/infrastructure';

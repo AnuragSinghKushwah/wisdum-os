@@ -265,7 +265,7 @@ export function registerKnowledgeRoutes(
     if (mimeType === 'application/pdf') {
       try {
         const pdfParseModule = await import('pdf-parse');
-        const pdfParse = (pdfParseModule.default || pdfParseModule) as any;
+        const pdfParse = (pdfParseModule.default || pdfParseModule) as unknown as (buffer: Buffer) => Promise<{ text: string }>;
         const parsed = await pdfParse(buffer);
         text = parsed.text;
       } catch (err) {

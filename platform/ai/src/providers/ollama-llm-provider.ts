@@ -1,8 +1,6 @@
 import type {
   LlmCompletionRequest,
   LlmCompletionResult,
-  LlmFinishReason,
-  LlmMessage,
   LlmProvider,
 } from './llm-provider.js';
 

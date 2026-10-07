@@ -6,7 +6,7 @@ export interface UpdateWorkspaceSettingsCommand extends Command {
   readonly tenantId: TenantId;
   readonly workspaceId: string;
   readonly key: string;
-  readonly value: any;
+  readonly value: unknown;
 }
 
 export function updateWorkspaceSettingsCommand(

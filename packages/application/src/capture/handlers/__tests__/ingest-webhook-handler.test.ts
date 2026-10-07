@@ -1,15 +1,17 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import type { IsoTimestamp, Option, TenantId, UUID } from '@wisdum/types';
-import {
+import { KnowledgeId } from '@wisdum/domain';
+import type {
+  Clock,
+  DocumentRepository,
+  KnowledgeRepository,
   ContentHash,
   Document,
   DocumentId,
   Knowledge,
-  KnowledgeId,
   KnowledgeSlug,
 } from '@wisdum/domain';
-import type { Clock, DocumentRepository, KnowledgeRepository } from '@wisdum/domain';
 import type { DomainEventPublisher, IdGenerator, SlugGenerator } from '../../../shared/ports.js';
 import type { ContentHasher } from '../../../document/ports/content-hasher.js';
 import { CreateDocumentHandler } from '../../../document/handlers/create-document-handler.js';
@@ -39,7 +41,11 @@ const hasher: ContentHasher = {
 };
 
 const slugs: SlugGenerator = {
-  slugify: (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+  slugify: (text: string) =>
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, ''),
 };
 
 const events: DomainEventPublisher = {
@@ -155,7 +161,9 @@ describe('IngestWebhookHandler', () => {
     expect(result.knowledgeId).toBeDefined();
     expect(result.documentId).toBeDefined();
 
-    const createdKnowledge = await knowRepo.findById(KnowledgeId.create(result.knowledgeId as UUID));
+    const createdKnowledge = await knowRepo.findById(
+      KnowledgeId.create(result.knowledgeId as UUID),
+    );
     expect(createdKnowledge.some).toBe(true);
     if (createdKnowledge.some) {
       expect(createdKnowledge.value.title.value).toBe('Release Notes v2.7');

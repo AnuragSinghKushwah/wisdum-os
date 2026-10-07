@@ -45,7 +45,7 @@ export async function apiFetch<T>(path: string, options: ApiRequestOptions = {})
       headers,
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
-  } catch (cause: unknown) {
+  } catch {
     throw new ApiError(
       `Unable to connect to Wisdum API at ${API_URL}. Please ensure the backend server is running.`,
       0,

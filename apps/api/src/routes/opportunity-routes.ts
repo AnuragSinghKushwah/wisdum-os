@@ -11,12 +11,11 @@ import {
   publishContentDraftCommand,
   updateContentDraftCommand,
 } from '@wisdum/application';
-import type { IdGenerator, KnowledgeReadModel } from '@wisdum/application';
-import type { OpportunityRepository, InsightRepository, Clock } from '@wisdum/domain';
+import type { KnowledgeReadModel } from '@wisdum/application';
+import type { OpportunityRepository, InsightRepository } from '@wisdum/domain';
 import type { FastifyInstance } from 'fastify';
 import type { OpportunityHandlers } from '../container/tokens.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
-import type { PgPool } from '@wisdum/database';
 import {
   draftIdParamsSchema,
   opportunityIdParamsSchema,
@@ -42,9 +41,6 @@ export function registerOpportunityRoutes(
   repository: OpportunityRepository,
   insights: InsightRepository,
   knowledgeReads: KnowledgeReadModel,
-  clock: Clock,
-  ids: IdGenerator,
-  pool?: PgPool,
 ): void {
   app.get('/v1/opportunities', async (request) => {
     const tenantId = requireTenantId(request);

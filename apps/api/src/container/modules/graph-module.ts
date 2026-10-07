@@ -53,7 +53,7 @@ export class GraphModule implements KernelModule {
             })),
           };
         },
-        async getNeighbors(tenantId: TenantId, conceptId: string) {
+        async getNeighbors(tenantId: TenantId) {
           return this.getTopology(tenantId);
         },
         async getConcepts(tenantId: TenantId) {

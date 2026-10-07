@@ -2,7 +2,6 @@ import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import multipart from '@fastify/multipart';
-import { optionalEnv } from '@wisdum/config';
 import { createKernel } from '@wisdum/kernel';
 import type { Kernel } from '@wisdum/kernel';
 import Fastify from 'fastify';
@@ -45,17 +44,13 @@ import {
   PLUGIN_HANDLERS,
   REASONING_HANDLERS,
   SEARCH_HANDLERS,
-  SLUG_GENERATOR,
   TOKEN_SERVICE,
   WORKSPACE_HANDLERS,
   VECTOR_STORE,
   EMBEDDING_PROVIDER,
   EMBEDDING_MODEL,
   PG_POOL,
-  CONCEPT_REPOSITORY,
-  CONCEPT_RELATIONSHIP_REPOSITORY,
   KNOWLEDGE_READ_MODEL,
-  AGENT_HANDLERS,
   GRAPH_HANDLERS,
   CAPTURE_HANDLERS,
   EVENT_BUS,
@@ -73,7 +68,6 @@ import {
   registerReasoningRoutes,
   registerSearchRoutes,
   registerWorkspaceRoutes,
-  registerAgentRoutes,
   registerGraphRoutes,
   registerWebhookRoutes,
   registerEventStreamRoutes,
@@ -172,15 +166,10 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
     kernel.container.resolve(OPPORTUNITY_REPOSITORY),
     kernel.container.resolve(INSIGHT_REPOSITORY),
     kernel.container.resolve(KNOWLEDGE_READ_MODEL),
-    kernel.container.resolve(CLOCK),
-    kernel.container.resolve(ID_GENERATOR),
-    kernel.container.resolve(PG_POOL),
   );
   registerReasoningRoutes(
     app,
     kernel.container.resolve(REASONING_HANDLERS),
-    kernel.container.resolve(CONCEPT_REPOSITORY),
-    kernel.container.resolve(CONCEPT_RELATIONSHIP_REPOSITORY),
   );
   registerGraphRoutes(app, kernel.container.resolve(GRAPH_HANDLERS));
   registerWebhookRoutes(app, kernel.container.resolve(CAPTURE_HANDLERS));

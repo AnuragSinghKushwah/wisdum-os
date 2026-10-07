@@ -12,3 +12,4 @@ export const jobsCapability: PlatformCapability = {
 
 export * from './scheduler.js';
 export * from './interval-scheduler.js';
+export * from './queue-processor.js';

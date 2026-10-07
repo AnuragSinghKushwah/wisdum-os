@@ -44,6 +44,7 @@ import {
   PLUGIN_HANDLERS,
   REASONING_HANDLERS,
   SEARCH_HANDLERS,
+  AGENT_HANDLERS,
   TOKEN_SERVICE,
   WORKSPACE_HANDLERS,
   VECTOR_STORE,
@@ -68,6 +69,7 @@ import {
   registerReasoningRoutes,
   registerSearchRoutes,
   registerWorkspaceRoutes,
+  registerAgentRoutes,
   registerGraphRoutes,
   registerWebhookRoutes,
   registerEventStreamRoutes,
@@ -171,6 +173,7 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
     app,
     kernel.container.resolve(REASONING_HANDLERS),
   );
+  registerAgentRoutes(app, kernel.container.resolve(AGENT_HANDLERS));
   registerGraphRoutes(app, kernel.container.resolve(GRAPH_HANDLERS));
   registerWebhookRoutes(app, kernel.container.resolve(CAPTURE_HANDLERS));
   registerEventStreamRoutes(app, kernel.container.resolve(EVENT_BUS));

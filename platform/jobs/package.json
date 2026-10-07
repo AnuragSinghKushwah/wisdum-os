@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@wisdum/contracts": "*",
-    "@wisdum/kernel": "*"
+    "@wisdum/kernel": "*",
+    "@wisdum/logger": "*"
   }
 }

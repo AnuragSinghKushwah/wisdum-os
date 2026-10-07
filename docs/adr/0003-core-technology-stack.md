@@ -1,6 +1,6 @@
 # 0003 — Core technology stack
 
-- **Status:** Accepted
+- **Status:** Accepted; partially superseded — the language tier by [0005](0005-core-runtime-language.md), full-text search by [0010](0010-search-postgresql-full-text-and-pgvector.md), async processing by [0011](0011-event-delivery-in-process-and-redis-pub-sub.md), and the backend framework by [0012](0012-http-api-fastify-bearer-auth-and-tenant-resolution.md)
 - **Date:** 2026-07-06
 - **Deciders:** Founding maintainer
 

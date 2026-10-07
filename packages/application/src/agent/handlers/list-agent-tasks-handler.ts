@@ -7,8 +7,8 @@ export interface AgentTaskDto {
   tenantId: string;
   agentType: string;
   status: string;
-  payload: Record<string, any>;
-  result?: Record<string, any> | null;
+  payload: Record<string, unknown>;
+  result?: Record<string, unknown> | null;
   error?: string | null;
   createdAt: string;
   updatedAt: string;

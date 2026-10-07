@@ -40,7 +40,7 @@ export class PostgresGraphReadModel implements GraphReadModel {
     return { nodes, edges };
   }
 
-  async getNeighbors(tenantId: TenantId, conceptId: string, depth = 1): Promise<GraphTopologyDto> {
+  async getNeighbors(tenantId: TenantId, conceptId: string): Promise<GraphTopologyDto> {
     const relRes = await this.pool.query<ConceptRelationshipRow>(
       `SELECT * FROM concept_relationships 
        WHERE tenant_id = $1 AND (concept_a_id = $2 OR concept_b_id = $2)`,

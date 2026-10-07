@@ -1,10 +1,6 @@
-import {
-  AgentTask,
-  AgentTaskId,
-  type AgentTaskRepository,
-} from '@wisdum/domain';
-import type { Option, TenantId } from '@wisdum/types';
-import { none, some } from '@wisdum/types';
+import type { AgentTask, AgentTaskId } from '@wisdum/domain';
+import { type AgentTaskRepository } from '@wisdum/domain';
+import type { TenantId } from '@wisdum/types';
 import { InMemoryRepository } from './in-memory-repository.js';
 
 export class InMemoryAgentTaskRepository

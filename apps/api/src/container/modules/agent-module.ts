@@ -92,10 +92,10 @@ export class AgentModule implements KernelModule {
             logger.info(`Agent task executed successfully`, {
               taskId: task.getId().value(),
             });
-          } catch (err: any) {
+          } catch (err: unknown) {
             logger.error(`Failed to execute agent task`, {
               taskId: task.getId().value(),
-              error: err?.message,
+              error: err instanceof Error ? err.message : String(err),
             });
           }
         }

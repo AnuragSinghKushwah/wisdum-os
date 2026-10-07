@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { IsoTimestamp, Option, TenantId, UUID } from '@wisdum/types';
-import { Plugin, PluginCapability } from '@wisdum/domain';
-import type { Clock, PluginId, PluginRepository } from '@wisdum/domain';
+import { PluginCapability } from '@wisdum/domain';
+import type { Clock, PluginId, PluginRepository, Plugin } from '@wisdum/domain';
 import type { DomainEventPublisher, IdGenerator } from '../../shared/ports.js';
 import { CapabilityPluginProvisioner } from './capability-plugin-provisioner.js';
 import type { DefaultCapabilityManifest } from './capability-plugin-provisioner.js';

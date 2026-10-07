@@ -5,7 +5,7 @@ export interface CreateAgentTaskCommand extends Command {
   readonly kind: 'command';
   readonly tenantId: TenantId;
   readonly agentType: string;
-  readonly payload: Record<string, any>;
+  readonly payload: Record<string, unknown>;
 }
 
 export function createAgentTaskCommand(

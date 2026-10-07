@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { createPgPool, migrateUp } from '@wisdum/database';
-import { optionalEnv, requireEnv } from '@wisdum/config';
+import { optionalEnv } from '@wisdum/config';
 import { SystemClock } from '@wisdum/domain';
 import {
   InMemoryEventBus,
@@ -20,10 +20,10 @@ import {
   LocalEmbeddingProvider,
   createLazyLocalFeatureExtractor,
 } from '@wisdum/platform-ai';
-import type { LlmProvider } from '@wisdum/platform-ai';
+import type { EmbeddingProvider, LlmProvider } from '@wisdum/platform-ai';
 import type { InputConnector } from '@wisdum/platform-inputs';
 import { DefaultEmbeddingPipeline, FixedSizeChunker, InMemoryVectorStore } from '@wisdum/platform-search';
-import type { EmbeddingPipeline } from '@wisdum/platform-search';
+import type { EmbeddingPipeline, VectorStore } from '@wisdum/platform-search';
 import { PostgresVectorStore } from '@wisdum/infrastructure';
 import { Redis } from 'ioredis';
 import {
@@ -150,8 +150,8 @@ export class CoreModule implements KernelModule {
     const embeddingEnabled = optionalEnv('EMBEDDING_ENABLED', 'true') !== 'false';
     let embeddingPipeline: EmbeddingPipeline | undefined;
     let embeddingModel: string | undefined;
-    let embeddingProvider: any = undefined;
-    let vectorStoreVal: any = undefined;
+    let embeddingProvider: EmbeddingProvider | undefined;
+    let vectorStoreVal: VectorStore | undefined;
     if (embeddingEnabled) {
       const embedding = createEmbeddingProvider();
       const vectorStore = pool !== undefined ? new PostgresVectorStore(pool) : new InMemoryVectorStore();

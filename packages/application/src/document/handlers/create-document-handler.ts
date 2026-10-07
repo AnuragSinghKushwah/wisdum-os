@@ -88,7 +88,7 @@ async function preprocessContent(content: string, mimeType: string): Promise<{ p
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].role && parsed[0].content) {
-        const chatLog = parsed.map((m: any) => `**${m.role.toUpperCase()}**: ${m.content}`).join('\n\n');
+        const chatLog = parsed.map((m: { role: string; content: string }) => `**${m.role.toUpperCase()}**: ${m.content}`).join('\n\n');
         return {
           parsedContent: `# GPT Conversation Thread\n\n${chatLog}`,
           mimeType: 'text/markdown'

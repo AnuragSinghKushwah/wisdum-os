@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import * as path from 'node:path';
 
 const SCREENSHOT_DIR = path.resolve(process.cwd(), '../../artifacts/screenshots');

@@ -30,22 +30,22 @@ export class RestNotionClient implements NotionClient {
       throw new Error(`Notion API error querying database ${databaseId}: ${response.status}`);
     }
 
-    const body = (await response.json()) as { results?: readonly Record<string, any>[] };
+    const body = (await response.json()) as { results?: readonly { id: string; url?: string; properties?: Record<string, { title?: { plain_text: string }[]; type?: string }>; [key: string]: unknown }[] };
     const pages: NotionPage[] = [];
 
     for (const result of body.results || []) {
-      const pageId = result.id;
-      const url = result.url || `https://notion.so/${pageId.replace(/-/g, '')}`;
+      const pageId = result.id as string;
+      const url = (result.url as string) || `https://notion.so/${pageId.replace(/-/g, '')}`;
 
       let title = 'Untitled Notion Page';
       if (result.properties) {
         const titleProp =
-          result.properties.title ||
-          result.properties.Name ||
-          Object.values(result.properties).find((p: any) => p.type === 'title');
+          result.properties?.title ||
+          result.properties?.Name ||
+          Object.values(result.properties || {}).find((p: { type?: string }) => p.type === 'title');
 
         if (titleProp && Array.isArray(titleProp.title) && titleProp.title.length > 0) {
-          title = titleProp.title[0].plain_text || title;
+          title = titleProp.title[0]?.plain_text || title;
         }
       }
 
@@ -74,15 +74,15 @@ export class RestNotionClient implements NotionClient {
       return '';
     }
 
-    const body = (await response.json()) as { results?: readonly Record<string, any>[] };
+    const body = (await response.json()) as { results?: readonly { id: string; url?: string; properties?: Record<string, { title?: { plain_text: string }[]; type?: string }>; [key: string]: unknown }[] };
     const lines: string[] = [];
 
     for (const block of body.results || []) {
       const type = block.type;
-      const blockContent = block[type];
+      const blockContent = block[type as string] as { rich_text?: { plain_text?: string }[] };
       if (!blockContent || !Array.isArray(blockContent.rich_text)) continue;
 
-      const text = blockContent.rich_text.map((t: any) => t.plain_text).join('');
+      const text = blockContent.rich_text.map((t: { plain_text?: string }) => t.plain_text).join('');
 
       if (type === 'paragraph') {
         lines.push(text);

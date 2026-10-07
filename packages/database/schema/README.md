@@ -20,5 +20,10 @@ shapes are typed in [`../src/tables/`](../src/tables/).
 | PromptTemplate | `prompt_templates` | yes | `name` unique per tenant; `revision` increments on every body change |
 | SearchIndex | `search_indexes`, `search_index_documents` | yes | `name` unique per tenant; the physical index lives outside Postgres |
 
-Every table other than `tenants` carries `tenant_id` and must be filtered by
-it in every query.
+Every aggregate-root table carries `tenant_id` and must be filtered by it in
+every query. Child tables (for example `workspace_members`, `knowledge_labels`,
+`conversation_messages`) have no tenant column and inherit tenancy through their
+parent row. The search storage tables `search_provider_documents` and
+`vector_records` have no tenant column either; their rows are separated by
+index name (for example `knowledge:<tenantId>`). See
+[ADR 0009](../../../docs/adr/0009-postgresql-persistence-without-an-orm.md).

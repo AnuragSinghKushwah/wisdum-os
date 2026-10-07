@@ -4,7 +4,6 @@ import { CapabilityRegistry } from '@wisdum/kernel';
 import type { CapturedItem, InputConnector } from '@wisdum/platform-inputs';
 import type { CreateDocumentCommand } from '../../document/commands/create-document-command.js';
 import type { CreateDocumentHandler } from '../../document/handlers/create-document-handler.js';
-import type { CreateKnowledgeCommand } from '../../knowledge/commands/create-knowledge-command.js';
 import type { CreateKnowledgeHandler } from '../../knowledge/handlers/create-knowledge-handler.js';
 import type { AttachKnowledgeContentCommand } from '../../knowledge/commands/attach-knowledge-content-command.js';
 import type { AttachKnowledgeContentHandler } from '../../knowledge/handlers/attach-knowledge-content-handler.js';
@@ -77,7 +76,7 @@ function buildFakeHandlers(knowledgeReads: FakeKnowledgeReadModel) {
   } as unknown as CreateDocumentHandler;
 
   const createKnowledge = {
-    execute: (_command: CreateKnowledgeCommand) => {
+    execute: () => {
       knowledgeCounter += 1;
       return Promise.resolve({ knowledgeId: `knowledge-${knowledgeCounter}` });
     },

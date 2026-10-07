@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { IsoTimestamp, Option, TenantId, UUID } from '@wisdum/types';
 import { some, none } from '@wisdum/types';
-import { Organization, OrganizationId, OrganizationSlug } from '@wisdum/domain';
-import type { OrganizationRepository, Clock } from '@wisdum/domain';
+import { OrganizationId } from '@wisdum/domain';
+import type { OrganizationRepository, Clock, Organization, OrganizationSlug } from '@wisdum/domain';
 import { createOrganizationCommand } from '../../commands/create-organization-command.js';
 import { attachWorkspaceCommand } from '../../commands/attach-workspace-command.js';
 import { getOrganizationQuery } from '../../queries/get-organization-query.js';
@@ -37,7 +37,9 @@ class FakeOrganizationRepository implements OrganizationRepository {
   }
 
   async delete(): Promise<void> {}
-  async listByTenant(): Promise<readonly Organization[]> { return []; }
+  async listByTenant(): Promise<readonly Organization[]> {
+    return [];
+  }
 }
 
 class FakeOrganizationReadModel implements OrganizationReadModel {
@@ -58,7 +60,9 @@ class FakeOrganizationReadModel implements OrganizationReadModel {
     };
   }
 
-  async listByTenant(): Promise<readonly OrganizationDto[]> { return []; }
+  async listByTenant(): Promise<readonly OrganizationDto[]> {
+    return [];
+  }
 }
 
 const mockClock: Clock = {
@@ -80,7 +84,13 @@ const mockEvents: DomainEventPublisher = {
 describe('Organization Handlers', () => {
   it('CreateOrganizationHandler creates and persists organization aggregate', async () => {
     const repo = new FakeOrganizationRepository();
-    const handler = new CreateOrganizationHandler(repo, mockIdGenerator, mockSlugGenerator, mockEvents, mockClock);
+    const handler = new CreateOrganizationHandler(
+      repo,
+      mockIdGenerator,
+      mockSlugGenerator,
+      mockEvents,
+      mockClock,
+    );
 
     const result = await handler.execute(
       createOrganizationCommand({
@@ -97,7 +107,13 @@ describe('Organization Handlers', () => {
 
   it('AttachWorkspaceHandler attaches workspace to organization', async () => {
     const repo = new FakeOrganizationRepository();
-    const createHandler = new CreateOrganizationHandler(repo, mockIdGenerator, mockSlugGenerator, mockEvents, mockClock);
+    const createHandler = new CreateOrganizationHandler(
+      repo,
+      mockIdGenerator,
+      mockSlugGenerator,
+      mockEvents,
+      mockClock,
+    );
     const attachHandler = new AttachWorkspaceHandler(repo, mockEvents, mockClock);
 
     const { organizationId } = await createHandler.execute(
@@ -122,7 +138,13 @@ describe('Organization Handlers', () => {
   it('GetOrganizationHandler retrieves organization DTO', async () => {
     const repo = new FakeOrganizationRepository();
     const readModel = new FakeOrganizationReadModel(repo);
-    const createHandler = new CreateOrganizationHandler(repo, mockIdGenerator, mockSlugGenerator, mockEvents, mockClock);
+    const createHandler = new CreateOrganizationHandler(
+      repo,
+      mockIdGenerator,
+      mockSlugGenerator,
+      mockEvents,
+      mockClock,
+    );
     const getHandler = new GetOrganizationHandler(readModel);
 
     const { organizationId } = await createHandler.execute(

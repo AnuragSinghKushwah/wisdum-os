@@ -6,7 +6,7 @@ export interface WorkspaceDto {
   readonly name: string;
   readonly slug: string;
   readonly status: string;
-  readonly settings: Record<string, any>;
+  readonly settings: Record<string, unknown>;
   readonly memberCount: number;
   readonly createdAt: string;
 }

@@ -49,7 +49,7 @@ export class AiExportConnector implements InputConnector {
             }
           }
         }
-      } catch (err) {
+      } catch {
         // Skip malformed file
         continue;
       }
@@ -59,16 +59,16 @@ export class AiExportConnector implements InputConnector {
   }
 }
 
-function isClaudeConversation(entry: any): boolean {
+function isClaudeConversation(entry: unknown): entry is { uuid: string; chat_messages: { sender?: string; text?: string; content?: { parts?: unknown[] }; author?: { role?: string } }[]; name?: string } {
   return (
     entry !== null &&
     typeof entry === 'object' &&
-    typeof entry.uuid === 'string' &&
-    Array.isArray(entry.chat_messages)
+    'uuid' in entry && typeof (entry as Record<string, unknown>).uuid === 'string' &&
+    'chat_messages' in entry && Array.isArray((entry as Record<string, unknown>).chat_messages)
   );
 }
 
-function parseClaudeConversation(entry: any, filePath: string): CapturedItem | undefined {
+function parseClaudeConversation(entry: { uuid: string; chat_messages: { sender?: string; text?: string; content?: { parts?: unknown[] }; author?: { role?: string } }[]; name?: string }, filePath: string): CapturedItem | undefined {
   const title = entry.name || `Claude Chat (${entry.uuid.slice(0, 8)})`;
 
   const transcriptLines: string[] = [];
@@ -92,26 +92,26 @@ function parseClaudeConversation(entry: any, filePath: string): CapturedItem | u
   };
 }
 
-function isChatGptConversation(entry: any): boolean {
+function isChatGptConversation(entry: unknown): entry is { title?: string; mapping: Record<string, { parent?: string; message?: { author?: { role?: string }; content?: { parts?: unknown[] } }; children?: string[] }>; id?: string } {
   return (
     entry !== null &&
     typeof entry === 'object' &&
-    typeof entry.title === 'string' &&
-    entry.mapping !== null &&
-    typeof entry.mapping === 'object'
+    'title' in entry && typeof (entry as Record<string, unknown>).title === 'string' &&
+    'mapping' in entry && (entry as Record<string, unknown>).mapping !== null &&
+    typeof (entry as Record<string, unknown>).mapping === 'object'
   );
 }
 
-function parseChatGptConversation(entry: any, filePath: string): CapturedItem | undefined {
+function parseChatGptConversation(entry: { title?: string; mapping: Record<string, { parent?: string; message?: { author?: { role?: string }; content?: { parts?: unknown[] } }; children?: string[] }>; id?: string }, filePath: string): CapturedItem | undefined {
   const title = entry.title || 'ChatGPT Chat';
 
   const mapping = entry.mapping;
-  const nodes = Object.values(mapping) as any[];
+  const nodes = Object.values(mapping);
 
   const rootNode = nodes.find((node) => !node.parent);
   if (!rootNode) return undefined;
 
-  const messageSequence: any[] = [];
+  const messageSequence: { author?: { role?: string }; content?: { parts?: unknown[] } }[] = [];
   let currentNode = rootNode;
 
   while (currentNode) {
@@ -125,7 +125,7 @@ function parseChatGptConversation(entry: any, filePath: string): CapturedItem | 
     }
 
     const nextId = children[children.length - 1]; // take the latest child in case of edits/branches
-    currentNode = mapping[nextId];
+    currentNode = mapping[nextId as string] as typeof currentNode;
   }
 
   const transcriptLines: string[] = [];
@@ -139,7 +139,7 @@ function parseChatGptConversation(entry: any, filePath: string): CapturedItem | 
     if (!role || !parts || !Array.isArray(parts)) continue;
 
     const text = parts
-      .map((p: any) => (typeof p === 'string' ? p : JSON.stringify(p)))
+      .map((p: unknown) => (typeof p === 'string' ? p : JSON.stringify(p)))
       .join('\n')
       .trim();
     if (text.length === 0) continue;

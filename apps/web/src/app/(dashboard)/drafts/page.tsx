@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { ApiError, apiFetch } from '../../../lib/api-client';
+import { apiFetch } from '../../../lib/api-client';
 
 interface ContentDraftDto {
   readonly id: string;

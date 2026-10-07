@@ -8,3 +8,5 @@ export const authCapability: PlatformCapability = {
   name: 'auth',
   description: 'Authentication and authorization for platform actors.',
 };
+
+export * from './password-hasher.js';

@@ -8,4 +8,6 @@ export * from './providers/slack-connector.js';
 export * from './providers/obsidian-connector.js';
 export * from './providers/ai-export-connector.js';
 export * from './providers/email-connector.js';
+export * from './providers/youtube-transcript-connector.js';
+export * from './providers/web-scraper-connector.js';
 

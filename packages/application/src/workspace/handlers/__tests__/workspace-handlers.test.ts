@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { IsoTimestamp, Option, TenantId, UUID } from '@wisdum/types';
 import { some, none } from '@wisdum/types';
-import { Workspace, WorkspaceId, WorkspaceSlug } from '@wisdum/domain';
-import type { WorkspaceRepository, Clock } from '@wisdum/domain';
+import { WorkspaceId } from '@wisdum/domain';
+import type { WorkspaceRepository, Clock, Workspace, WorkspaceSlug } from '@wisdum/domain';
 import { createWorkspaceCommand } from '../../commands/create-workspace-command.js';
 import { addWorkspaceMemberCommand } from '../../commands/add-workspace-member-command.js';
 import { getWorkspaceQuery } from '../../queries/get-workspace-query.js';
@@ -36,8 +36,10 @@ class FakeWorkspaceRepository implements WorkspaceRepository {
     return some(item);
   }
 
-
-  async findByOrganization(tenantId: TenantId, organizationId: UUID): Promise<readonly Workspace[]> {
+  async findByOrganization(
+    tenantId: TenantId,
+    organizationId: UUID,
+  ): Promise<readonly Workspace[]> {
     return Array.from(this.items.values()).filter(
       (w) => w.tenantId === tenantId && w.organizationId === organizationId,
     );
@@ -52,7 +54,9 @@ class FakeWorkspaceRepository implements WorkspaceRepository {
   }
 
   async delete(): Promise<void> {}
-  async listByTenant(): Promise<readonly Workspace[]> { return Array.from(this.items.values()); }
+  async listByTenant(): Promise<readonly Workspace[]> {
+    return Array.from(this.items.values());
+  }
 }
 
 class FakeWorkspaceReadModel implements WorkspaceReadModel {
@@ -74,7 +78,9 @@ class FakeWorkspaceReadModel implements WorkspaceReadModel {
     };
   }
 
-  async listByOrganization(): Promise<readonly WorkspaceDto[]> { return []; }
+  async listByOrganization(): Promise<readonly WorkspaceDto[]> {
+    return [];
+  }
 
   async listByTenant(tenantId: TenantId): Promise<readonly WorkspaceDto[]> {
     const workspaces = await this.repo.findByTenant(tenantId);
@@ -110,7 +116,13 @@ const mockEvents: DomainEventPublisher = {
 describe('Workspace Handlers', () => {
   it('CreateWorkspaceHandler creates and persists workspace aggregate', async () => {
     const repo = new FakeWorkspaceRepository();
-    const handler = new CreateWorkspaceHandler(repo, mockIdGenerator, mockSlugGenerator, mockEvents, mockClock);
+    const handler = new CreateWorkspaceHandler(
+      repo,
+      mockIdGenerator,
+      mockSlugGenerator,
+      mockEvents,
+      mockClock,
+    );
 
     const result = await handler.execute(
       createWorkspaceCommand({
@@ -129,7 +141,13 @@ describe('Workspace Handlers', () => {
 
   it('AddWorkspaceMemberHandler adds member to existing workspace', async () => {
     const repo = new FakeWorkspaceRepository();
-    const createHandler = new CreateWorkspaceHandler(repo, mockIdGenerator, mockSlugGenerator, mockEvents, mockClock);
+    const createHandler = new CreateWorkspaceHandler(
+      repo,
+      mockIdGenerator,
+      mockSlugGenerator,
+      mockEvents,
+      mockClock,
+    );
     const addMemberHandler = new AddWorkspaceMemberHandler(repo, mockEvents, mockClock);
 
     const { workspaceId } = await createHandler.execute(
@@ -156,7 +174,13 @@ describe('Workspace Handlers', () => {
   it('GetWorkspaceHandler and ListWorkspacesHandler query workspace read models', async () => {
     const repo = new FakeWorkspaceRepository();
     const readModel = new FakeWorkspaceReadModel(repo);
-    const createHandler = new CreateWorkspaceHandler(repo, mockIdGenerator, mockSlugGenerator, mockEvents, mockClock);
+    const createHandler = new CreateWorkspaceHandler(
+      repo,
+      mockIdGenerator,
+      mockSlugGenerator,
+      mockEvents,
+      mockClock,
+    );
     const getHandler = new GetWorkspaceHandler(readModel);
     const listHandler = new ListWorkspacesHandler(readModel);
 

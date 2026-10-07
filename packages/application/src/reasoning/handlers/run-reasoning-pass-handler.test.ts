@@ -423,15 +423,15 @@ describe('RunReasoningPassHandler', () => {
       getId: () => ({ value: () => opportunityId }),
       tenantId: TENANT_ID,
       type: { value: 'blog_post' },
-    } as any;
-    await opportunities.save(mockOpportunity);
+    } as unknown;
+    await opportunities.save(mockOpportunity as unknown as Opportunity);
     
     const mockPublished = {
       tenantId: TENANT_ID,
       opportunityId,
       viewCount: 150,
-    } as any;
-    await published.save(mockPublished);
+    } as unknown;
+    await published.save(mockPublished as unknown as PublishedContent);
 
     const llm = new ScriptedLlmCompletionPort();
 

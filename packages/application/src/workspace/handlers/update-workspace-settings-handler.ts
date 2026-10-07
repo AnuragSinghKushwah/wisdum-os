@@ -1,5 +1,5 @@
 import { WorkspaceId } from '@wisdum/domain';
-import type { Clock, WorkspaceRepository } from '@wisdum/domain';
+import type { Clock, WorkspaceRepository, WorkspaceSettingValue } from '@wisdum/domain';
 import type { CommandHandler } from '../../shared/messages.js';
 import type { DomainEventPublisher } from '../../shared/ports.js';
 import { NotFoundError } from '../../shared/errors.js';
@@ -18,7 +18,7 @@ export class UpdateWorkspaceSettingsHandler implements CommandHandler<UpdateWork
       throw new NotFoundError('Workspace not found', { workspaceId: command.workspaceId });
     }
     const workspace = found.value;
-    workspace.setSetting(command.key, command.value, this.clock);
+    workspace.setSetting(command.key, command.value as unknown as WorkspaceSettingValue, this.clock);
     await this.repository.save(workspace);
     await this.events.publishAll(workspace.pullDomainEvents());
     workspace.clearDomainEvents();

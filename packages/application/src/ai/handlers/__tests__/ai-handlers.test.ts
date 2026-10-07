@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { IsoTimestamp, Option, TenantId, UUID } from '@wisdum/types';
 import { some, none } from '@wisdum/types';
-import { Conversation, ConversationId } from '@wisdum/domain';
-import type { ConversationRepository, Clock } from '@wisdum/domain';
+import { ConversationId } from '@wisdum/domain';
+import type { ConversationRepository, Clock, Conversation } from '@wisdum/domain';
 import { startConversationCommand } from '../../commands/start-conversation-command.js';
 import { appendMessageCommand } from '../../commands/append-message-command.js';
 import { getConversationQuery } from '../../queries/get-conversation-query.js';
@@ -25,10 +25,13 @@ class FakeConversationRepository implements ConversationRepository {
     return item ? some(item) : none;
   }
 
-
-  async findByOwner(): Promise<readonly Conversation[]> { return []; }
+  async findByOwner(): Promise<readonly Conversation[]> {
+    return [];
+  }
   async delete(): Promise<void> {}
-  async listByTenant(): Promise<readonly Conversation[]> { return []; }
+  async listByTenant(): Promise<readonly Conversation[]> {
+    return [];
+  }
 }
 
 class FakeConversationReadModel implements ConversationReadModel {
@@ -54,7 +57,9 @@ class FakeConversationReadModel implements ConversationReadModel {
     };
   }
 
-  async listByTenant(): Promise<readonly ConversationDto[]> { return []; }
+  async listByTenant(): Promise<readonly ConversationDto[]> {
+    return [];
+  }
 }
 
 const mockClock: Clock = {

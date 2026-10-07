@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { ApiError, apiFetch } from '../../../lib/api-client';
+import { apiFetch } from '../../../lib/api-client';
 import { useAuth } from '../../../lib/auth-context';
 
 interface KnowledgeContentReferenceDto {

@@ -1,13 +1,13 @@
 declare module 'pdf-parse' {
   function pdf(
     dataBuffer: Buffer,
-    options?: any,
+    options?: unknown,
   ): Promise<{
     text: string;
     numpages: number;
     numrender: number;
-    info: any;
-    metadata: any;
+    info: unknown;
+    metadata: unknown;
     version: string;
   }>;
   export = pdf;

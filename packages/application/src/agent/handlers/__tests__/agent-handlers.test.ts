@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { IsoTimestamp, Option, TenantId, UUID } from '@wisdum/types';
-import { AgentTask, AgentTaskId } from '@wisdum/domain';
-import type { Clock, AgentTaskRepository } from '@wisdum/domain';
+import { AgentTaskId } from '@wisdum/domain';
+import type { Clock, AgentTaskRepository, AgentTask } from '@wisdum/domain';
 import type { DomainEventPublisher, IdGenerator } from '../../../shared/ports.js';
 import { CreateAgentTaskHandler } from '../create-agent-task-handler.js';
 import { createAgentTaskCommand } from '../../commands/create-agent-task-command.js';

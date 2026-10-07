@@ -82,9 +82,6 @@ export default function SettingsPage() {
     }
   }
 
-  // Nice tenant/username initials
-  const tenantInitial = session?.tenantId.charAt(0).toUpperCase() || 'T';
-
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header Panel */}

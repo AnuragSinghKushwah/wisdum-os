@@ -35,4 +35,14 @@ export default tseslint.config(
     files: ['packages/logger/src/**'],
     rules: { 'no-console': 'off' },
   },
+  {
+    // The CLI's user interface is its terminal output.
+    files: ['packages/cli/src/**'],
+    rules: { 'no-console': 'off' },
+  },
+  {
+    // Browser code has no log transport; the browser console is where client errors surface.
+    files: ['apps/web/src/**'],
+    rules: { 'no-console': ['error', { allow: ['warn', 'error'] }] },
+  },
 );

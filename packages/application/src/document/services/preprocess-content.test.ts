@@ -85,6 +85,31 @@ describe('preprocessContent: a lone web address', () => {
     expect(result.parsedContent).toContain(paragraph.trim());
   });
 
+  it('keeps the article and drops navigation, headers, footers and sidebars', async () => {
+    const html =
+      '<html><head><title>Backoff</title></head><body>' +
+      '<header>SITE MENU</header><nav>Home About Contact</nav>' +
+      '<main><article><h1>Backoff</h1><p>The real article text lives here.</p></article></main>' +
+      '<aside>RELATED LINKS</aside><footer>COPYRIGHT NOTICE</footer></body></html>';
+
+    const result = await preprocessContent('https://example.com/post', 'text/plain', {
+      fetch: fetchReturning(page(html)),
+    });
+
+    expect(result.parsedContent).toContain('The real article text lives here.');
+    for (const chrome of ['SITE MENU', 'Home About Contact', 'RELATED LINKS', 'COPYRIGHT NOTICE']) {
+      expect(result.parsedContent).not.toContain(chrome);
+    }
+  });
+
+  it('falls back to the whole page when it has no article or main element', async () => {
+    const result = await preprocessContent('https://example.com/plain', 'text/plain', {
+      fetch: fetchReturning(page('<html><body><p>Just a paragraph.</p></body></html>')),
+    });
+
+    expect(result.parsedContent).toContain('Just a paragraph.');
+  });
+
   it('follows a redirect to another public page', async () => {
     const redirect = new Response(null, {
       status: 301,

@@ -164,10 +164,17 @@ function htmlToText(html: string, fallbackTitle: string): { title: string; body:
     rawTitle !== undefined && rawTitle.trim().length > 0
       ? decodeEntities(rawTitle.trim())
       : fallbackTitle;
+
+  // Menus, headers, footers and the like are page chrome, not the author's text.
+  const withoutChrome = html
+    .replace(
+      /<(script|style|noscript|svg|iframe|nav|header|footer|aside|form)\b[\s\S]*?<\/\1>/gi,
+      '',
+    )
+    .replace(/<!--[\s\S]*?-->/g, '');
+
   const body = decodeEntities(
-    html
-      .replace(/<(script|style|noscript)\b[\s\S]*?<\/\1>/gi, '')
-      .replace(/<!--[\s\S]*?-->/g, '')
+    mainRegion(withoutChrome)
       .replace(
         /<h([1-3])[^>]*>([\s\S]*?)<\/h\1>/gi,
         (_match, level: string, text: string) => `\n${'#'.repeat(Number(level))} ${text}\n`,
@@ -181,6 +188,21 @@ function htmlToText(html: string, fallbackTitle: string): { title: string; body:
     .replace(/\n{3,}/g, '\n\n')
     .trim();
   return { title, body };
+}
+
+/** The longest `<article>` or `<main>` element if the page has one, else the whole document. */
+function mainRegion(html: string): string {
+  const regions = [...html.matchAll(/<(article|main)\b[^>]*>([\s\S]*?)<\/\1>/gi)].map(
+    (match) => match[2] ?? '',
+  );
+  const visibleLength = (fragment: string): number =>
+    fragment.replace(/<[^>]+>/g, '').trim().length;
+  const best = regions.reduce<string | undefined>(
+    (longest, region) =>
+      longest === undefined || visibleLength(region) > visibleLength(longest) ? region : longest,
+    undefined,
+  );
+  return best !== undefined && visibleLength(best) > 0 ? best : html;
 }
 
 function decodeEntities(text: string): string {

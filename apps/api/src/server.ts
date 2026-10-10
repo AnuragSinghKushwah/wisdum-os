@@ -59,6 +59,7 @@ import {
   CAPTURE_HANDLERS,
   EVENT_BUS,
 } from './container/tokens.js';
+import type { LlmSelection } from './container/modules/core-module.js';
 import { seedDevelopmentData } from './bootstrap/dev-seed.js';
 import { createSignupPolicy } from './bootstrap/signup-policy.js';
 import { resolveRuntimeEnvironment } from './config/runtime-environment.js';
@@ -97,14 +98,14 @@ export interface RegisteredRoute {
  * app on top of it. Pure composition — no business logic lives here or
  * anywhere else in `apps/api`.
  */
-export async function buildServer(): Promise<{
+export async function buildServer(options: { readonly llm?: LlmSelection } = {}): Promise<{
   app: FastifyInstance;
   kernel: Kernel;
   routes: readonly RegisteredRoute[];
 }> {
   const kernel = createKernel();
   kernel
-    .use(new CoreModule())
+    .use(new CoreModule(options.llm === undefined ? {} : { llm: options.llm }))
     .use(new DocumentModule())
     .use(new KnowledgeModule())
     .use(new IdentityModule())

@@ -23,6 +23,7 @@ import {
   LocalEmbeddingProvider,
   createLazyLocalFeatureExtractor,
 } from '@wisdum/platform-ai';
+import { GeminiLlmProvider, OllamaLlmProvider } from '@wisdum/platform-ai';
 import type { EmbeddingProvider, LlmProvider } from '@wisdum/platform-ai';
 import type { InputConnector } from '@wisdum/platform-inputs';
 import { DefaultEmbeddingPipeline, FixedSizeChunker, InMemoryVectorStore } from '@wisdum/platform-search';
@@ -40,35 +41,66 @@ import {
   INPUT_CONNECTORS,
   LLM_MODEL,
   LLM_PROVIDER,
+  LLM_STATUS,
   PG_POOL,
   SLUG_GENERATOR,
   TOKEN_SERVICE,
 } from '../tokens.js';
 
-const DEFAULT_ANTHROPIC_MODEL = 'anthropic/claude-sonnet-5';
+const DEFAULT_ANTHROPIC_MODEL = 'anthropic/claude-sonnet-5-5';
 const DEFAULT_OPENAI_MODEL = 'openai/gpt-4o-mini';
+const DEFAULT_GEMINI_MODEL = 'gemini/gemini-2.5-flash';
+const DEFAULT_OLLAMA_MODEL = 'ollama/llama3';
+
+/** A configured model provider, the model to ask it for, and its short name for status reporting. */
+export interface LlmSelection {
+  readonly provider: LlmProvider;
+  readonly model: string;
+  readonly name: string;
+}
 
 /**
  * Picks a real `LlmProvider` (and a matching default model name) from
- * whichever provider API key is present (Anthropic takes precedence when
- * both are set). Shared by AiModule (chat) and ReasoningModule (one-shot
+ * whichever provider is configured, in this order: Anthropic, OpenAI, Gemini,
+ * then a local Ollama (`OLLAMA_HOST`). Shared by AiModule (chat) and ReasoningModule (one-shot
  * completions) — neither vendor SDK is referenced outside this composition
  * root. The model name is overridable via `REASONING_LLM_MODEL` since
  * exact available model ids drift over time.
  */
-function createLlmProvider(): { provider: LlmProvider; model: string } | undefined {
+function createLlmProvider(): LlmSelection | undefined {
+  const model = (fallback: string): string => optionalEnv('REASONING_LLM_MODEL', fallback);
+
   const anthropicKey = optionalEnv('ANTHROPIC_API_KEY', '');
   if (anthropicKey.length > 0) {
     return {
+      name: 'anthropic',
       provider: new AnthropicLlmProvider(new Anthropic({ apiKey: anthropicKey })),
-      model: optionalEnv('REASONING_LLM_MODEL', DEFAULT_ANTHROPIC_MODEL),
+      model: model(DEFAULT_ANTHROPIC_MODEL),
     };
   }
   const openAiKey = optionalEnv('OPENAI_API_KEY', '');
   if (openAiKey.length > 0) {
     return {
+      name: 'openai',
       provider: new OpenAiLlmProvider(new OpenAI({ apiKey: openAiKey })),
-      model: optionalEnv('REASONING_LLM_MODEL', DEFAULT_OPENAI_MODEL),
+      model: model(DEFAULT_OPENAI_MODEL),
+    };
+  }
+  const geminiKey = optionalEnv('GEMINI_API_KEY', optionalEnv('GOOGLE_API_KEY', ''));
+  if (geminiKey.length > 0) {
+    return {
+      name: 'gemini',
+      provider: new GeminiLlmProvider({ apiKey: geminiKey }),
+      model: model(DEFAULT_GEMINI_MODEL),
+    };
+  }
+  // Never probed: a local Ollama is used only when the operator points at it.
+  const ollamaHost = optionalEnv('OLLAMA_HOST', '');
+  if (ollamaHost.length > 0) {
+    return {
+      name: 'ollama',
+      provider: new OllamaLlmProvider({ baseUrl: ollamaHost }),
+      model: model(DEFAULT_OLLAMA_MODEL),
     };
   }
   return undefined;
@@ -122,6 +154,9 @@ export class CoreModule implements KernelModule {
   readonly name = 'core';
   private readonly redisClients: Redis[] = [];
 
+  /** `llm` replaces the environment-based provider choice; tests use it to supply a scripted model. */
+  constructor(private readonly options: { readonly llm?: LlmSelection } = {}) {}
+
   register(container: Container): void {
     container.registerValue(CLOCK, SystemClock.instance());
     container.registerValue(ID_GENERATOR, new UuidGenerator());
@@ -152,9 +187,18 @@ export class CoreModule implements KernelModule {
     }
     container.registerValue(TOKEN_SERVICE, new JwtTokenService(jwt.secret));
 
-    const llm = createLlmProvider();
+    const llm = this.options.llm ?? createLlmProvider();
     container.registerValue(LLM_PROVIDER, llm?.provider);
     container.registerValue(LLM_MODEL, llm?.model);
+    container.registerValue(
+      LLM_STATUS,
+      llm === undefined ? { mode: 'mock' } : { mode: 'live', provider: llm.name, model: llm.model },
+    );
+    if (llm === undefined) {
+      createLogger('core').warn(
+        'No AI provider configured (ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY or OLLAMA_HOST): reasoning and drafting return canned sample text and "create content from source" is disabled.',
+      );
+    }
 
     const embeddingEnabled = optionalEnv('EMBEDDING_ENABLED', 'true') !== 'false';
     let embeddingPipeline: EmbeddingPipeline | undefined;

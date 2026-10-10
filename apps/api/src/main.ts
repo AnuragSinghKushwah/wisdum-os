@@ -1,5 +1,7 @@
+import './config/load-env.js';
 import { getEnvironment, optionalEnv } from '@wisdum/config';
 import { createLogger } from '@wisdum/logger';
+import { describeStartupError } from './config/startup-error.js';
 import { buildServer } from './index.js';
 
 const logger = createLogger('api');
@@ -24,7 +26,7 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   logger.error('Wisdum API failed to start', {
-    error: error instanceof Error ? error.message : error,
+    error: describeStartupError(error, process.env),
   });
   process.exit(1);
 });

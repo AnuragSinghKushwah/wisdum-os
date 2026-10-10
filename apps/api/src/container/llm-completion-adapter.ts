@@ -1,4 +1,4 @@
-import type { LlmCompletionPort } from '@wisdum/application';
+import type { LlmCompletionOptions, LlmCompletionPort } from '@wisdum/application';
 import type { LlmProvider } from '@wisdum/platform-ai';
 
 const MAX_OUTPUT_TOKENS = 1500;
@@ -9,6 +9,8 @@ const MAX_OUTPUT_TOKENS = 1500;
  * Bypasses the need for OpenAI/Anthropic API keys during offline testing.
  */
 export class MockLlmCompletionPort implements LlmCompletionPort {
+  readonly isMock = true;
+
   async complete(prompt: string): Promise<string> {
     const lower = prompt.toLowerCase();
 
@@ -250,11 +252,11 @@ export class LlmCompletionAdapter implements LlmCompletionPort {
     private readonly model: string,
   ) {}
 
-  async complete(prompt: string): Promise<string> {
+  async complete(prompt: string, options: LlmCompletionOptions = {}): Promise<string> {
     const result = await this.provider.complete({
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
+      maxOutputTokens: options.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
     });
     return result.content;
   }

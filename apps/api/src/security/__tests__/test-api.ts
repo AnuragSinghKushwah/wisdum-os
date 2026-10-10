@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import type { Kernel } from '@wisdum/kernel';
 import type { FastifyInstance } from 'fastify';
+import type { LlmSelection } from '../../container/modules/core-module.js';
 import { DEV_SEED } from '../../bootstrap/dev-seed.js';
 import { buildServer } from '../../server.js';
 
@@ -38,9 +39,10 @@ export class TestApi {
 
   /**
    * Boots the API with the development tenant seeded and sign-up open, so a
-   * test can have two tenants. Environment is restored by `close()`.
+   * test can have two tenants. Environment is restored by `close()`. Pass `llm` to
+   * back content generation with a scripted model instead of the offline mock.
    */
-  static async start(): Promise<TestApi> {
+  static async start(options: { readonly llm?: LlmSelection } = {}): Promise<TestApi> {
     vi.stubEnv('DATABASE_URL', '');
     vi.stubEnv('REDIS_URL', '');
     vi.stubEnv('JWT_SECRET', '');
@@ -49,7 +51,7 @@ export class TestApi {
     vi.stubEnv('WISDUM_ENV', 'test');
     vi.stubEnv('WISDUM_DEV_SEED', 'true');
     vi.stubEnv('WISDUM_ALLOW_SIGNUP', 'true');
-    const { app, kernel } = await buildServer();
+    const { app, kernel } = await buildServer(options);
     await app.ready();
     return new TestApi(app, kernel);
   }

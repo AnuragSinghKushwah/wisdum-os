@@ -35,6 +35,11 @@ export interface DomainEventPublisher {
   publishAll(events: readonly PendingDomainEvent[]): Promise<void>;
 }
 
+/** Per-call limits for a completion. Reasoning prompts want short answers; drafts want room. */
+export interface LlmCompletionOptions {
+  readonly maxOutputTokens?: number;
+}
+
 /**
  * A single-shot text completion, vendor-neutral. The reasoning pipeline and
  * content generation use this instead of depending on `@wisdum/platform-ai`
@@ -42,7 +47,13 @@ export interface DomainEventPublisher {
  * the composition root wires a real `LlmProvider` behind this port.
  */
 export interface LlmCompletionPort {
-  complete(prompt: string): Promise<string>;
+  complete(prompt: string, options?: LlmCompletionOptions): Promise<string>;
+  /**
+   * True for the offline stand-in that returns canned text when no AI
+   * provider is configured. Use cases that must be grounded in the user's
+   * material refuse to run against it instead of fabricating output.
+   */
+  readonly isMock?: boolean;
 }
 
 /**

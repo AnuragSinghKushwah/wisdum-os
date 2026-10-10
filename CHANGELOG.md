@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Source-grounded content generation and ingestion integrity** ([ADR 0017](docs/adr/0017-source-grounded-content-generation.md)):
+  - `POST /v1/knowledge/:id/generate` writes one draft per chosen platform (LinkedIn post, X thread, newsletter, blog post, YouTube script, podcast outline) from a knowledge asset's own text, with an optional angle. Drafts from automatic discovery are grounded the same way. A "Create content from this source" panel on the asset page, and a "Copy text" button on drafts.
+  - New `x_thread` content type. Drafts request up to 4,096 output tokens (they were capped at 1,500).
+  - `GET /v1/system/capabilities` and a "Demo mode" banner when no AI provider is configured. The source-grounded action refuses to run against the offline mock model (`503 configuration_error`).
+  - Gemini (`GEMINI_API_KEY`) and Ollama (`OLLAMA_HOST`) are selectable alongside Anthropic and OpenAI. The Claude default model is now `claude-sonnet-5-5`.
+  - The API loads `.env` in development (shell variables win; nothing is loaded in production), and a failed start explains an unreachable `DATABASE_URL` or `REDIS_URL`.
+  - `tools/stub-llm`, an OpenAI-compatible stub model for trying the flow without a key.
+  - Tests: source loader, grounded drafting, tenant isolation, partial failure, permissions, content preprocessing (including private-address refusal), connectors and providers. The suite grows from 402 to 461 passing tests.
 - **Authentication, authorization, and tenant isolation** ([ADR 0016](docs/adr/0016-authentication-authorization-and-tenant-isolation.md)):
   - Every endpoint now requires a credential unless it is explicitly public (nine routes, pinned by a test), and each has a permission requirement in `apps/api/src/security/route-permissions.ts`; a route missing from that table is refused. A completeness test checks the table against the registered routes.
   - Permission catalog, `PermissionSet`, and four system roles (`owner`, `admin`, `member`, `viewer`) in `@wisdum/domain`; `AccessPolicy` derives per-tenant role ids so no role rows are needed. Assigning a role or minting an API key cannot exceed what the caller holds.
@@ -141,6 +149,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Ingestion no longer changes or invents source text.** Prose with a comma on its first line was rewritten as a "Parsed Dataset Table"; a YouTube link became a hard-coded fake transcript; a link that failed to load became a made-up article; a page that loaded was cut to 1,000 characters. Content is now stored as given, links are fetched in full, and anything unreadable is rejected with what to do instead. Fetching refuses private and local addresses.
+- The web-scraper and YouTube connectors and the Gemini and Ollama providers returned made-up text as a successful result when they failed. They now fail with the reason. The scraper no longer includes the page title in the body, and YouTube captions carry real timestamps.
+- The Knowledge page showed "Text Chunked / Vector Embedded / Knowledge Graph Linked" for every asset. Removed. Each asset now links to its detail page.
+- `configuration_error` maps to `503` rather than `500`.
 - **Security:** removed the hard-coded bearer tokens (`dev-token`, `dev-session-token`, `mock-jwt-token`), the public signing secrets (`dev-secret-change-me` and the one in `docker-compose.prod.yml`), the default webhook key (`dev-webhook-key`), and the default production database password.
 - **Security:** a user of one tenant could read, change, or delete another tenant's knowledge, documents, organizations, workspaces, plugins, search indexes, conversations, opportunities, and users, by id; every id-based handler now treats another tenant's resource as not found.
 - **Security:** most routes trusted a caller-supplied `x-tenant-id` header and needed no credential.

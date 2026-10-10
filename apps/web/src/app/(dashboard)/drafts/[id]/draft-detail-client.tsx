@@ -30,15 +30,6 @@ export function DraftDetailClient({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const [oppType, setOppType] = useState<string>('blog_post');
   const [activeEditorTab, setActiveEditorTab] = useState<'rich' | 'source'>('rich');
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  // Structured workspace states
-  const [slides, setSlides] = useState<string[]>([]);
-  const [scriptHook, setScriptHook] = useState('');
-  const [scriptDialogue, setScriptDialogue] = useState('');
-  const [scriptHashtags, setScriptHashtags] = useState('');
-  const [higgsfieldPrompt, setHiggsfieldPrompt] = useState('');
-  const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [copiedDraft, setCopiedDraft] = useState(false);
 
   const load = useCallback(async () => {
@@ -57,47 +48,6 @@ export function DraftDetailClient({ id }: { id: string }) {
       } catch {
         setOppType('blog_post');
       }
-
-      // Parse structured states
-      let displayBody = found.body;
-      if (found.body.startsWith('---')) {
-        const parts = found.body.split('---');
-        if (parts.length >= 3) {
-          displayBody = parts.slice(2).join('---').trim();
-        }
-      }
-
-      // Parse Slides
-      const parsedSlides = displayBody
-        .split('---')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0);
-      setSlides(parsedSlides.length > 0 ? parsedSlides : ['# Slide 1\n- Point A\n- Point B']);
-
-      // Parse Video Scripts
-      const lines = displayBody
-        .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0);
-      const hookLines = lines.filter(
-        (l) => !l.startsWith('#') && !l.startsWith('**') && !l.startsWith('*Host'),
-      );
-      const dialogueLines = lines.filter((l) => l.startsWith('*Host') || l.startsWith('**['));
-      const hashtagLine = lines.find((l) => l.includes('#') && !l.startsWith('# '));
-
-      setScriptHook(
-        hookLines.slice(0, 3).join('\n') || 'Enter your video hook/intro paragraph here.',
-      );
-      setScriptDialogue(
-        dialogueLines.join('\n') ||
-          '*Host*: Welcome to the video script.\n**[Visual: Camera pans to host]**',
-      );
-      setScriptHashtags(hashtagLine || '#AI #KnowledgeOS #DeveloperLeverage');
-
-      // Dynamic Higgsfield Video Generation Prompt construction
-      setHiggsfieldPrompt(
-        `Dynamic Higgsfield motion graphics style: photorealistic digital neural connection nodes glowing in gold and cyan, concept lines spreading across a dark sleek grid, cinematic camera zoom and rotations, high contrast, smooth 60fps render.`,
-      );
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : 'Failed to load this draft.');
     } finally {
@@ -109,45 +59,12 @@ export function DraftDetailClient({ id }: { id: string }) {
     void load();
   }, [load]);
 
-  // Serializes structured editor fields back to Markdown before saving
+  // Saves exactly what is in the editor. The body is never reshaped or re-serialized.
   async function handleSave() {
     setIsSaving(true);
     setError(null);
 
-    let finalBody = bodyDraft;
-
-    // Serialize LinkedIn Post/Carousel
-    if (oppType === 'linkedin_post' || oppType === 'marketing_campaign') {
-      finalBody = [
-        '---',
-        `title: "${titleDraft}"`,
-        'seo_description: "Ingested Carousel Deck"',
-        'seo_keywords: "Carousel, Slide Deck"',
-        'target_audience: "LinkedIn Network"',
-        '---',
-        '',
-        slides.join('\n\n---\n\n'),
-      ].join('\n');
-    }
-    // Serialize YouTube Video Script
-    else if (oppType === 'youtube_script' || oppType === 'podcast_outline') {
-      finalBody = [
-        '---',
-        `title: "${titleDraft}"`,
-        'seo_description: "Video script dialogue log"',
-        'seo_keywords: "Script, Teleprompter"',
-        'target_audience: "Video Viewers"',
-        '---',
-        '',
-        '# Hook & Intro',
-        scriptHook,
-        '',
-        '# Script Dialogue & Visuals',
-        scriptDialogue,
-        '',
-        scriptHashtags,
-      ].join('\n');
-    }
+    const finalBody = bodyDraft;
 
     try {
       await apiFetch(`/v1/drafts/${id}`, {
@@ -197,13 +114,6 @@ export function DraftDetailClient({ id }: { id: string }) {
     window.print();
   }
 
-  // Helper to copy Higgsfield prompt to clipboard
-  const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(higgsfieldPrompt);
-    setCopiedPrompt(true);
-    setTimeout(() => setCopiedPrompt(false), 2000);
-  };
-
   // Helper for Markdown editor quick actions
   const insertMarkdown = (syntax: string) => {
     const textarea = document.getElementById('markdown-editor') as HTMLTextAreaElement;
@@ -251,128 +161,6 @@ export function DraftDetailClient({ id }: { id: string }) {
           }
         });
       }
-    }
-
-    if (oppType === 'linkedin_post' || oppType === 'marketing_campaign') {
-      const slideIndex = Math.min(currentSlide, slides.length - 1);
-      const slideText = slides[slideIndex] || '';
-      const lines = slideText
-        .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0);
-      const slideHeader = lines[0] || 'Slide';
-      const slideContent = lines.slice(1);
-
-      return (
-        <div className="flex flex-col h-full justify-between min-h-[350px]">
-          <div className="flex items-center justify-between text-xs text-neutral-400 mb-2">
-            <span className="font-semibold uppercase text-neutral-500">Carousel Preview</span>
-            <span>
-              Slide {slideIndex + 1} of {slides.length}
-            </span>
-          </div>
-
-          <div className="flex-1 rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 p-8 flex flex-col justify-center items-center text-center shadow-lg border border-slate-800 min-h-[250px]">
-            <h3 className="text-xl sm:text-2xl font-bold text-white leading-snug max-w-md">
-              {slideHeader.replace(/^#+\s*/, '')}
-            </h3>
-            {slideContent.length > 0 && (
-              <ul className="mt-4 text-sm text-neutral-300 space-y-2 max-w-sm">
-                {slideContent.map((line, idx) => (
-                  <li key={idx} className="flex items-center justify-center gap-1.5">
-                    <span>{line.replace(/^-\s*/, '')}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="mt-4 flex justify-between gap-4">
-            <button
-              onClick={() => setCurrentSlide((prev) => Math.max(0, prev - 1))}
-              disabled={slideIndex === 0}
-              className="px-3 py-1.5 text-xs font-semibold rounded border border-neutral-300 dark:border-neutral-700 disabled:opacity-50 bg-white dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setCurrentSlide((prev) => Math.min(slides.length - 1, prev + 1))}
-              disabled={slideIndex === slides.length - 1}
-              className="px-3 py-1.5 text-xs font-semibold rounded bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    if (oppType === 'youtube_script' || oppType === 'podcast_outline') {
-      const lines = scriptDialogue
-        .split('\n')
-        .map((l) => l.trim())
-        .filter((l) => l.length > 0);
-      return (
-        <div className="flex flex-col h-full min-h-[350px] gap-3">
-          <div className="text-xs text-neutral-400 uppercase font-semibold">
-            Teleprompter / Script Preview
-          </div>
-          <div className="border border-neutral-100 dark:border-neutral-800 rounded-lg p-3 bg-neutral-50/50 dark:bg-neutral-950/20 max-h-[120px] overflow-y-auto">
-            <span className="text-[10px] text-neutral-400 uppercase font-bold">Hook & Intro</span>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 italic mt-1 leading-relaxed">
-              {scriptHook}
-            </p>
-          </div>
-          <div className="flex-1 overflow-y-auto max-h-[220px] pr-2 space-y-3 border border-neutral-100 dark:border-neutral-800 rounded-lg p-3 bg-neutral-50/50 dark:bg-neutral-950/20">
-            <span className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">
-              Timeline & Speech
-            </span>
-            {lines.map((line, idx) => {
-              if (line.startsWith('#')) {
-                return (
-                  <h4
-                    key={idx}
-                    className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-2 uppercase tracking-wider border-b border-neutral-100 dark:border-neutral-850 pb-1"
-                  >
-                    {line.replace(/^#+\s*/, '')}
-                  </h4>
-                );
-              }
-              if (line.startsWith('**[')) {
-                return (
-                  <div
-                    key={idx}
-                    className="text-[10px] italic bg-neutral-100 dark:bg-neutral-800/65 text-neutral-500 rounded px-2 py-1 border-l border-neutral-400"
-                  >
-                    {line.replace(/^\*\*\[|\]\*\*$/g, '')}
-                  </div>
-                );
-              }
-              if (line.startsWith('*Host')) {
-                const speech = line.replace(/^\*Host.*?\*:/, '').trim();
-                return (
-                  <div key={idx} className="flex gap-2">
-                    <span className="text-[8px] font-bold uppercase bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded px-1 py-0.5 h-fit mt-0.5">
-                      Host
-                    </span>
-                    <p className="text-xs leading-relaxed text-neutral-700 dark:text-neutral-300 font-mono">
-                      {speech}
-                    </p>
-                  </div>
-                );
-              }
-              return (
-                <p
-                  key={idx}
-                  className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400"
-                >
-                  {line}
-                </p>
-              );
-            })}
-          </div>
-        </div>
-      );
     }
 
     return (
@@ -485,162 +273,6 @@ export function DraftDetailClient({ id }: { id: string }) {
 
   // Renders the editor panel dynamically based on draft type
   function renderEditor() {
-    if (oppType === 'linkedin_post' || oppType === 'marketing_campaign') {
-      // Social Slide Carousel Deck Editor
-      return (
-        <div className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Title
-            <input
-              className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 bg-transparent text-sm"
-              value={titleDraft}
-              onChange={(event) => setTitleDraft(event.target.value)}
-              disabled={isPublished}
-            />
-          </label>
-
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-neutral-500 uppercase tracking-wider text-[11px]">
-                Slides Manager
-              </span>
-              <span className="text-[10px] text-neutral-400 font-medium">
-                {slides.join(' ').trim().split(/\s+/).filter(Boolean).length} words across{' '}
-                {slides.length} slides
-              </span>
-            </div>
-            <button
-              onClick={() => {
-                setSlides((prev) => [...prev, '# New Slide\n- Bullet point detail']);
-                setCurrentSlide(slides.length);
-              }}
-              disabled={isPublished}
-              className="px-2.5 py-1 text-xs font-semibold rounded bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-750 text-neutral-850 dark:text-neutral-100"
-            >
-              + Add Slide
-            </button>
-          </div>
-
-          <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
-            {slides.map((slide, idx) => (
-              <div
-                key={idx}
-                className={`p-4 rounded-xl border ${idx === currentSlide ? 'border-blue-500 bg-blue-50/5 dark:bg-blue-950/5' : 'border-neutral-200 dark:border-neutral-800'} flex flex-col gap-2 relative`}
-              >
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-neutral-400">Slide {idx + 1}</span>
-                  <button
-                    onClick={() => {
-                      if (slides.length <= 1) return;
-                      const copy = [...slides];
-                      copy.splice(idx, 1);
-                      setSlides(copy);
-                      setCurrentSlide(Math.max(0, idx - 1));
-                    }}
-                    disabled={isPublished || slides.length <= 1}
-                    className="text-xs text-red-500 hover:underline disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
-                </div>
-                <textarea
-                  className="w-full min-h-24 rounded border border-neutral-300 dark:border-neutral-700 px-3 py-2 font-mono text-xs bg-transparent focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                  value={slide}
-                  onFocus={() => setCurrentSlide(idx)}
-                  onChange={(event) => {
-                    const copy = [...slides];
-                    copy[idx] = event.target.value;
-                    setSlides(copy);
-                  }}
-                  disabled={isPublished}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    if (oppType === 'youtube_script' || oppType === 'podcast_outline') {
-      // Video Script Editor Layout
-      return (
-        <div className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Video Title
-            <input
-              className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 bg-transparent text-sm"
-              value={titleDraft}
-              onChange={(event) => setTitleDraft(event.target.value)}
-              disabled={isPublished}
-            />
-          </label>
-
-          <div className="text-[10px] font-mono text-neutral-400">
-            {[scriptHook, scriptDialogue].join(' ').trim().split(/\s+/).filter(Boolean).length}{' '}
-            words •{' '}
-            {Math.ceil(
-              [scriptHook, scriptDialogue].join(' ').trim().split(/\s+/).filter(Boolean).length /
-                130,
-            )}{' '}
-            min script (~130 wpm speaking rate)
-          </div>
-
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Hook & Introduction
-            <textarea
-              className="min-h-16 rounded border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 bg-transparent leading-relaxed"
-              value={scriptHook}
-              onChange={(event) => setScriptHook(event.target.value)}
-              disabled={isPublished}
-              placeholder="e.g. In this video, we deep dive into concepts..."
-            />
-          </label>
-
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Script Dialogue & Scene Cues
-            <textarea
-              className="min-h-[160px] rounded border border-neutral-300 px-3 py-2 font-mono text-xs dark:border-neutral-700 bg-transparent leading-relaxed"
-              value={scriptDialogue}
-              onChange={(event) => setScriptDialogue(event.target.value)}
-              disabled={isPublished}
-              placeholder="*Host*: Hello world!\n**[Visual: Screen shares graph]**"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Hashtags
-            <input
-              className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 bg-transparent text-xs font-mono"
-              value={scriptHashtags}
-              onChange={(event) => setScriptHashtags(event.target.value)}
-              disabled={isPublished}
-              placeholder="#DeveloperTools #Automation"
-            />
-          </label>
-
-          {/* Higgsfield Prompt Card */}
-          <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-950/20 p-4 flex flex-col gap-2 shadow-inner">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                Higgsfield AI Video Prompt
-              </span>
-              <button
-                type="button"
-                onClick={handleCopyPrompt}
-                className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                {copiedPrompt ? 'Copied!' : 'Copy Prompt'}
-              </button>
-            </div>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed italic bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-850 p-2.5 rounded-lg">
-              {higgsfieldPrompt}
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    // Default: Styled Editor with Formatting Toolbar (Blog Posts / Newsletters / etc.)
     const wordCount = bodyDraft.trim().split(/\s+/).filter(Boolean).length;
     const readTime = Math.ceil(wordCount / 200) || 1;
 
@@ -838,6 +470,11 @@ export function DraftDetailClient({ id }: { id: string }) {
               📄 Export PDF
             </button>
           </div>
+          <p className="text-xs text-neutral-500">
+            Publish creates a shareable page on this Wisdum site (and posts blog drafts to Dev.to or
+            Ghost when those are configured). For LinkedIn, X and newsletters, use Copy text and
+            post it there.
+          </p>
         </div>
 
         {/* Right Side: Visual Preview */}

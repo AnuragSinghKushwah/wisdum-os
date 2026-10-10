@@ -98,7 +98,7 @@ test.describe('Workflow 1: Knowledge Asset Lifecycle', () => {
 //   For YouTube Script format — verify format-specific output
 // ──────────────────────────────────────────────────────────────────────────────
 test.describe('Workflow 2: YouTube Script Opportunity → Draft Generation', () => {
-  test('create a YouTube Script opportunity, then verify draft has teleprompter structure', async ({ page }) => {
+  test('create a YouTube Script opportunity, then verify the draft opens with content', async ({ page }) => {
     await devLogin(page);
     await page.goto('/opportunities');
     await page.waitForLoadState('networkidle');
@@ -156,12 +156,8 @@ test.describe('Workflow 2: YouTube Script Opportunity → Draft Generation', () 
     await expect(page.getByText('Loading…')).not.toBeVisible({ timeout: 15000 });
     await page.screenshot({ path: `${SCREENSHOT_DIR}/w2-04-draft-editor.png`, fullPage: true });
 
-    // Step 10: Verify format-specific preview — should say "Teleprompter" or "Layout Preview"
-    const teleprompterLabel = page.getByText(/teleprompter/i);
-    const layoutPreviewLabel = page.getByText(/layout preview/i);
-    const teleprompterVisible = await teleprompterLabel.isVisible().catch(() => false);
-    const layoutVisible = await layoutPreviewLabel.isVisible().catch(() => false);
-    expect(teleprompterVisible || layoutVisible).toBe(true);
+    // Step 10: The draft opens in the plain Markdown editor with a preview beside it
+    await expect(page.getByText(/layout preview/i)).toBeVisible();
 
     // Step 11: Verify the draft body is not empty
     const textareas = page.locator('textarea');
@@ -181,10 +177,10 @@ test.describe('Workflow 2: YouTube Script Opportunity → Draft Generation', () 
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
-// WORKFLOW 3: LinkedIn Post → Carousel Preview
+// WORKFLOW 3: LinkedIn Post → Draft
 // ──────────────────────────────────────────────────────────────────────────────
-test.describe('Workflow 3: LinkedIn Post → Carousel Preview', () => {
-  test('create a LinkedIn opportunity and verify carousel slide preview', async ({ page }) => {
+test.describe('Workflow 3: LinkedIn Post → Draft', () => {
+  test('create a LinkedIn opportunity and verify its draft opens', async ({ page }) => {
     await devLogin(page);
     await page.goto('/opportunities');
     await page.waitForLoadState('networkidle');
@@ -212,13 +208,7 @@ test.describe('Workflow 3: LinkedIn Post → Carousel Preview', () => {
     await page.waitForLoadState('networkidle');
     await expect(page.getByText('Loading…')).not.toBeVisible({ timeout: 15000 });
 
-    // Verify carousel-specific UI elements
-    const slidesLabel = page.getByText(/slides manager/i);
-    const layoutLabel = page.getByText(/layout preview/i);
-    const slidesVisible = await slidesLabel.isVisible().catch(() => false);
-    const layoutVisible = await layoutLabel.isVisible().catch(() => false);
-
-    expect(slidesVisible || layoutVisible).toBe(true);
+    await expect(page.getByText(/layout preview/i)).toBeVisible();
     await page.screenshot({ path: `${SCREENSHOT_DIR}/w3-01-linkedin-carousel.png`, fullPage: true });
   });
 });
@@ -457,4 +447,59 @@ test.describe('Workflow 7: Cognitive Scan → Graph', () => {
     // Verify we're still on the graph page without errors
     await expect(page).toHaveURL(/.*graph.*/);
   });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// WORKFLOW 8: Saving a draft never changes its text, whatever the format
+//   Regression: the editor used to rebuild LinkedIn and YouTube drafts from guessed
+//   "slides" and "script" fields on every Save, discarding the generated text.
+// ──────────────────────────────────────────────────────────────────────────────
+test.describe('Workflow 8: Draft Save is lossless', () => {
+  for (const type of ['linkedin_post', 'youtube_script', 'podcast_outline', 'newsletter', 'x_thread']) {
+    test(`saving a ${type} draft leaves its text exactly as it was`, async ({ page }) => {
+      await devLogin(page);
+      await page.goto('/dashboard');
+
+      const ids = await page.evaluate(async (opportunityType) => {
+        const session = JSON.parse(localStorage.getItem('wisdum.session') ?? '{}') as { token: string };
+        const headers = { authorization: `Bearer ${session.token}`, 'content-type': 'application/json' };
+        const api = 'http://localhost:3001';
+        const created = (await (
+          await fetch(`${api}/v1/opportunities`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ title: `Lossless ${opportunityType} ${Date.now()}`, type: opportunityType, rationale: 'Save must not change text.' }),
+          })
+        ).json()) as { opportunityId: string };
+        const drafted = (await (
+          await fetch(`${api}/v1/opportunities/${created.opportunityId}/draft`, {
+            method: 'POST',
+            headers: { authorization: headers.authorization },
+          })
+        ).json()) as { draftId: string };
+        return { draftId: drafted.draftId };
+      }, type);
+
+      const readBody = (): Promise<string> =>
+        page.evaluate(async (draftId) => {
+          const session = JSON.parse(localStorage.getItem('wisdum.session') ?? '{}') as { token: string };
+          const response = await fetch(`http://localhost:3001/v1/drafts/${draftId}`, {
+            headers: { authorization: `Bearer ${session.token}` },
+          });
+          return ((await response.json()) as { body: string }).body;
+        }, ids.draftId);
+
+      const before = await readBody();
+      expect(before.length).toBeGreaterThan(50);
+
+      await page.goto(`/drafts/${ids.draftId}`);
+      await expect(page.getByText('Loading…')).not.toBeVisible({ timeout: 15000 });
+      await expect(page.locator('textarea').last()).toHaveValue(before);
+
+      await page.getByRole('button', { name: /^save$/i }).click();
+      await expect(page.getByRole('button', { name: /^save$/i })).toBeEnabled({ timeout: 10000 });
+
+      expect(await readBody()).toBe(before);
+    });
+  }
 });

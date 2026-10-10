@@ -3,40 +3,36 @@ import { GeminiLlmProvider } from './gemini-llm-provider.js';
 import { OllamaLlmProvider } from './ollama-llm-provider.js';
 import { LlmProviderFactory } from './llm-provider-factory.js';
 
-describe('GeminiLlmProvider', () => {
-  it('generates completion output with fallback preview when API key absent', async () => {
-    const provider = new GeminiLlmProvider({ apiKey: '' });
-    const result = await provider.complete({
-      model: 'gemini/gemini-1.5-pro',
-      messages: [{ role: 'user', content: 'Explain vector indexes in PostgreSQL' }],
-    });
+const REQUEST = {
+  messages: [{ role: 'user' as const, content: 'Explain vector indexes in PostgreSQL' }],
+};
 
-    expect(result.content).toContain('[Gemini Provider Preview]');
-    expect(result.finishReason).toBe('stop');
+describe('GeminiLlmProvider', () => {
+  it('fails clearly, instead of returning made-up output, when the API key is absent', async () => {
+    const provider = new GeminiLlmProvider({ apiKey: '' });
+
+    await expect(
+      provider.complete({ ...REQUEST, model: 'gemini/gemini-2.5-flash' }),
+    ).rejects.toThrow('GEMINI_API_KEY is not set');
   });
 });
 
 describe('OllamaLlmProvider', () => {
-  it('generates completion output with fallback preview when daemon unreachable', async () => {
-    const provider = new OllamaLlmProvider({ baseUrl: 'http://localhost:9999' });
-    const result = await provider.complete({
-      model: 'ollama/llama3',
-      messages: [{ role: 'user', content: 'Summarize graph topology' }],
-    });
+  it('fails clearly, instead of returning made-up output, when the daemon is unreachable', async () => {
+    const provider = new OllamaLlmProvider({ baseUrl: 'http://127.0.0.1:1' });
 
-    expect(result.content).toContain('[Ollama Provider Preview]');
-    expect(result.finishReason).toBe('stop');
+    await expect(provider.complete({ ...REQUEST, model: 'ollama/llama3' })).rejects.toThrow(
+      'Could not reach Ollama at http://127.0.0.1:1',
+    );
   });
 });
 
 describe('LlmProviderFactory', () => {
   it('routes requests to the correct provider based on model name', async () => {
     const factory = new LlmProviderFactory();
-    const result = await factory.complete({
-      model: 'gemini-1.5-pro',
-      messages: [{ role: 'user', content: 'Hello' }],
-    });
 
-    expect(result.content).toBeDefined();
+    await expect(factory.complete({ ...REQUEST, model: 'ollama/llama3' })).rejects.toThrow(
+      /Gemini|Ollama/,
+    );
   });
 });

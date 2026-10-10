@@ -21,15 +21,7 @@ export class GeminiLlmProvider implements LlmProvider {
 
   async complete(request: LlmCompletionRequest): Promise<LlmCompletionResult> {
     if (!this.apiKey) {
-      // Fallback for offline/local environment without API key
-      const lastUserMsg = request.messages.filter((m) => m.role === 'user').pop()?.content ?? '';
-      return {
-        content: `[Gemini Provider Preview]\n\nBased on your prompt: "${lastUserMsg.slice(0, 80)}..."\n\n- Executive Summary: Ingested concept context synthesized successfully.\n- Key Analysis: Structured output generated.`,
-        toolCalls: [],
-        inputTokens: Math.ceil(request.messages.reduce((acc, m) => acc + m.content.length, 0) / 4),
-        outputTokens: 64,
-        finishReason: 'stop',
-      };
+      throw new Error('GEMINI_API_KEY is not set, so Gemini cannot be used.');
     }
 
     const modelName = request.model.replace(/^gemini\//, '') || 'gemini-1.5-pro';

@@ -7,9 +7,9 @@ import type { PostgresPluginRepository } from '../../persistence/postgres/plugin
 export class PostgresPluginReadModel implements PluginReadModel {
   constructor(private readonly repository: PostgresPluginRepository) {}
 
-  async findById(pluginId: string): Promise<PluginDto | undefined> {
+  async findById(tenantId: TenantId, pluginId: string): Promise<PluginDto | undefined> {
     const found = await this.repository.findById(PluginId.create(pluginId));
-    return found.some ? toPluginDto(found.value) : undefined;
+    return found.some && found.value.tenantId === tenantId ? toPluginDto(found.value) : undefined;
   }
 
   async listByTenant(tenantId: TenantId): Promise<readonly PluginDto[]> {

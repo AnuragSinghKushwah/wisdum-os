@@ -36,7 +36,11 @@ export interface ProvisionedTenant {
 const UNIQUE_VIOLATION = '23505';
 
 function isUniqueViolation(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === UNIQUE_VIOLATION;
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === UNIQUE_VIOLATION
+  );
 }
 
 /**
@@ -52,7 +56,7 @@ export async function provisionTenant(
   input: ProvisionTenantInput,
 ): Promise<ProvisionedTenant> {
   const { handlers, ids, clock, access, pool } = deps;
-  const tenantId = input.tenantId ?? ((ids.nextId() as string) as TenantId);
+  const tenantId = input.tenantId ?? (ids.nextId() as string as TenantId);
   const organizationId = ids.nextId();
   const workspaceId = ids.nextId();
   const now = clock.now();
@@ -76,13 +80,36 @@ export async function provisionTenant(
       `INSERT INTO organizations (
          id, tenant_id, name, slug, status, subscription_plan, subscription_external_ref, subscription_state, created_at, updated_at
        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [organizationId, tenantId, input.orgName, input.orgSlug, 'active', 'free', 'none', 'active', now, now],
+      [
+        organizationId,
+        tenantId,
+        input.orgName,
+        input.orgSlug,
+        'active',
+        'free',
+        'none',
+        'active',
+        now,
+        now,
+      ],
     );
 
     await pool.query(
       `INSERT INTO workspaces (id, tenant_id, organization_id, name, slug, status, max_members, max_knowledge_assets, max_storage_bytes, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [workspaceId, tenantId, organizationId, `${input.orgName} Workspace`, input.orgSlug, 'active', null, null, null, now, now],
+      [
+        workspaceId,
+        tenantId,
+        organizationId,
+        `${input.orgName} Workspace`,
+        input.orgSlug,
+        'active',
+        null,
+        null,
+        null,
+        now,
+        now,
+      ],
     );
   }
 

@@ -55,7 +55,10 @@ const RESOURCES = catalogResources();
  */
 export const SYSTEM_ROLE_PERMISSIONS: Readonly<Record<SystemRoleName, readonly string[]>> = {
   owner: everythingOn(RESOURCES),
-  admin: [...everythingOn(RESOURCES.filter((resource) => resource !== 'organization')), 'organization:read'],
+  admin: [
+    ...everythingOn(RESOURCES.filter((resource) => resource !== 'organization')),
+    'organization:read',
+  ],
   member: MEMBER,
   viewer: VIEWER,
 };

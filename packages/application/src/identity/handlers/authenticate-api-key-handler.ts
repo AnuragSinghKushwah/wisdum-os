@@ -15,9 +15,10 @@ const MAX_KEY_LENGTH = 256;
  * Authenticates an API key. Unknown, malformed, revoked, and expired keys
  * all fail with the same message so a caller cannot probe which keys exist.
  */
-export class AuthenticateApiKeyHandler
-  implements QueryHandler<AuthenticateApiKeyQuery, ApiKeyPrincipalDto>
-{
+export class AuthenticateApiKeyHandler implements QueryHandler<
+  AuthenticateApiKeyQuery,
+  ApiKeyPrincipalDto
+> {
   constructor(
     private readonly repository: ApiKeyRepository,
     private readonly hasher: ApiKeyHasher,

@@ -29,8 +29,8 @@ export class AssistantConversationRuntime implements ConversationRuntime {
 
   async runTurn(request: ConversationTurnRequest): Promise<ConversationTurnResult> {
     const found = await this.repository.findById(ConversationId.create(request.conversationId));
-    if (!found.some) {
-      throw new WisdumError('conversation_not_found', 'Conversation not found', {
+    if (!found.some || found.value.tenantId !== request.tenantId) {
+      throw new WisdumError('not_found', 'Conversation not found', {
         conversationId: request.conversationId,
       });
     }

@@ -34,6 +34,7 @@ import {
   PG_POOL,
   TOKEN_SERVICE,
   API_KEY_READ_MODEL,
+  USER_READ_MODEL,
 } from '../tokens.js';
 import type { IdentityHandlers } from '../tokens.js';
 
@@ -83,5 +84,6 @@ export class IdentityModule implements KernelModule {
     container.registerValue(IDENTITY_HANDLERS, handlers);
     container.registerValue(API_KEY_READ_MODEL, apiKeyReads);
     container.registerValue(ACCESS_POLICY, access);
+    container.registerValue(USER_READ_MODEL, readModel);
   }
 }

@@ -43,7 +43,8 @@ export async function seedDevelopmentData(deps: DevSeedDeps): Promise<void> {
 
   const tenantExists =
     deps.pool !== undefined &&
-    (await deps.pool.query('SELECT 1 FROM tenants WHERE id = $1', [DEV_SEED.tenantId])).rows.length > 0;
+    (await deps.pool.query('SELECT 1 FROM tenants WHERE id = $1', [DEV_SEED.tenantId])).rows
+      .length > 0;
 
   if (!tenantExists) {
     await provisionTenant(deps, {

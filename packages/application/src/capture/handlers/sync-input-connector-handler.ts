@@ -77,6 +77,7 @@ export class SyncInputConnectorHandler implements CommandHandler<
       );
       await this.attachContent.execute(
         attachKnowledgeContentCommand({
+          tenantId: command.tenantId,
           knowledgeId,
           reference: documentId,
           mimeType: item.mimeType,

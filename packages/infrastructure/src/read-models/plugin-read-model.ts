@@ -7,9 +7,9 @@ import type { InMemoryPluginRepository } from '../persistence/plugin-repository.
 export class InMemoryPluginReadModel implements PluginReadModel {
   constructor(private readonly repository: InMemoryPluginRepository) {}
 
-  async findById(pluginId: string): Promise<PluginDto | undefined> {
+  async findById(tenantId: TenantId, pluginId: string): Promise<PluginDto | undefined> {
     const found = await this.repository.findById(PluginId.create(pluginId));
-    return found.some ? toPluginDto(found.value) : undefined;
+    return found.some && found.value.tenantId === tenantId ? toPluginDto(found.value) : undefined;
   }
 
   listByTenant(tenantId: TenantId): Promise<readonly PluginDto[]> {

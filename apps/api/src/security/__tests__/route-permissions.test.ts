@@ -15,6 +15,8 @@ const EXPECTED_PUBLIC_ROUTES = [
   'GET /healthz',
   'GET /metrics',
   'GET /readyz',
+  // Published content is shared by its unguessable id; viewing it counts a view.
+  'GET /v1/published/:id',
   'POST /v1/auth/login',
   'POST /v1/auth/reset-password-request',
   'POST /v1/auth/resolve-tenant',

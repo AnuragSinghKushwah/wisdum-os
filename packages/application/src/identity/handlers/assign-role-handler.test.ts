@@ -15,7 +15,9 @@ const access = new AccessPolicy();
 class FakeUsers implements UserRepository {
   constructor(private readonly user: User) {}
   findById(id: UserId): Promise<Option<User>> {
-    return Promise.resolve(id.equals(this.user.getId()) ? { some: true, value: this.user } : { some: false });
+    return Promise.resolve(
+      id.equals(this.user.getId()) ? { some: true, value: this.user } : { some: false },
+    );
   }
   findByEmail(): Promise<Option<User>> {
     return Promise.resolve({ some: false });
@@ -42,12 +44,22 @@ function setup() {
     },
     clock,
   );
-  const handler = new AssignRoleHandler(new FakeUsers(user), access, { publishAll: () => Promise.resolve() }, clock);
-  const grant = (name: 'owner' | 'admin' | 'member' | 'viewer') => access.permissionsOfSystemRole(name).toArray();
+  const handler = new AssignRoleHandler(
+    new FakeUsers(user),
+    access,
+    { publishAll: () => Promise.resolve() },
+    clock,
+  );
+  const grant = (name: 'owner' | 'admin' | 'member' | 'viewer') =>
+    access.permissionsOfSystemRole(name).toArray();
   return { user, handler, grant };
 }
 
-const command = (roleName: 'owner' | 'admin' | 'member' | 'viewer', grantor: readonly string[], tenantId = TENANT) =>
+const command = (
+  roleName: 'owner' | 'admin' | 'member' | 'viewer',
+  grantor: readonly string[],
+  tenantId = TENANT,
+) =>
   assignRoleCommand({
     tenantId,
     userId: USER_ID,
@@ -70,14 +82,20 @@ describe('AssignRoleHandler', () => {
 
   it('refuses to let an admin assign owner', async () => {
     const { user, handler, grant } = setup();
-    await expect(handler.execute(command('owner', grant('admin')))).rejects.toThrow('more than you hold');
+    await expect(handler.execute(command('owner', grant('admin')))).rejects.toThrow(
+      'more than you hold',
+    );
     expect(user.roleIds).toHaveLength(0);
   });
 
   it('refuses to let a member assign admin, and a viewer assign anything above viewer', async () => {
     const { handler, grant } = setup();
-    await expect(handler.execute(command('admin', grant('member')))).rejects.toThrow('more than you hold');
-    await expect(handler.execute(command('member', grant('viewer')))).rejects.toThrow('more than you hold');
+    await expect(handler.execute(command('admin', grant('member')))).rejects.toThrow(
+      'more than you hold',
+    );
+    await expect(handler.execute(command('member', grant('viewer')))).rejects.toThrow(
+      'more than you hold',
+    );
   });
 
   it('refuses a grantor holding nothing', async () => {
@@ -86,7 +104,7 @@ describe('AssignRoleHandler', () => {
     expect(PermissionSet.empty().isEmpty()).toBe(true);
   });
 
-  it('rejects a role id that is not one of the tenant\'s system roles', async () => {
+  it("rejects a role id that is not one of the tenant's system roles", async () => {
     const { handler, grant } = setup();
     await expect(
       handler.execute(
@@ -100,7 +118,7 @@ describe('AssignRoleHandler', () => {
     ).rejects.toThrow('Unknown role');
   });
 
-  it('rejects another tenant\'s role id', async () => {
+  it("rejects another tenant's role id", async () => {
     const { handler, grant } = setup();
     await expect(
       handler.execute(

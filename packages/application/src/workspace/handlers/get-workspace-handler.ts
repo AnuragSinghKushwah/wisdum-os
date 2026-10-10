@@ -8,7 +8,7 @@ export class GetWorkspaceHandler implements QueryHandler<GetWorkspaceQuery, Work
   constructor(private readonly reads: WorkspaceReadModel) {}
 
   async execute(query: GetWorkspaceQuery): Promise<WorkspaceDto> {
-    const dto = await this.reads.findById(query.workspaceId);
+    const dto = await this.reads.findById(query.tenantId, query.workspaceId);
     if (dto === undefined) {
       throw new NotFoundError('Workspace not found', { workspaceId: query.workspaceId });
     }

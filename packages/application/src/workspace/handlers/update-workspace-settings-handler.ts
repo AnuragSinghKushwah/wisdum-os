@@ -14,7 +14,7 @@ export class UpdateWorkspaceSettingsHandler implements CommandHandler<UpdateWork
 
   async execute(command: UpdateWorkspaceSettingsCommand): Promise<void> {
     const found = await this.repository.findById(WorkspaceId.create(command.workspaceId));
-    if (!found.some) {
+    if (!found.some || found.value.tenantId !== command.tenantId) {
       throw new NotFoundError('Workspace not found', { workspaceId: command.workspaceId });
     }
     const workspace = found.value;

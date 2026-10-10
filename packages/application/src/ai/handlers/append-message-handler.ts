@@ -14,7 +14,7 @@ export class AppendMessageHandler implements CommandHandler<AppendMessageCommand
 
   async execute(command: AppendMessageCommand): Promise<void> {
     const found = await this.repository.findById(ConversationId.create(command.conversationId));
-    if (!found.some) {
+    if (!found.some || found.value.tenantId !== command.tenantId) {
       throw new NotFoundError('Conversation not found', {
         conversationId: command.conversationId,
       });

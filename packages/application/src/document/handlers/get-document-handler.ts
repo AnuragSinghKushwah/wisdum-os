@@ -8,7 +8,7 @@ export class GetDocumentHandler implements QueryHandler<GetDocumentQuery, Docume
   constructor(private readonly reads: DocumentReadModel) {}
 
   async execute(query: GetDocumentQuery): Promise<DocumentDto> {
-    const dto = await this.reads.findById(query.documentId);
+    const dto = await this.reads.findById(query.tenantId, query.documentId);
     if (dto === undefined) {
       throw new NotFoundError('Document not found', { documentId: query.documentId });
     }

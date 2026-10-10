@@ -82,7 +82,7 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityRoute
   app.post('/v1/users', { schema: { body: createUserBodySchema } }, async (request, reply) => {
     const tenantId = requireTenantId(request);
     const body = request.body as CreateUserBody;
-    const result = await handlers.createUser.execute(createUserCommand({ tenantId, ...body }));
+    const result = await handlers.createUser.execute(createUserCommand({ ...body, tenantId }));
     await reply.status(201).send(result);
   });
 

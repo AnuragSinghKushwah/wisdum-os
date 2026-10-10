@@ -117,7 +117,11 @@ describe('authentication hook', () => {
 
   it('authenticates a signed session token and takes the tenant from it, not the header', async () => {
     const { app, tokens } = await buildApp();
-    const token = await tokens.issue({ userId: USER, tenantId: TENANT, roleIds: [access.systemRoleId(TENANT, 'viewer')] });
+    const token = await tokens.issue({
+      userId: USER,
+      tenantId: TENANT,
+      roleIds: [access.systemRoleId(TENANT, 'viewer')],
+    });
 
     const res = await app.inject({
       method: 'GET',
@@ -242,6 +246,19 @@ describe('authentication hook', () => {
     expect(res.statusCode).toBe(404);
   });
 
+  it('does not let a /docs-prefixed URL reach a private route', async () => {
+    const { app } = await buildApp();
+    for (const url of [
+      '/docs/../private',
+      '/docs/%2e%2e/private',
+      '/docs/./../private',
+      '/docs/..%2fprivate',
+    ]) {
+      const res = await app.inject({ method: 'GET', url });
+      expect(res.statusCode, url).not.toBe(200);
+    }
+  });
+
   it('treats only /docs and its children as public', async () => {
     const { app } = await buildApp();
     expect((await app.inject({ method: 'GET', url: '/docs/json' })).statusCode).toBe(200);
@@ -265,7 +282,11 @@ describe('authentication hook', () => {
 });
 
 describe('authorization', () => {
-  async function callAs(roleNames: ('owner' | 'admin' | 'member' | 'viewer')[], url: string, tenant = TENANT) {
+  async function callAs(
+    roleNames: ('owner' | 'admin' | 'member' | 'viewer')[],
+    url: string,
+    tenant = TENANT,
+  ) {
     const { app, tokens } = await buildApp();
     const token = await tokens.issue({
       userId: USER,
@@ -310,15 +331,18 @@ describe('authorization', () => {
     const { app, issueApiKey } = await buildApp();
     const reader = await issueApiKey(['knowledge:read']);
     expect(
-      (await app.inject({ method: 'GET', url: '/private', headers: { 'x-api-key': reader.key } })).statusCode,
+      (await app.inject({ method: 'GET', url: '/private', headers: { 'x-api-key': reader.key } }))
+        .statusCode,
     ).toBe(200);
     expect(
-      (await app.inject({ method: 'GET', url: '/write', headers: { 'x-api-key': reader.key } })).statusCode,
+      (await app.inject({ method: 'GET', url: '/write', headers: { 'x-api-key': reader.key } }))
+        .statusCode,
     ).toBe(403);
 
     const wildcard = await issueApiKey(['knowledge:*']);
     expect(
-      (await app.inject({ method: 'GET', url: '/write', headers: { 'x-api-key': wildcard.key } })).statusCode,
+      (await app.inject({ method: 'GET', url: '/write', headers: { 'x-api-key': wildcard.key } }))
+        .statusCode,
     ).toBe(200);
   });
 });

@@ -37,9 +37,9 @@ class FakeConversationRepository implements ConversationRepository {
 class FakeConversationReadModel implements ConversationReadModel {
   constructor(private repo: FakeConversationRepository) {}
 
-  async findById(id: string): Promise<ConversationDto | undefined> {
+  async findById(tenantId: TenantId, id: string): Promise<ConversationDto | undefined> {
     const opt = await this.repo.findById(ConversationId.create(id));
-    if (!opt.some) return undefined;
+    if (!opt.some || opt.value.tenantId !== tenantId) return undefined;
     const item = (opt as { value: Conversation }).value;
     return {
       id: item.getId().value(),
@@ -112,6 +112,7 @@ describe('AI Conversation Handlers', () => {
 
     await appendHandler.execute(
       appendMessageCommand({
+        tenantId: '00000000-0000-4000-8000-000000000001' as TenantId,
         conversationId,
         role: 'user',
         content: 'Summarize my recent knowledge assets',
@@ -141,6 +142,7 @@ describe('AI Conversation Handlers', () => {
 
     const dto = await getHandler.execute(
       getConversationQuery({
+        tenantId: '00000000-0000-4000-8000-000000000001' as TenantId,
         conversationId,
       }),
     );

@@ -11,7 +11,12 @@ const MIN_SECRET_LENGTH = 32;
 const KNOWN_PUBLIC_SECRETS: ReadonlySet<string> = new Set([
   'dev-secret-change-me',
   'wisdum-prod-jwt-secret-replace-in-production',
+  'change-this-to-a-secure-random-64-char-secret-in-production',
 ]);
+
+/** A value someone forgot to replace: template text such as "change-this-…" or "replace_with_…". */
+const PLACEHOLDER_PATTERN =
+  /change[-_ ]?(this|me)|replace[-_ ]?(this|with|me)|your[-_ ]secret|placeholder/i;
 
 export interface ResolvedJwtSecret {
   readonly secret: string;
@@ -42,9 +47,9 @@ export function resolveJwtSecret(
     }
     return { secret: generate(), generated: true };
   }
-  if (KNOWN_PUBLIC_SECRETS.has(configured)) {
+  if (KNOWN_PUBLIC_SECRETS.has(configured) || PLACEHOLDER_PATTERN.test(configured)) {
     throw new ConfigurationError(
-      'JWT_SECRET is set to a publicly known default; choose a unique secret.',
+      'JWT_SECRET is a publicly known default or an unreplaced placeholder; choose a unique secret.',
       { variable: 'JWT_SECRET' },
     );
   }

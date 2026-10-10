@@ -14,7 +14,7 @@ export class DisablePluginHandler implements CommandHandler<DisablePluginCommand
 
   async execute(command: DisablePluginCommand): Promise<void> {
     const found = await this.repository.findById(PluginId.create(command.pluginId));
-    if (!found.some) {
+    if (!found.some || found.value.tenantId !== command.tenantId) {
       throw new NotFoundError('Plugin not found', { pluginId: command.pluginId });
     }
     const plugin = found.value;

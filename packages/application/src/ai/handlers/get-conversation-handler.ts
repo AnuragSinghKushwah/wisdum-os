@@ -8,7 +8,7 @@ export class GetConversationHandler implements QueryHandler<GetConversationQuery
   constructor(private readonly reads: ConversationReadModel) {}
 
   async execute(query: GetConversationQuery): Promise<ConversationDto> {
-    const dto = await this.reads.findById(query.conversationId);
+    const dto = await this.reads.findById(query.tenantId, query.conversationId);
     if (dto === undefined) {
       throw new NotFoundError('Conversation not found', { conversationId: query.conversationId });
     }

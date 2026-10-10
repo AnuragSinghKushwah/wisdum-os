@@ -80,6 +80,9 @@ import type {
   GetGraphNeighborsHandler,
   GraphReadModel,
   IngestWebhookHandler,
+  OrganizationReadModel,
+  UserReadModel,
+  WorkspaceReadModel,
 } from '@wisdum/application';
 import type { EventBus } from '@wisdum/events';
 import type { ConversationRuntime, LlmProvider, EmbeddingProvider } from '@wisdum/platform-ai';
@@ -154,6 +157,9 @@ export interface IdentityHandlers {
 export const IDENTITY_HANDLERS = createToken<IdentityHandlers>('api.identity-handlers');
 export const API_KEY_READ_MODEL = createToken<ApiKeyReadModel>('api.api-key-read-model');
 export const ACCESS_POLICY = createToken<AccessPolicy>('api.access-policy');
+export const USER_READ_MODEL = createToken<UserReadModel>('api.user-read-model');
+export const ORGANIZATION_READ_MODEL = createToken<OrganizationReadModel>('api.organization-read-model');
+export const WORKSPACE_READ_MODEL = createToken<WorkspaceReadModel>('api.workspace-read-model');
 
 export interface WorkspaceHandlers {
   readonly create: CreateWorkspaceHandler;

@@ -8,7 +8,7 @@ export class GetSearchIndexHandler implements QueryHandler<GetSearchIndexQuery, 
   constructor(private readonly reads: SearchIndexReadModel) {}
 
   async execute(query: GetSearchIndexQuery): Promise<SearchIndexDto> {
-    const dto = await this.reads.findById(query.searchIndexId);
+    const dto = await this.reads.findById(query.tenantId, query.searchIndexId);
     if (dto === undefined) {
       throw new NotFoundError('Search index not found', { searchIndexId: query.searchIndexId });
     }

@@ -41,7 +41,6 @@ export const ROUTE_PERMISSIONS: Readonly<Record<string, Requirement>> = {
   'PUT /v1/drafts/:id': 'draft:write',
   'POST /v1/drafts/:id/publish': 'draft:publish',
   'GET /v1/published': 'draft:read',
-  'GET /v1/published/:id': 'draft:read',
 
   // Knowledge graph
   'GET /v1/graph': 'graph:read',

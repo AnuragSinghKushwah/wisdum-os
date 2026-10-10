@@ -1,3 +1,4 @@
+import type { TenantId } from '@wisdum/types';
 import { OrganizationId } from '@wisdum/domain';
 import type { OrganizationDto, OrganizationReadModel } from '@wisdum/application';
 import { toOrganizationDto } from '@wisdum/application';
@@ -6,8 +7,10 @@ import type { PostgresOrganizationRepository } from '../../persistence/postgres/
 export class PostgresOrganizationReadModel implements OrganizationReadModel {
   constructor(private readonly repository: PostgresOrganizationRepository) {}
 
-  async findById(organizationId: string): Promise<OrganizationDto | undefined> {
+  async findById(tenantId: TenantId, organizationId: string): Promise<OrganizationDto | undefined> {
     const found = await this.repository.findById(OrganizationId.create(organizationId));
-    return found.some ? toOrganizationDto(found.value) : undefined;
+    return found.some && found.value.tenantId === tenantId
+      ? toOrganizationDto(found.value)
+      : undefined;
   }
 }

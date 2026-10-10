@@ -59,8 +59,12 @@ function isPublicRoute(request: FastifyRequest): boolean {
   if (request.routeOptions.config.public === true) {
     return true;
   }
-  const pathname = request.url.split('?')[0] ?? '';
-  return PUBLIC_PATH_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  // Judge the route that matched, not the text of the URL: a path such as `/docs/../v1/x`
+  // must never be public just because it starts with `/docs`.
+  const pattern = request.routeOptions.url ?? '';
+  return PUBLIC_PATH_PREFIXES.some(
+    (prefix) => pattern === prefix || pattern.startsWith(`${prefix}/`),
+  );
 }
 
 async function authenticate(
@@ -144,4 +148,17 @@ export function requirePrincipal(request: FastifyRequest): AuthPrincipal {
     throw new AuthenticationError('Authentication required');
   }
   return request.principal;
+}
+
+/**
+ * The user a request acts as. A few payloads let a client name the actor
+ * (`createdBy`, `ownerId`); a client may only name itself, so the credential
+ * decides, a matching claim is accepted, and any other is refused.
+ */
+export function actingUserId(request: FastifyRequest, claimed?: string): string {
+  const principal = requirePrincipal(request);
+  if (claimed !== undefined && claimed !== principal.userId) {
+    throw new AuthorizationError('You can only act as yourself', { claimed });
+  }
+  return principal.userId;
 }

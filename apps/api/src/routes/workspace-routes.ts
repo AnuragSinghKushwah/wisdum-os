@@ -7,6 +7,7 @@ import {
 } from '@wisdum/application';
 import type { FastifyInstance } from 'fastify';
 import type { WorkspaceHandlers } from '../container/tokens.js';
+import { actingUserId } from '../middleware/auth-context.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
 import {
   addWorkspaceMemberBodySchema,
@@ -17,7 +18,7 @@ import {
 interface CreateWorkspaceBody {
   readonly organizationId: string;
   readonly name: string;
-  readonly createdBy: string;
+  readonly createdBy?: string;
 }
 
 interface AddWorkspaceMemberBody {
@@ -32,7 +33,10 @@ export function registerWorkspaceRoutes(app: FastifyInstance, handlers: Workspac
     async (request, reply) => {
       const tenantId = requireTenantId(request);
       const body = request.body as CreateWorkspaceBody;
-      const result = await handlers.create.execute(createWorkspaceCommand({ tenantId, ...body }));
+      const createdBy = actingUserId(request, body.createdBy);
+      const result = await handlers.create.execute(
+        createWorkspaceCommand({ ...body, tenantId, createdBy }),
+      );
       await reply.status(201).send(result);
     },
   );
@@ -50,7 +54,7 @@ export function registerWorkspaceRoutes(app: FastifyInstance, handlers: Workspac
     { schema: { params: workspaceIdParamsSchema } },
     async (request) => {
       const { id } = request.params as { id: string };
-      return handlers.get.execute(getWorkspaceQuery({ workspaceId: id }));
+      return handlers.get.execute(getWorkspaceQuery({ workspaceId: id, tenantId: requireTenantId(request) }));
     },
   );
 
@@ -60,7 +64,7 @@ export function registerWorkspaceRoutes(app: FastifyInstance, handlers: Workspac
     async (request) => {
       const { id } = request.params as { id: string };
       const body = request.body as AddWorkspaceMemberBody;
-      await handlers.addMember.execute(addWorkspaceMemberCommand({ workspaceId: id, ...body }));
+      await handlers.addMember.execute(addWorkspaceMemberCommand({ workspaceId: id, ...body, tenantId: requireTenantId(request) }));
       return { status: 'added' };
     },
   );

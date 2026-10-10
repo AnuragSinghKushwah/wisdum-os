@@ -33,14 +33,14 @@ describe('AccessPolicy', () => {
     expect(policy.systemRoleId(TENANT_A, 'viewer')).toBe('68cf62c4-5e08-5f6f-b5e1-fa476ca28d1f');
   });
 
-  it('recognises a tenant\'s own role ids and nobody else\'s', () => {
+  it("recognises a tenant's own role ids and nobody else's", () => {
     const ownerOfA = policy.systemRoleId(TENANT_A, 'owner');
     expect(policy.systemRoleName(TENANT_A, ownerOfA)).toBe('owner');
     expect(policy.systemRoleName(TENANT_B, ownerOfA)).toBeUndefined();
     expect(policy.systemRoleName(TENANT_A, '33333333-3333-4333-8333-333333333333')).toBeUndefined();
   });
 
-  it('grants a role\'s permissions only in its own tenant', () => {
+  it("grants a role's permissions only in its own tenant", () => {
     const ownerOfA = policy.systemRoleId(TENANT_A, 'owner');
     expect(policy.permissionsForRoles(TENANT_A, [ownerOfA]).allows('user:manage')).toBe(true);
     expect(policy.permissionsForRoles(TENANT_B, [ownerOfA]).isEmpty()).toBe(true);
@@ -48,9 +48,9 @@ describe('AccessPolicy', () => {
 
   it('grants nothing for no roles or unknown roles', () => {
     expect(policy.permissionsForRoles(TENANT_A, []).isEmpty()).toBe(true);
-    expect(
-      policy.permissionsForRoles(TENANT_A, ['admin', 'owner', 'not-a-uuid']).isEmpty(),
-    ).toBe(true);
+    expect(policy.permissionsForRoles(TENANT_A, ['admin', 'owner', 'not-a-uuid']).isEmpty()).toBe(
+      true,
+    );
   });
 
   it('unions the permissions of several roles', () => {

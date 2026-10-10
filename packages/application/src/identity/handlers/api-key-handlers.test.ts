@@ -110,7 +110,13 @@ describe('CreateApiKeyHandler', () => {
     const { repository, create } = setup();
     const attempt = (scopes: string[], grantorPermissions: string[]) =>
       create.execute(
-        createApiKeyCommand({ tenantId: TENANT_ID, ownerId: OWNER_ID, label: 'x', scopes, grantorPermissions }),
+        createApiKeyCommand({
+          tenantId: TENANT_ID,
+          ownerId: OWNER_ID,
+          label: 'x',
+          scopes,
+          grantorPermissions,
+        }),
       );
 
     await expect(attempt(['user:manage'], ['knowledge:*'])).rejects.toThrow('do not hold');
@@ -202,9 +208,9 @@ describe('AuthenticateApiKeyHandler', () => {
     );
     repository.saved[0]?.revoke(clock);
 
-    await expect(
-      authenticate.execute(authenticateApiKeyQuery({ plaintextKey })),
-    ).rejects.toThrow('Invalid API key');
+    await expect(authenticate.execute(authenticateApiKeyQuery({ plaintextKey }))).rejects.toThrow(
+      'Invalid API key',
+    );
   });
 
   it('rejects an expired key', async () => {

@@ -75,7 +75,7 @@ export function registerKnowledgeRoutes(
     async (request, reply) => {
       const tenantId = requireTenantId(request);
       const body = request.body as CreateKnowledgeBody;
-      const result = await handlers.create.execute(createKnowledgeCommand({ tenantId, ...body }));
+      const result = await handlers.create.execute(createKnowledgeCommand({ ...body, tenantId }));
       await reply.status(201).send(result);
     },
   );
@@ -87,7 +87,7 @@ export function registerKnowledgeRoutes(
       const tenantId = requireTenantId(request);
       const { id } = request.params as { id: string };
       const body = request.body as UpdateKnowledgeBody;
-      await handlers.update.execute(updateKnowledgeCommand({ knowledgeId: id, tenantId, ...body }));
+      await handlers.update.execute(updateKnowledgeCommand({ knowledgeId: id, ...body, tenantId }));
       return { status: 'updated' };
     },
   );
@@ -125,7 +125,7 @@ export function registerKnowledgeRoutes(
       const { id } = request.params as { id: string };
       const body = request.body as ImportKnowledgeBody;
       await handlers.import.execute(
-        importKnowledgeCommand({ knowledgeId: id, tenantId, ...body }),
+        importKnowledgeCommand({ knowledgeId: id, ...body, tenantId }),
       );
       return { status: 'imported' };
     },
@@ -175,6 +175,7 @@ export function registerKnowledgeRoutes(
 
         await handlers.attachContent.execute(
           attachKnowledgeContentCommand({
+            tenantId,
             knowledgeId,
             reference: documentId,
             mimeType: 'text/plain',
@@ -231,7 +232,7 @@ export function registerKnowledgeRoutes(
       const { id } = request.params as { id: string };
       const body = request.body as AttachKnowledgeContentBody;
       await handlers.attachContent.execute(
-        attachKnowledgeContentCommand({ knowledgeId: id, ...body }),
+        attachKnowledgeContentCommand({ knowledgeId: id, ...body, tenantId: requireTenantId(request) }),
       );
       return { status: 'attached' };
     },
@@ -294,6 +295,7 @@ export function registerKnowledgeRoutes(
 
       await handlers.attachContent.execute(
         attachKnowledgeContentCommand({
+          tenantId,
           knowledgeId,
           reference: docResult.documentId,
           mimeType,

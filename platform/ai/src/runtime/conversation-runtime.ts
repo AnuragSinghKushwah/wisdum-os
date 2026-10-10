@@ -1,6 +1,8 @@
 import type { ToolInvocation } from '../providers/tool-provider.js';
 
 export interface ConversationTurnRequest {
+  /** The caller's tenant. A conversation belonging to another tenant is treated as not found. */
+  readonly tenantId: string;
   readonly conversationId: string;
   readonly userMessage: string;
   readonly systemPrompt?: string;

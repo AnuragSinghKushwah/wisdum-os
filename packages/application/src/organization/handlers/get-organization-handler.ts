@@ -8,7 +8,7 @@ export class GetOrganizationHandler implements QueryHandler<GetOrganizationQuery
   constructor(private readonly reads: OrganizationReadModel) {}
 
   async execute(query: GetOrganizationQuery): Promise<OrganizationDto> {
-    const dto = await this.reads.findById(query.organizationId);
+    const dto = await this.reads.findById(query.tenantId, query.organizationId);
     if (dto === undefined) {
       throw new NotFoundError('Organization not found', { organizationId: query.organizationId });
     }

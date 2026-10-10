@@ -7,9 +7,11 @@ import type { InMemoryWorkspaceRepository } from '../persistence/workspace-repos
 export class InMemoryWorkspaceReadModel implements WorkspaceReadModel {
   constructor(private readonly repository: InMemoryWorkspaceRepository) {}
 
-  async findById(workspaceId: string): Promise<WorkspaceDto | undefined> {
+  async findById(tenantId: TenantId, workspaceId: string): Promise<WorkspaceDto | undefined> {
     const found = await this.repository.findById(WorkspaceId.create(workspaceId));
-    return found.some ? toWorkspaceDto(found.value) : undefined;
+    return found.some && found.value.tenantId === tenantId
+      ? toWorkspaceDto(found.value)
+      : undefined;
   }
 
   listByOrganization(tenantId: TenantId, organizationId: string): Promise<readonly WorkspaceDto[]> {

@@ -1,7 +1,9 @@
+import type { TenantId } from '@wisdum/types';
 import type { Command } from '../../shared/messages.js';
 
 export interface AppendMessageCommand extends Command {
   readonly kind: 'command';
+  readonly tenantId: TenantId;
   readonly conversationId: string;
   readonly role: 'system' | 'user' | 'assistant' | 'tool';
   readonly content: string;

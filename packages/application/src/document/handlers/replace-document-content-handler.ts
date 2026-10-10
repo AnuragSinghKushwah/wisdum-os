@@ -22,7 +22,7 @@ export class ReplaceDocumentContentHandler implements CommandHandler<ReplaceDocu
 
   async execute(command: ReplaceDocumentContentCommand): Promise<void> {
     const found = await this.repository.findById(DocumentId.create(command.documentId));
-    if (!found.some) {
+    if (!found.some || found.value.tenantId !== command.tenantId) {
       throw new NotFoundError('Document not found', { documentId: command.documentId });
     }
     const document = found.value;

@@ -112,6 +112,24 @@ describe('OpenAiLlmProvider', () => {
     ).rejects.toThrow(/no choices/);
   });
 
+  it('sends a namespaced model id untouched when asked to keep ids verbatim', async () => {
+    const seen: OpenAiCreateParams[] = [];
+    const provider = new OpenAiLlmProvider(
+      fakeClient((params) => {
+        seen.push(params);
+        return { choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }] };
+      }),
+      { verbatimModelIds: true },
+    );
+
+    await provider.complete({
+      model: 'meta/llama-3.1-8b-instruct',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+
+    expect(seen[0]?.model).toBe('meta/llama-3.1-8b-instruct');
+  });
+
   describe('the output limit parameter', () => {
     async function paramsFor(model: string): Promise<OpenAiCreateParams | undefined> {
       let seen: OpenAiCreateParams | undefined;

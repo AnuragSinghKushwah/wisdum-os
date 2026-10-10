@@ -1,3 +1,4 @@
+import type { AiCheck } from './ai-check.js';
 import { createToken } from '@wisdum/kernel';
 import type { CapabilityRegistry } from '@wisdum/kernel';
 import type { PgPool } from '@wisdum/database';
@@ -42,6 +43,7 @@ import type {
   DocumentReadModel,
   EnablePluginHandler,
   GenerateContentDraftHandler,
+  GenerateContentFromKnowledgeHandler,
   GetConversationHandler,
   GetContentDraftHandler,
   GetDocumentHandler,
@@ -109,6 +111,18 @@ export const TOKEN_SERVICE = createToken<TokenService>('api.token-service');
 export const LLM_PROVIDER = createToken<LlmProvider | undefined>('api.llm-provider');
 /** The model name matching whichever provider LLM_PROVIDER resolved to. Undefined together with it. */
 export const LLM_MODEL = createToken<string | undefined>('api.llm-model');
+
+/** Whether a real model backs content generation, for the capabilities endpoint and UI banner. */
+export type LlmStatus =
+  | {
+      readonly mode: 'live';
+      readonly provider: string;
+      readonly model: string;
+      /** Updated in place when the start-up check finishes. */
+      check: AiCheck;
+    }
+  | { readonly mode: 'mock' };
+export const LLM_STATUS = createToken<LlmStatus>('api.llm-status');
 /** Undefined when EMBEDDING_ENABLED=false — otherwise always set (OpenAI or a local fallback). */
 export const EMBEDDING_PIPELINE = createToken<EmbeddingPipeline | undefined>(
   'api.embedding-pipeline',
@@ -217,6 +231,7 @@ export interface OpportunityHandlers {
   readonly get: GetOpportunityHandler;
   readonly list: ListOpportunitiesHandler;
   readonly generateDraft: GenerateContentDraftHandler;
+  readonly generateFromKnowledge: GenerateContentFromKnowledgeHandler;
   readonly getDraft: GetContentDraftHandler;
   readonly listDrafts: ListContentDraftsHandler;
   readonly updateDraft: UpdateContentDraftHandler;

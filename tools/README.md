@@ -12,3 +12,4 @@ Development and operations utilities: code generators, lint rules (e.g. cross-do
 | Tool | Purpose |
 | --- | --- |
 | [`grant-system-role`](grant-system-role/README.md) | Give an existing user a tenant role (needed once for users created before roles were enforced). |
+| [`stub-llm`](stub-llm/README.md) | An OpenAI-compatible stub model for trying content generation end to end without an API key. |

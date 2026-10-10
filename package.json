@@ -26,7 +26,9 @@
     "docker:down": "docker compose down",
     "docker:prod": "docker compose -f docker-compose.prod.yml up -d --build",
     "docker:prod:down": "docker compose -f docker-compose.prod.yml down",
-    "clean": "tsc -b --clean"
+    "clean": "tsc -b --clean",
+    "setup": "node tools/setup/setup.mjs",
+    "local": "node tools/dev/local.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",

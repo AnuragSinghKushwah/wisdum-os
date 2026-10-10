@@ -43,6 +43,8 @@ export interface OpenAiCreateParams {
   readonly model: string;
   readonly messages: OpenAiChatMessage[];
   readonly max_tokens?: number;
+  /** Newer models (the o-series and GPT-5 family) accept only this, and reject `max_tokens`. */
+  readonly max_completion_tokens?: number;
   readonly temperature?: number;
   readonly tools?: {
     type: 'function';
@@ -75,6 +77,11 @@ function stripProviderPrefix(model: string): string {
  * request stays valid regardless of whether the prior assistant turn
  * actually requested a tool call.
  */
+/** The o-series and GPT-5 models reject `max_tokens` and want `max_completion_tokens`. */
+export function usesCompletionTokenLimit(model: string): boolean {
+  return /^(gpt-5|o\d)/i.test(model);
+}
+
 function toOpenAiMessages(messages: readonly LlmMessage[]): OpenAiChatMessage[] {
   return messages.map((message) =>
     message.role === 'tool'
@@ -93,10 +100,13 @@ export class OpenAiLlmProvider implements LlmProvider {
   constructor(private readonly client: OpenAiClientLike) {}
 
   async complete(request: LlmCompletionRequest): Promise<LlmCompletionResult> {
+    const model = stripProviderPrefix(request.model);
     const response = await this.client.chat.completions.create({
-      model: stripProviderPrefix(request.model),
+      model,
       messages: toOpenAiMessages(request.messages),
-      max_tokens: request.maxOutputTokens,
+      ...(usesCompletionTokenLimit(model)
+        ? { max_completion_tokens: request.maxOutputTokens }
+        : { max_tokens: request.maxOutputTokens }),
       temperature: request.temperature,
       tools: request.tools?.map((tool) => ({
         type: 'function',

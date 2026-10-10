@@ -1,6 +1,9 @@
 import type { PublishedContent } from '@wisdum/domain';
 
-/** Wire-safe projection of a PublishedContent aggregate. */
+/**
+ * Wire-safe projection of a PublishedContent aggregate. Only measured facts are exposed: the
+ * view count is counted by the platform; engagement elsewhere (likes, CTR) is not known to it.
+ */
 export interface PublishedContentDto {
   readonly id: string;
   readonly opportunityId: string;
@@ -11,31 +14,18 @@ export interface PublishedContentDto {
   readonly publishedAt: string;
   readonly providerCapability: string;
   readonly externalUrl: string;
-  readonly likeCount: number;
-  readonly commentCount: number;
-  readonly shareCount: number;
-  readonly ctr: number;
-  readonly readTime: number;
-  readonly conversions: number;
 }
 
 export function toPublishedContentDto(published: PublishedContent): PublishedContentDto {
-  const views = published.viewCount;
   return {
     id: published.getId().value(),
     opportunityId: published.opportunityId,
     slug: published.slug.value,
     title: published.title.value,
     body: published.body.value,
-    viewCount: views,
+    viewCount: published.viewCount,
     publishedAt: published.publishedAt,
     providerCapability: published.providerCapability,
     externalUrl: published.externalUrl,
-    likeCount: Math.round(views * 0.08),
-    commentCount: Math.round(views * 0.02),
-    shareCount: Math.round(views * 0.015),
-    ctr: Number((0.024 + (views % 100) / 2000).toFixed(4)),
-    readTime: 45 + (views % 240),
-    conversions: Math.round(views * 0.005),
   };
 }

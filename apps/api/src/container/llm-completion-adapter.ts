@@ -1,7 +1,12 @@
-import type { LlmCompletionPort } from '@wisdum/application';
+import type { LlmCompletionOptions, LlmCompletionPort } from '@wisdum/application';
+import { describeAiFailure } from './ai-check.js';
 import type { LlmProvider } from '@wisdum/platform-ai';
 
-const MAX_OUTPUT_TOKENS = 1500;
+/** Default output budget; some models spend part of it thinking, so it is generous. */
+const MAX_OUTPUT_TOKENS = 4096;
+
+const TRUNCATION_NOTICE =
+  '⚠ The model stopped at its output limit, so this draft may end abruptly. Edit it, or create it again.';
 
 /**
  * Fallback port that returns deterministic, highly realistic mock responses
@@ -9,6 +14,8 @@ const MAX_OUTPUT_TOKENS = 1500;
  * Bypasses the need for OpenAI/Anthropic API keys during offline testing.
  */
 export class MockLlmCompletionPort implements LlmCompletionPort {
+  readonly isMock = true;
+
   async complete(prompt: string): Promise<string> {
     const lower = prompt.toLowerCase();
 
@@ -237,9 +244,10 @@ export class MockLlmCompletionPort implements LlmCompletionPort {
 export function createLlmCompletionPort(
   provider: LlmProvider | undefined,
   model: string | undefined,
+  providerName = 'the AI provider',
 ): LlmCompletionPort {
   return provider !== undefined && model !== undefined
-    ? new LlmCompletionAdapter(provider, model)
+    ? new LlmCompletionAdapter(provider, model, providerName)
     : new MockLlmCompletionPort();
 }
 
@@ -248,14 +256,23 @@ export class LlmCompletionAdapter implements LlmCompletionPort {
   constructor(
     private readonly provider: LlmProvider,
     private readonly model: string,
+    private readonly providerName = 'the AI provider',
   ) {}
 
-  async complete(prompt: string): Promise<string> {
-    const result = await this.provider.complete({
-      model: this.model,
-      messages: [{ role: 'user', content: prompt }],
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
-    });
+  async complete(prompt: string, options: LlmCompletionOptions = {}): Promise<string> {
+    // A provider failure is reported as what to do about it, not as a raw status code and JSON body.
+    const result = await this.provider
+      .complete({
+        model: this.model,
+        messages: [{ role: 'user', content: prompt }],
+        maxOutputTokens: options.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
+      })
+      .catch((error: unknown) => {
+        throw new Error(describeAiFailure(error, { name: this.providerName, model: this.model }));
+      });
+    if (options.markTruncation === true && result.finishReason === 'length') {
+      return `${result.content.trimEnd()}\n\n${TRUNCATION_NOTICE}`;
+    }
     return result.content;
   }
 }

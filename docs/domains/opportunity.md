@@ -66,7 +66,8 @@ None; domain events are published only, and the SSE endpoint is the only subscri
 In [`packages/application/src/opportunity/`](../../packages/application/src/opportunity/):
 
 - **Create:** `createOpportunityCommand` creates an insight and an opportunity together. The reasoning pass (`RunReasoningPassHandler`, in the reasoning context) creates the same records automatically.
-- **Draft:** `generateContentDraftCommand` loads the opportunity and its insight, asks the model for a draft through the `LlmCompletionPort`, saves a `ContentDraft`, and marks the opportunity `drafted`.
+- **Draft:** `generateContentDraftCommand` loads the opportunity and its insight, reads the text of the insight's source assets (`SourceMaterialLoader`), asks the model for a draft through the `LlmCompletionPort`, saves a `ContentDraft`, and marks the opportunity `drafted`. The prompt carries the source text and grounding rules ([ADR 0017](../adr/0017-source-grounded-content-generation.md)).
+- **Create from a source:** `generateContentFromKnowledgeCommand` takes one knowledge asset and a list of platforms, creates one `Insight` linking the asset and one `Opportunity` per platform, and drafts each. Platforms fail independently. It refuses to run against the offline mock model.
 - **Edit and dismiss:** `updateContentDraftCommand`, `dismissOpportunityCommand`.
 - **Publish:** `publishContentDraftCommand` is idempotent per draft (a retry returns the existing record). It chooses a publishing capability from the opportunity type, confirms the capability is enabled for the tenant, publishes through the provider, then saves `PublishedContent` and marks the draft and opportunity `published`.
 - **Read:** six queries to get and list opportunities, drafts, and published content. Fetching published content records a view.
@@ -80,6 +81,8 @@ In [`packages/application/src/opportunity/`](../../packages/application/src/oppo
 | `GET` | `/v1/opportunities/:id` | Fetch one opportunity. |
 | `POST` | `/v1/opportunities/:id/dismiss` | Dismiss it. |
 | `POST` | `/v1/opportunities/:id/draft` | Generate a draft. |
+| `POST` | `/v1/knowledge/:id/generate` | Create a draft per chosen platform from one knowledge asset. |
+| `GET` | `/v1/system/capabilities` | Whether a real AI provider is configured. |
 | `GET` | `/v1/drafts`, `/v1/drafts/:id` | List and fetch drafts. |
 | `PUT` | `/v1/drafts/:id` | Edit a draft. |
 | `POST` | `/v1/drafts/:id/publish` | Publish a draft. |

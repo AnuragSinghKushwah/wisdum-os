@@ -43,7 +43,9 @@ export function createSignupPolicy(options: SignupPolicyOptions): SignupPolicy {
       }
       if (await hasTenant()) {
         throw new AuthorizationError(
-          'Sign-up is closed on this instance. Ask an administrator to create your account.',
+          'Sign-up is closed on this instance. Ask an administrator to create your account. ' +
+            'If you run this instance yourself, start it once with WISDUM_ALLOW_SIGNUP=true ' +
+            '(for example `npm run local -- --signup`), create your account, then restart without it.',
         );
       }
     },

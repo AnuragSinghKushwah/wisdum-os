@@ -51,5 +51,8 @@ Bug fixes, refactors within a domain, and additive features that follow existing
 | [0014](0014-ai-provider-abstraction.md) | AI provider abstraction | Accepted |
 | [0015](0015-blob-storage-abstraction.md) | Blob storage abstraction | Accepted |
 | [0016](0016-authentication-authorization-and-tenant-isolation.md) | Authentication, authorization, and tenant isolation | Accepted |
+| [0017](0017-source-grounded-content-generation.md) | Source-grounded content generation and ingestion integrity | Accepted |
+| [0018](0018-usable-local-deployment-and-honest-output.md) | A usable local deployment, and output that is never made up | Accepted |
+| [0019](0019-verify-the-ai-provider-and-size-output-for-thinking-models.md) | Verify the AI provider at start-up, and size output for thinking models | Accepted |
 
 ADRs 0008 to 0015 were written retroactively on 2026-10-07 to record decisions that had already been implemented. They describe the code as it is, including gaps; each says so in its header. Keep this index up to date when adding ADRs.

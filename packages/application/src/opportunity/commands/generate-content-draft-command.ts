@@ -6,6 +6,8 @@ export interface GenerateContentDraftCommand extends Command {
   readonly kind: 'command';
   readonly tenantId: TenantId;
   readonly opportunityId: string;
+  /** Optional steer from the author (angle, audience, emphasis) passed to the model. */
+  readonly instructions?: string;
 }
 
 export function generateContentDraftCommand(

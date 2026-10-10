@@ -11,12 +11,6 @@ interface PublishedContentDto {
   readonly title: string;
   readonly viewCount: number;
   readonly publishedAt: string;
-  readonly likeCount: number;
-  readonly commentCount: number;
-  readonly shareCount: number;
-  readonly ctr: number;
-  readonly readTime: number;
-  readonly conversions: number;
 }
 
 export default function PublishedPage() {
@@ -71,17 +65,11 @@ export default function PublishedPage() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm border-collapse min-w-[800px]">
+            <table className="w-full text-left text-sm border-collapse min-w-[480px]">
               <thead>
                 <tr className="border-b border-neutral-200 dark:border-neutral-800 text-neutral-400 font-bold uppercase tracking-wider text-[11px]">
                   <th className="pb-3 font-semibold">Title</th>
                   <th className="pb-3 px-2 text-right font-semibold">Views</th>
-                  <th className="pb-3 px-2 text-right font-semibold">Likes</th>
-                  <th className="pb-3 px-2 text-right font-semibold">Comments</th>
-                  <th className="pb-3 px-2 text-right font-semibold">Shares</th>
-                  <th className="pb-3 px-2 text-right font-semibold">CTR</th>
-                  <th className="pb-3 px-2 text-right font-semibold">Avg Read Time</th>
-                  <th className="pb-3 px-2 text-right font-semibold">Conversions</th>
                   <th className="pb-3 pl-4 text-right font-semibold">Published</th>
                 </tr>
               </thead>
@@ -94,12 +82,6 @@ export default function PublishedPage() {
                       </Link>
                     </td>
                     <td className="py-3.5 px-2 text-right font-mono text-neutral-600 dark:text-neutral-400">{item.viewCount}</td>
-                    <td className="py-3.5 px-2 text-right font-mono text-neutral-600 dark:text-neutral-400">{item.likeCount}</td>
-                    <td className="py-3.5 px-2 text-right font-mono text-neutral-600 dark:text-neutral-400">{item.commentCount}</td>
-                    <td className="py-3.5 px-2 text-right font-mono text-neutral-600 dark:text-neutral-400">{item.shareCount}</td>
-                    <td className="py-3.5 px-2 text-right font-mono text-neutral-600 dark:text-neutral-400">{(item.ctr * 100).toFixed(2)}%</td>
-                    <td className="py-3.5 px-2 text-right font-mono text-neutral-600 dark:text-neutral-400">{Math.floor(item.readTime / 60)}m {item.readTime % 60}s</td>
-                    <td className="py-3.5 px-2 text-right font-mono text-neutral-600 dark:text-neutral-400">{item.conversions}</td>
                     <td className="py-3.5 pl-4 text-right text-xs text-neutral-400 font-mono">
                       {new Date(item.publishedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>

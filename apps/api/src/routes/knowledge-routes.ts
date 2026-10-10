@@ -11,8 +11,10 @@ import {
   publishKnowledgeCommand,
   updateKnowledgeCommand,
 } from '@wisdum/application';
+import { ValidationError } from '@wisdum/errors';
 import type { FastifyInstance } from 'fastify';
 import type { KnowledgeHandlers, DocumentHandlers } from '../container/tokens.js';
+import { extractPdfText } from '../ingestion/extract-pdf-text.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
 import {
   attachKnowledgeContentBodySchema,
@@ -243,23 +245,16 @@ export function registerKnowledgeRoutes(
 
     const fileData = await request.file();
     if (!fileData) {
-      return reply.status(400).send({ error: 'No file uploaded' });
+      throw new ValidationError('No file was uploaded.');
     }
 
     const buffer = await fileData.toBuffer();
     const filename = fileData.filename;
     const mimeType = fileData.mimetype;
 
-    let text = '';
-    if (mimeType === 'application/pdf') {
-      try {
-        const pdfParseModule = await import('pdf-parse');
-        const pdfParse = (pdfParseModule.default || pdfParseModule) as unknown as (buffer: Buffer) => Promise<{ text: string }>;
-        const parsed = await pdfParse(buffer);
-        text = parsed.text;
-      } catch (err) {
-        throw new Error(`Failed to parse PDF file: ${err instanceof Error ? err.message : String(err)}`);
-      }
+    let text: string;
+    if (mimeType === 'application/pdf' || filename.toLowerCase().endsWith('.pdf')) {
+      text = await extractPdfText(buffer);
     } else if (
       mimeType.startsWith('text/') ||
       mimeType === 'application/json' ||
@@ -267,10 +262,14 @@ export function registerKnowledgeRoutes(
       filename.endsWith('.md')
     ) {
       text = buffer.toString('utf-8');
+      if (text.trim().length === 0) {
+        throw new ValidationError('This file is empty.');
+      }
     } else {
-      return reply.status(400).send({
-        error: `Unsupported file type: ${mimeType}. Please upload a PDF, text, or markdown file.`,
-      });
+      throw new ValidationError(
+        `Unsupported file type: ${mimeType}. Please upload a PDF, text, or markdown file.`,
+        { mimeType },
+      );
     }
 
     const { knowledgeId } = await handlers.create.execute(
@@ -288,7 +287,8 @@ export function registerKnowledgeRoutes(
         createDocumentCommand({
           tenantId,
           content: text,
-          mimeType,
+          // A PDF is stored as the text extracted from it, so the stored type is text.
+          mimeType: mimeType === 'application/pdf' ? 'text/plain' : mimeType,
           encoding: 'utf-8',
         }),
       );
@@ -298,7 +298,7 @@ export function registerKnowledgeRoutes(
           tenantId,
           knowledgeId,
           reference: docResult.documentId,
-          mimeType,
+          mimeType: mimeType === 'application/pdf' ? 'text/plain' : mimeType,
         }),
       );
 

@@ -18,8 +18,9 @@ export class OllamaLlmProvider implements LlmProvider {
   async complete(request: LlmCompletionRequest): Promise<LlmCompletionResult> {
     const modelName = request.model.replace(/^ollama\//, '') || 'llama3';
 
+    let response: Response;
     try {
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
+      response = await fetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -35,35 +36,30 @@ export class OllamaLlmProvider implements LlmProvider {
           },
         }),
       });
-
-      if (!response.ok) {
-        throw new Error(`Ollama status ${response.status}`);
-      }
-
-      const data = (await response.json()) as {
-        message?: { content?: string };
-        prompt_eval_count?: number;
-        eval_count?: number;
-        done?: boolean;
-      };
-
-      return {
-        content: data.message?.content ?? '',
-        toolCalls: [],
-        inputTokens: data.prompt_eval_count ?? 50,
-        outputTokens: data.eval_count ?? 50,
-        finishReason: 'stop',
-      };
-    } catch {
-      // Fallback preview when Ollama daemon is not running locally
-      const lastUserMsg = request.messages.filter((m) => m.role === 'user').pop()?.content ?? '';
-      return {
-        content: `[Ollama Provider Preview]\n\nModel '${modelName}' output for: "${lastUserMsg.slice(0, 80)}..."\n\n- Ingested prompt processed successfully.\n- Local reasoning model fallback engaged.`,
-        toolCalls: [],
-        inputTokens: 50,
-        outputTokens: 50,
-        finishReason: 'stop',
-      };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'the request failed';
+      throw new Error(`Could not reach Ollama at ${this.baseUrl}: ${reason}. Is it running ("ollama serve")?`);
     }
+
+    if (!response.ok) {
+      throw new Error(
+        `Ollama answered ${response.status} for model "${modelName}". Is the model pulled ("ollama pull ${modelName}")?`,
+      );
+    }
+
+    const data = (await response.json()) as {
+      message?: { content?: string };
+      prompt_eval_count?: number;
+      eval_count?: number;
+      done?: boolean;
+    };
+
+    return {
+      content: data.message?.content ?? '',
+      toolCalls: [],
+      inputTokens: data.prompt_eval_count ?? 50,
+      outputTokens: data.eval_count ?? 50,
+      finishReason: 'stop',
+    };
   }
 }

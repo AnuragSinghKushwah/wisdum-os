@@ -58,7 +58,9 @@ import {
   GRAPH_HANDLERS,
   CAPTURE_HANDLERS,
   EVENT_BUS,
+  LLM_STATUS,
 } from './container/tokens.js';
+import type { LlmSelection } from './container/modules/core-module.js';
 import { seedDevelopmentData } from './bootstrap/dev-seed.js';
 import { createSignupPolicy } from './bootstrap/signup-policy.js';
 import { resolveRuntimeEnvironment } from './config/runtime-environment.js';
@@ -81,6 +83,7 @@ import {
   registerWebhookRoutes,
   registerEventStreamRoutes,
   registerHealthRoutes,
+  registerSystemRoutes,
 } from './routes/index.js';
 
 
@@ -97,14 +100,14 @@ export interface RegisteredRoute {
  * app on top of it. Pure composition — no business logic lives here or
  * anywhere else in `apps/api`.
  */
-export async function buildServer(): Promise<{
+export async function buildServer(options: { readonly llm?: LlmSelection } = {}): Promise<{
   app: FastifyInstance;
   kernel: Kernel;
   routes: readonly RegisteredRoute[];
 }> {
   const kernel = createKernel();
   kernel
-    .use(new CoreModule())
+    .use(new CoreModule(options.llm === undefined ? {} : { llm: options.llm }))
     .use(new DocumentModule())
     .use(new KnowledgeModule())
     .use(new IdentityModule())
@@ -238,6 +241,7 @@ export async function buildServer(): Promise<{
   registerWebhookRoutes(app, kernel.container.resolve(CAPTURE_HANDLERS));
   registerEventStreamRoutes(app, kernel.container.resolve(EVENT_BUS));
   registerHealthRoutes(app);
+  registerSystemRoutes(app, kernel.container.resolve(LLM_STATUS));
 
   return { app, kernel, routes };
 }

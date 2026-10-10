@@ -15,8 +15,19 @@ export default defineConfig({
     {
       command: 'npm run dev:api',
       cwd: '../../',
-      // Creates the development account the "Quick Dev Sign In" button signs in as.
-      env: { WISDUM_DEV_SEED: 'true' },
+      // Creates the development account the "Quick Dev Sign In" button signs in as. The empty values
+      // keep the run hermetic: they win over a developer's `.env`, so the tests always use in-memory
+      // storage and the offline mock model, never a local database or a real API key.
+      env: {
+        WISDUM_DEV_SEED: 'true',
+        DATABASE_URL: '',
+        REDIS_URL: '',
+        ANTHROPIC_API_KEY: '',
+        OPENAI_API_KEY: '',
+        GEMINI_API_KEY: '',
+        GOOGLE_API_KEY: '',
+        OLLAMA_HOST: '',
+      },
       url: 'http://localhost:3001/health',
       reuseExistingServer: true,
       timeout: 60000,

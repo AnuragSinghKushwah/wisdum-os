@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **AI provider check at start-up** ([ADR 0019](docs/adr/0019-verify-the-ai-provider-and-size-output-for-thinking-models.md)): the API asks the configured provider one tiny question to confirm the key and model work, logs the result, serves it on `GET /v1/system/capabilities` (`ai.check`), and shows a red banner on the dashboard when it fails, with the setting to fix and, for a missing model, the models the account can use. `WISDUM_AI_CHECK=false` turns it off.
+- Provider failures while creating content are reported as what to do about them (for example "anthropic rejected the credentials. Check ANTHROPIC_API_KEY in .env") instead of a raw status code and JSON body.
+- **Run it locally with two commands** ([ADR 0018](docs/adr/0018-usable-local-deployment-and-honest-output.md)): `npm run setup` (creates `.env`, a stable session secret, reports the AI provider) and `npm run local` (starts Postgres and Redis with Docker when needed, then the API and web app; `Ctrl-C` stops everything; the API listens on `127.0.0.1`). `npm run local -- --signup` opens sign-up for one run. A "Use it today" section at the top of the README.
+- Source budget raised to 60,000 characters and configurable (`WISDUM_SOURCE_BUDGET_CHARS`); `POST /v1/knowledge/:id/generate` returns `sourceTruncated`, and the asset page says when a source was cut.
+- LinkedIn and X drafts are paste-ready plain text. A code fence that wraps a whole model answer is removed (only when it cannot be confused with the draft's own code), and an empty answer fails that platform instead of saving a blank draft.
+- `HOST` configures the address the API listens on (default `0.0.0.0`).
+- Tests: PDF extraction, article extraction, publishing destinations, the hosted-page URL, model-output cleaning, the published DTO, client-error statuses, and a Playwright regression that saves a draft of every format and checks its text is unchanged. The suite grows from 461 to 483 passing tests, and Playwright from 19 to 24.
+- **Source-grounded content generation and ingestion integrity** ([ADR 0017](docs/adr/0017-source-grounded-content-generation.md)):
+  - `POST /v1/knowledge/:id/generate` writes one draft per chosen platform (LinkedIn post, X thread, newsletter, blog post, YouTube script, podcast outline) from a knowledge asset's own text, with an optional angle. Drafts from automatic discovery are grounded the same way. A "Create content from this source" panel on the asset page, and a "Copy text" button on drafts.
+  - New `x_thread` content type. Drafts request up to 4,096 output tokens (they were capped at 1,500).
+  - `GET /v1/system/capabilities` and a "Demo mode" banner when no AI provider is configured. The source-grounded action refuses to run against the offline mock model (`503 configuration_error`).
+  - Gemini (`GEMINI_API_KEY`) and Ollama (`OLLAMA_HOST`) are selectable alongside Anthropic and OpenAI. The Claude default model is now `claude-sonnet-5-5`.
+  - The API loads `.env` in development (shell variables win; nothing is loaded in production), and a failed start explains an unreachable `DATABASE_URL` or `REDIS_URL`.
+  - `tools/stub-llm`, an OpenAI-compatible stub model for trying the flow without a key.
+  - Tests: source loader, grounded drafting, tenant isolation, partial failure, permissions, content preprocessing (including private-address refusal), connectors and providers. The suite grows from 402 to 461 passing tests.
 - **Authentication, authorization, and tenant isolation** ([ADR 0016](docs/adr/0016-authentication-authorization-and-tenant-isolation.md)):
   - Every endpoint now requires a credential unless it is explicitly public (nine routes, pinned by a test), and each has a permission requirement in `apps/api/src/security/route-permissions.ts`; a route missing from that table is refused. A completeness test checks the table against the registered routes.
   - Permission catalog, `PermissionSet`, and four system roles (`owner`, `admin`, `member`, `viewer`) in `@wisdum/domain`; `AccessPolicy` derives per-tenant role ids so no role rows are needed. Assigning a role or minting an API key cannot exceed what the caller holds.
@@ -141,6 +156,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Gemini has no built-in model.** The default (`gemini-2.5-flash`) is scheduled for shutdown on 16 October 2026. Set `REASONING_LLM_MODEL`; the start-up check lists the models the key can use if it is missing or wrong. The Gemini key is now sent in a header rather than the URL, and a bad key (an HTTP 400) is recognised.
+- OpenAI's o-series and GPT-5 models rejected `max_tokens`; they now get `max_completion_tokens`.
+- Output budgets allow for models that think before answering (thinking tokens count toward the limit): 16,000 tokens for drafts and 4,096 otherwise, up from 4,096 and 1,500. A draft the model cut off at its limit now ends with a visible notice.
+- **PDF upload returned a 500 for every file.** The route used the version 1 `pdf-parse` API; version 2 is installed. It now reads PDFs, and says so when a PDF is corrupt, password-protected or a scan with no text. Web pages keep their article text and drop navigation and footers.
+- **Saving a LinkedIn, YouTube or podcast draft discarded its text.** The editor rebuilt the body from guessed "slides" and "script" fields with placeholder headers. Save now sends exactly what is in the editor, for every format.
+- **"Publish" no longer claims to post where it cannot.** The LinkedIn and X providers returned a fabricated URL and the draft was recorded as published; blog posts always failed against a placeholder Ghost key. Only the hosted page, and Dev.to, Ghost or Substack when configured, are offered, and the hosted page links to the shareable web page rather than the API.
+- **Published content no longer shows invented numbers** (likes, comments, shares, CTR, read time and conversions were computed from the view count). Only the view count is shown.
+- Sign-up said "ask an administrator" to someone running their own instance whose database already held a tenant; the message now says how to open it once.
+- A Fastify client error (for example a JSON request with no body) returned `500`; it now returns its `4xx`.
+- **Ingestion no longer changes or invents source text.** Prose with a comma on its first line was rewritten as a "Parsed Dataset Table"; a YouTube link became a hard-coded fake transcript; a link that failed to load became a made-up article; a page that loaded was cut to 1,000 characters. Content is now stored as given, links are fetched in full, and anything unreadable is rejected with what to do instead. Fetching refuses private and local addresses.
+- The web-scraper and YouTube connectors and the Gemini and Ollama providers returned made-up text as a successful result when they failed. They now fail with the reason. The scraper no longer includes the page title in the body, and YouTube captions carry real timestamps.
+- The Knowledge page showed "Text Chunked / Vector Embedded / Knowledge Graph Linked" for every asset. Removed. Each asset now links to its detail page.
+- `configuration_error` maps to `503` rather than `500`.
 - **Security:** removed the hard-coded bearer tokens (`dev-token`, `dev-session-token`, `mock-jwt-token`), the public signing secrets (`dev-secret-change-me` and the one in `docker-compose.prod.yml`), the default webhook key (`dev-webhook-key`), and the default production database password.
 - **Security:** a user of one tenant could read, change, or delete another tenant's knowledge, documents, organizations, workspaces, plugins, search indexes, conversations, opportunities, and users, by id; every id-based handler now treats another tenant's resource as not found.
 - **Security:** most routes trusted a caller-supplied `x-tenant-id` header and needed no credential.

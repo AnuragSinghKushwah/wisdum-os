@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { apiFetch } from '../../../lib/api-client';
@@ -379,22 +380,6 @@ export default function KnowledgePage() {
                 </div>
               </div>
 
-              {/* Cognitive Parsing Pipeline Badges */}
-              <div className="space-y-1.5">
-                <span className="font-bold text-neutral-400 uppercase text-[10px]">Parsing & Index Pipeline</span>
-                <div className="flex flex-wrap gap-1.5 font-mono text-[10px]">
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-bold">
-                    ✓ Text Chunked
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-bold">
-                    ✓ Vector Embedded (pgvector)
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-bold">
-                    ✓ Knowledge Graph Linked
-                  </span>
-                </div>
-              </div>
-
               {selectedAsset.description && (
                 <div>
                   <span className="font-bold text-neutral-400 uppercase text-[10px]">Description</span>
@@ -419,7 +404,13 @@ export default function KnowledgePage() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-neutral-100 dark:border-neutral-900">
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-neutral-100 dark:border-neutral-900">
+              <Link
+                href={`/knowledge/${selectedAsset.id}`}
+                className="rounded-xl border border-neutral-300 dark:border-neutral-700 px-4 py-2 text-xs font-bold hover:bg-neutral-50 dark:hover:bg-neutral-900"
+              >
+                Open &amp; create content
+              </Link>
               <button
                 onClick={() => setSelectedAsset(null)}
                 className="rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 px-4 py-2 text-xs font-bold shadow cursor-pointer"

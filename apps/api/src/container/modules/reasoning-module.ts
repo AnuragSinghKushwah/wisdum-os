@@ -24,6 +24,7 @@ import {
   KNOWLEDGE_READ_MODEL,
   LLM_MODEL,
   LLM_PROVIDER,
+  LLM_STATUS,
   OPPORTUNITY_REPOSITORY,
   PG_POOL,
   PUBLISHED_CONTENT_REPOSITORY,
@@ -64,7 +65,12 @@ export class ReasoningModule implements KernelModule {
     const events = new EventBusDomainEventPublisher(container.resolve(EVENT_BUS));
     const clock = container.resolve(CLOCK);
     const ids = container.resolve(ID_GENERATOR);
-    const llm = createLlmCompletionPort(container.resolve(LLM_PROVIDER), container.resolve(LLM_MODEL));
+    const llmStatus = container.resolve(LLM_STATUS);
+    const llm = createLlmCompletionPort(
+      container.resolve(LLM_PROVIDER),
+      container.resolve(LLM_MODEL),
+      llmStatus.mode === 'live' ? llmStatus.provider : undefined,
+    );
 
     const handlers: ReasoningHandlers = {
       run: new RunReasoningPassHandler(

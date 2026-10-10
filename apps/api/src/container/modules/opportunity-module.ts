@@ -1,8 +1,10 @@
 import {
   CapabilityPluginProvisioner,
+  DEFAULT_SOURCE_BUDGET_CHARS,
   CreateOpportunityHandler,
   DismissOpportunityHandler,
   GenerateContentDraftHandler,
+  GenerateContentFromKnowledgeHandler,
   GetContentDraftHandler,
   GetOpportunityHandler,
   GetPublishedContentHandler,
@@ -10,9 +12,11 @@ import {
   ListOpportunitiesHandler,
   ListPublishedContentHandler,
   PublishContentDraftHandler,
+  SourceMaterialLoader,
   UpdateContentDraftHandler,
 } from '@wisdum/application';
 import type { OpportunityReadModel } from '@wisdum/application';
+import { optionalEnv } from '@wisdum/config';
 import type {
   ContentDraftRepository,
   InsightRepository,
@@ -37,11 +41,13 @@ import { createLlmCompletionPort } from '../llm-completion-adapter.js';
 import { createPublishingProviders } from '../publishing-providers.js';
 import {
   CLOCK,
+  DOCUMENT_READ_MODEL,
   EVENT_BUS,
   ID_GENERATOR,
   INSIGHT_REPOSITORY,
   LLM_MODEL,
   LLM_PROVIDER,
+  LLM_STATUS,
   OPPORTUNITY_HANDLERS,
   OPPORTUNITY_REPOSITORY,
   PG_POOL,
@@ -53,9 +59,17 @@ import {
 } from '../tokens.js';
 import type { OpportunityHandlers } from '../tokens.js';
 
+/** Characters of source text sent per draft; `WISDUM_SOURCE_BUDGET_CHARS` overrides it, within sane limits. */
+function sourceBudgetChars(): number {
+  const configured = Number(optionalEnv('WISDUM_SOURCE_BUDGET_CHARS', ''));
+  return Number.isFinite(configured) && configured > 0
+    ? Math.min(Math.max(Math.floor(configured), 2_000), 400_000)
+    : DEFAULT_SOURCE_BUDGET_CHARS;
+}
+
 export class OpportunityModule implements KernelModule {
   readonly name = 'opportunity';
-  readonly dependsOn = ['core', 'plugin'];
+  readonly dependsOn = ['core', 'plugin', 'document', 'knowledge'];
 
   register(container: Container): void {
     const pool = container.resolve(PG_POOL);
@@ -94,19 +108,51 @@ export class OpportunityModule implements KernelModule {
     const clock = container.resolve(CLOCK);
     const ids = container.resolve(ID_GENERATOR);
     const slugs = container.resolve(SLUG_GENERATOR);
-    const llm = createLlmCompletionPort(container.resolve(LLM_PROVIDER), container.resolve(LLM_MODEL));
+    const llmStatus = container.resolve(LLM_STATUS);
+    const llm = createLlmCompletionPort(
+      container.resolve(LLM_PROVIDER),
+      container.resolve(LLM_MODEL),
+      llmStatus.mode === 'live' ? llmStatus.provider : undefined,
+    );
+    const knowledgeReads = container.resolve(KNOWLEDGE_READ_MODEL);
+    const sources = new SourceMaterialLoader(
+      knowledgeReads,
+      container.resolve(DOCUMENT_READ_MODEL),
+      sourceBudgetChars(),
+    );
 
     const plugins = container.resolve(PLUGIN_REPOSITORY);
     const provisioner = new CapabilityPluginProvisioner(plugins, ids, events, clock);
     const providers = createPublishingProviders();
     container.registerValue(PUBLISHING_PROVIDERS, providers);
 
+    const generateDraft = new GenerateContentDraftHandler(
+      opportunities,
+      insights,
+      drafts,
+      llm,
+      sources,
+      ids,
+      events,
+      clock,
+    );
     const handlers: OpportunityHandlers = {
       create: new CreateOpportunityHandler(opportunities, insights, ids, events, clock),
       dismiss: new DismissOpportunityHandler(opportunities, events, clock),
       get: new GetOpportunityHandler(readModel),
       list: new ListOpportunitiesHandler(readModel),
-      generateDraft: new GenerateContentDraftHandler(opportunities, insights, drafts, llm, ids, events, clock),
+      generateDraft,
+      generateFromKnowledge: new GenerateContentFromKnowledgeHandler(
+        knowledgeReads,
+        sources,
+        opportunities,
+        insights,
+        generateDraft,
+        llm,
+        ids,
+        events,
+        clock,
+      ),
       getDraft: new GetContentDraftHandler(drafts),
       listDrafts: new ListContentDraftsHandler(drafts),
       updateDraft: new UpdateContentDraftHandler(drafts, clock),

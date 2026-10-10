@@ -47,6 +47,7 @@ import {
   INSIGHT_REPOSITORY,
   LLM_MODEL,
   LLM_PROVIDER,
+  LLM_STATUS,
   OPPORTUNITY_HANDLERS,
   OPPORTUNITY_REPOSITORY,
   PG_POOL,
@@ -107,7 +108,12 @@ export class OpportunityModule implements KernelModule {
     const clock = container.resolve(CLOCK);
     const ids = container.resolve(ID_GENERATOR);
     const slugs = container.resolve(SLUG_GENERATOR);
-    const llm = createLlmCompletionPort(container.resolve(LLM_PROVIDER), container.resolve(LLM_MODEL));
+    const llmStatus = container.resolve(LLM_STATUS);
+    const llm = createLlmCompletionPort(
+      container.resolve(LLM_PROVIDER),
+      container.resolve(LLM_MODEL),
+      llmStatus.mode === 'live' ? llmStatus.provider : undefined,
+    );
     const knowledgeReads = container.resolve(KNOWLEDGE_READ_MODEL);
     const sources = new SourceMaterialLoader(
       knowledgeReads,

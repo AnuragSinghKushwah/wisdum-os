@@ -7,6 +7,9 @@ import type { LlmStatus } from '../container/tokens.js';
  */
 export function registerSystemRoutes(app: FastifyInstance, llm: LlmStatus): void {
   app.get('/v1/system/capabilities', async () => ({
-    ai: llm.mode === 'live' ? { mode: 'live', provider: llm.provider } : { mode: 'mock' },
+    ai:
+      llm.mode === 'live'
+        ? { mode: 'live', provider: llm.provider, check: llm.check }
+        : { mode: 'mock' },
   }));
 }

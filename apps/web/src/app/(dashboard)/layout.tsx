@@ -100,12 +100,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { session, isLoading, logout } = useAuth();
   const [aiMode, setAiMode] = useState<'live' | 'mock' | null>(null);
+  const [aiProblem, setAiProblem] = useState<string | null>(null);
 
   const signedIn = session !== null;
   useEffect(() => {
     if (!signedIn) return;
-    apiFetch<{ ai: { mode: 'live' | 'mock' } }>('/v1/system/capabilities')
-      .then((capabilities) => setAiMode(capabilities.ai.mode))
+    apiFetch<{ ai: { mode: 'live' | 'mock'; check?: { status: string; message?: string } } }>(
+      '/v1/system/capabilities',
+    )
+      .then((capabilities) => {
+        setAiMode(capabilities.ai.mode);
+        const check = capabilities.ai.check;
+        setAiProblem(check?.status === 'failed' ? (check.message ?? 'The AI provider check failed.') : null);
+      })
       .catch(() => setAiMode(null));
   }, [signedIn]);
 
@@ -204,6 +211,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Main Feature Area */}
       <main className="flex-1 p-8 overflow-y-auto max-h-screen">
+        {aiMode === 'live' && aiProblem !== null && (
+          <div
+            role="alert"
+            className="mb-6 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200"
+          >
+            <strong>The AI provider is not working.</strong> {aiProblem} Creating content will fail until this is
+            fixed.
+          </div>
+        )}
         {aiMode === 'mock' && (
           <div
             role="status"

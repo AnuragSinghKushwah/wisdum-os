@@ -20,8 +20,12 @@ import { buildDraftPrompt } from '../prompts/draft-prompt.js';
 import { cleanModelOutput } from '../services/clean-model-output.js';
 import type { SourceMaterialLoader } from '../services/source-material-loader.js';
 
-/** Room for a full first draft (a long blog post or script runs to a few thousand words). */
-const DRAFT_MAX_OUTPUT_TOKENS = 4096;
+/**
+ * Room for a full first draft plus any thinking the model does first: some models spend part of
+ * this budget thinking (Claude counts thinking tokens toward the limit), and a long blog post or
+ * script runs to a few thousand words. Only tokens actually produced are billed.
+ */
+const DRAFT_MAX_OUTPUT_TOKENS = 16_000;
 
 /**
  * The Create step (Product Bible §9): generates a first Markdown draft for
@@ -67,7 +71,7 @@ export class GenerateContentDraftHandler implements CommandHandler<
         sources,
         instructions: command.instructions,
       }),
-      { maxOutputTokens: DRAFT_MAX_OUTPUT_TOKENS },
+      { maxOutputTokens: DRAFT_MAX_OUTPUT_TOKENS, markTruncation: true },
     );
     const bodyText = cleanModelOutput(rawBody);
     if (bodyText.length === 0) {

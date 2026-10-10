@@ -1,3 +1,4 @@
+import type { AiCheck } from './ai-check.js';
 import { createToken } from '@wisdum/kernel';
 import type { CapabilityRegistry } from '@wisdum/kernel';
 import type { PgPool } from '@wisdum/database';
@@ -113,7 +114,13 @@ export const LLM_MODEL = createToken<string | undefined>('api.llm-model');
 
 /** Whether a real model backs content generation, for the capabilities endpoint and UI banner. */
 export type LlmStatus =
-  | { readonly mode: 'live'; readonly provider: string; readonly model: string }
+  | {
+      readonly mode: 'live';
+      readonly provider: string;
+      readonly model: string;
+      /** Updated in place when the start-up check finishes. */
+      check: AiCheck;
+    }
   | { readonly mode: 'mock' };
 export const LLM_STATUS = createToken<LlmStatus>('api.llm-status');
 /** Undefined when EMBEDDING_ENABLED=false — otherwise always set (OpenAI or a local fallback). */

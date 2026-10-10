@@ -38,6 +38,12 @@ export interface DomainEventPublisher {
 /** Per-call limits for a completion. Reasoning prompts want short answers; drafts want room. */
 export interface LlmCompletionOptions {
   readonly maxOutputTokens?: number;
+  /**
+   * When the model stops because it hit the output limit, end the returned text with a
+   * visible notice instead of handing back a silently cut-off answer. For prose a person
+   * will read; never for machine-read output such as JSON.
+   */
+  readonly markTruncation?: boolean;
 }
 
 /**

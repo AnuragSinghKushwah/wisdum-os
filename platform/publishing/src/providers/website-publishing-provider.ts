@@ -5,10 +5,9 @@ export interface WebsitePublishingProviderConfig {
 }
 
 /**
- * First-party target: Wisdum's own hosted public page
- * (`GET /v1/published/:id`). No network I/O — deterministic URL
- * construction. Real external providers (Dev.to, phase 5) call an HTTP API
- * here instead.
+ * First-party target: Wisdum's own hosted public page, served by the web app at
+ * `/published/:id` (it reads the unauthenticated `GET /v1/published/:id`). No
+ * network I/O: the URL is built from the web app's public address.
  */
 export class WebsitePublishingProvider implements PublishingProvider {
   readonly capability = 'publishing.website';
@@ -17,7 +16,7 @@ export class WebsitePublishingProvider implements PublishingProvider {
 
   publish(target: PublishTarget): Promise<PublishResult> {
     return Promise.resolve({
-      externalUrl: `${this.config.publicBaseUrl}/v1/published/${target.publishedContentId}`,
+      externalUrl: `${this.config.publicBaseUrl.replace(/\/+$/, '')}/published/${target.publishedContentId}`,
     });
   }
 }

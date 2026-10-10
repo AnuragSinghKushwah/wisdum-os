@@ -57,33 +57,14 @@ const PUBLISHING_MANIFESTS: Record<string, DefaultCapabilityManifest> = {
     description: 'Publishes content to Substack via webhook.',
     version: '1.0.0',
   },
-  'publishing.linkedin': {
-    pluginName: 'wisdum/linkedin-publishing',
-    capability: 'publishing.linkedin',
-    displayName: 'LinkedIn Publishing',
-    description: 'Publishes updates to LinkedIn.',
-    version: '1.0.0',
-  },
-  'publishing.twitter': {
-    pluginName: 'wisdum/twitter-publishing',
-    capability: 'publishing.twitter',
-    displayName: 'Twitter/X Publishing',
-    description: 'Publishes tweets to Twitter/X.',
-    version: '1.0.0',
-  },
 };
 
 function getCapabilityForType(type: string): string {
   switch (type) {
     case 'blog_post':
       return 'publishing.website';
-    case 'linkedin_post':
-      return 'publishing.linkedin';
     case 'newsletter':
       return 'publishing.substack';
-    case 'twitter_post':
-    case 'tweet':
-      return 'publishing.twitter';
     default:
       return 'publishing.website';
   }
@@ -156,7 +137,8 @@ export class PublishContentDraftHandler implements CommandHandler<
       }
     }
 
-    const manifest = PUBLISHING_MANIFESTS[capability] ?? PUBLISHING_MANIFESTS['publishing.website']!;
+    const manifest =
+      PUBLISHING_MANIFESTS[capability] ?? PUBLISHING_MANIFESTS['publishing.website']!;
 
     const enabled = await this.provisioner.ensureEnabled(command.tenantId, manifest);
     if (!enabled) {

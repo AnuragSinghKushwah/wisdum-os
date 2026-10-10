@@ -55,8 +55,10 @@ Add **one** AI provider to `.env` (the first one set is used, in this order). Wi
 | --- | --- |
 | `ANTHROPIC_API_KEY` | Claude |
 | `OPENAI_API_KEY` | OpenAI |
-| `GEMINI_API_KEY` | Gemini |
+| `GEMINI_API_KEY` | Gemini (also set `REASONING_LLM_MODEL`; Google retires models on a schedule, so there is no built-in default) |
 | `OLLAMA_HOST` | A local Ollama (for example `http://localhost:11434`; set `REASONING_LLM_MODEL` to a model you have pulled) |
+
+When the API starts it asks the provider one tiny question to confirm the key and model work. If they do not, the log says why and a red banner on the dashboard shows the same message with the setting to fix.
 
 Then start everything with one command:
 

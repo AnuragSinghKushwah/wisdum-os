@@ -48,6 +48,15 @@ export function aiProviderIn(text) {
   return undefined;
 }
 
+export function geminiNeedsModel(text) {
+  const usesGemini =
+    (readValue(text, 'GEMINI_API_KEY') ?? readValue(text, 'GOOGLE_API_KEY') ?? '').length > 0;
+  const earlier = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY'].some(
+    (name) => (readValue(text, name) ?? '').length > 0,
+  );
+  return usesGemini && !earlier && (readValue(text, 'REASONING_LLM_MODEL') ?? '').length === 0;
+}
+
 function main() {
   if (!existsSync(envPath)) {
     copyFileSync(resolve(root, '.env.example'), envPath);
@@ -64,6 +73,17 @@ function main() {
   const provider = aiProviderIn(text);
   if (provider) {
     console.log(`AI provider: ${provider}`);
+    if (geminiNeedsModel(text)) {
+      console.log(
+        'Gemini also needs REASONING_LLM_MODEL set to a model your key can use (Google retires models on a',
+      );
+      console.log(
+        'schedule, so there is no built-in default). If it is wrong, the app lists the models your key can use.',
+      );
+    }
+    console.log(
+      'When the API starts it asks the provider one tiny question to confirm the key and model work.',
+    );
   } else {
     console.log(
       'AI provider: none yet. Add ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY or OLLAMA_HOST',

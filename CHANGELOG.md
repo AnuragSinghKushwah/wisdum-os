@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **AI provider check at start-up** ([ADR 0019](docs/adr/0019-verify-the-ai-provider-and-size-output-for-thinking-models.md)): the API asks the configured provider one tiny question to confirm the key and model work, logs the result, serves it on `GET /v1/system/capabilities` (`ai.check`), and shows a red banner on the dashboard when it fails, with the setting to fix and, for a missing model, the models the account can use. `WISDUM_AI_CHECK=false` turns it off.
+- Provider failures while creating content are reported as what to do about them (for example "anthropic rejected the credentials. Check ANTHROPIC_API_KEY in .env") instead of a raw status code and JSON body.
 - **Run it locally with two commands** ([ADR 0018](docs/adr/0018-usable-local-deployment-and-honest-output.md)): `npm run setup` (creates `.env`, a stable session secret, reports the AI provider) and `npm run local` (starts Postgres and Redis with Docker when needed, then the API and web app; `Ctrl-C` stops everything; the API listens on `127.0.0.1`). `npm run local -- --signup` opens sign-up for one run. A "Use it today" section at the top of the README.
 - Source budget raised to 60,000 characters and configurable (`WISDUM_SOURCE_BUDGET_CHARS`); `POST /v1/knowledge/:id/generate` returns `sourceTruncated`, and the asset page says when a source was cut.
 - LinkedIn and X drafts are paste-ready plain text. A code fence that wraps a whole model answer is removed (only when it cannot be confused with the draft's own code), and an empty answer fails that platform instead of saving a blank draft.
@@ -154,6 +156,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Gemini has no built-in model.** The default (`gemini-2.5-flash`) is scheduled for shutdown on 16 October 2026. Set `REASONING_LLM_MODEL`; the start-up check lists the models the key can use if it is missing or wrong. The Gemini key is now sent in a header rather than the URL, and a bad key (an HTTP 400) is recognised.
+- OpenAI's o-series and GPT-5 models rejected `max_tokens`; they now get `max_completion_tokens`.
+- Output budgets allow for models that think before answering (thinking tokens count toward the limit): 16,000 tokens for drafts and 4,096 otherwise, up from 4,096 and 1,500. A draft the model cut off at its limit now ends with a visible notice.
 - **PDF upload returned a 500 for every file.** The route used the version 1 `pdf-parse` API; version 2 is installed. It now reads PDFs, and says so when a PDF is corrupt, password-protected or a scan with no text. Web pages keep their article text and drop navigation and footers.
 - **Saving a LinkedIn, YouTube or podcast draft discarded its text.** The editor rebuilt the body from guessed "slides" and "script" fields with placeholder headers. Save now sends exactly what is in the editor, for every format.
 - **"Publish" no longer claims to post where it cannot.** The LinkedIn and X providers returned a fabricated URL and the draft was recorded as published; blog posts always failed against a placeholder Ghost key. Only the hosted page, and Dev.to, Ghost or Substack when configured, are offered, and the hosted page links to the shareable web page rather than the API.

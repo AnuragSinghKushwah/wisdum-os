@@ -11,7 +11,9 @@ const SCREENSHOT_DIR = path.resolve(process.cwd(), '../../artifacts/screenshots/
  * They are NOT smoke tests. They fail if the product doesn't work.
  */
 
-// Helper: Dev login through the UI
+// Helper: Dev login through the UI. Needs the API running with WISDUM_DEV_SEED=true and the
+// web app with NEXT_PUBLIC_WISDUM_DEV_SEED=true, which playwright.config.ts sets for the
+// servers it starts.
 async function devLogin(page: Page) {
   await page.goto('/sign-in');
   const devBtn = page.getByRole('button', { name: /quick dev sign in/i });
@@ -279,8 +281,8 @@ test.describe('Workflow 5: Search Functionality', () => {
       const API_URL = 'http://localhost:3001';
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'x-tenant-id': '00000000-0000-4000-8000-000000000001',
-        Authorization: 'Bearer dev-token',
+        // The session created by devLogin(): a real token issued by the API.
+        Authorization: `Bearer ${(JSON.parse(localStorage.getItem('wisdum.session') ?? '{}') as { token?: string }).token ?? ''}`,
       };
 
       const { knowledgeId } = await fetch(`${API_URL}/v1/knowledge`, {
@@ -344,8 +346,8 @@ test.describe('Workflow 6: Draft Save & Publish', () => {
       const API_URL = 'http://localhost:3001';
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'x-tenant-id': '00000000-0000-4000-8000-000000000001',
-        Authorization: 'Bearer dev-token',
+        // The session created by devLogin(): a real token issued by the API.
+        Authorization: `Bearer ${(JSON.parse(localStorage.getItem('wisdum.session') ?? '{}') as { token?: string }).token ?? ''}`,
       };
       return fetch(`${API_URL}/v1/opportunities`, {
         method: 'POST',
@@ -359,8 +361,8 @@ test.describe('Workflow 6: Draft Save & Publish', () => {
       const API_URL = 'http://localhost:3001';
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'x-tenant-id': '00000000-0000-4000-8000-000000000001',
-        Authorization: 'Bearer dev-token',
+        // The session created by devLogin(): a real token issued by the API.
+        Authorization: `Bearer ${(JSON.parse(localStorage.getItem('wisdum.session') ?? '{}') as { token?: string }).token ?? ''}`,
       };
       return fetch(`${API_URL}/v1/opportunities/${oppId}/draft`, {
         method: 'POST',
@@ -430,8 +432,8 @@ test.describe('Workflow 7: Cognitive Scan → Graph', () => {
       const API_URL = 'http://localhost:3001';
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'x-tenant-id': '00000000-0000-4000-8000-000000000001',
-        Authorization: 'Bearer dev-token',
+        // The session created by devLogin(): a real token issued by the API.
+        Authorization: `Bearer ${(JSON.parse(localStorage.getItem('wisdum.session') ?? '{}') as { token?: string }).token ?? ''}`,
       };
       await fetch(`${API_URL}/v1/knowledge`, {
         method: 'POST',

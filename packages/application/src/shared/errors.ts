@@ -21,6 +21,13 @@ export class AuthenticationError extends DomainError {
   }
 }
 
+/** Raised when an authenticated caller lacks the permission an action requires. */
+export class AuthorizationError extends DomainError {
+  constructor(message: string, details: Record<string, unknown> = {}) {
+    super('authorization_error', message, details);
+  }
+}
+
 /** Raised when the plugin capability an action depends on is disabled for this tenant. */
 export class PluginDisabledError extends DomainError {
   constructor(message: string, details: Record<string, unknown> = {}) {

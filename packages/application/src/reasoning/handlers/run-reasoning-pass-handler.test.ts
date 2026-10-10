@@ -55,8 +55,9 @@ class FakeKnowledgeReadModel implements KnowledgeReadModel {
 
 class FakeDocumentReadModel implements DocumentReadModel {
   constructor(private readonly byId: Map<string, DocumentDto>) {}
-  findById(documentId: string): Promise<DocumentDto | undefined> {
-    return Promise.resolve(this.byId.get(documentId));
+  findById(tenantId: TenantId, documentId: string): Promise<DocumentDto | undefined> {
+    // The fixtures all belong to TENANT_ID; anyone else sees nothing.
+    return Promise.resolve(tenantId === TENANT_ID ? this.byId.get(documentId) : undefined);
   }
 }
 

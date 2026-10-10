@@ -1,7 +1,9 @@
+import type { TenantId } from '@wisdum/types';
 import type { Query } from '../../shared/messages.js';
 
 export interface GetOrganizationQuery extends Query {
   readonly kind: 'query';
+  readonly tenantId: TenantId;
   readonly organizationId: string;
 }
 

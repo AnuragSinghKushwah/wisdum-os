@@ -50,7 +50,7 @@ export class SearchModule implements KernelModule {
 
     const handlers: SearchHandlers = {
       createIndex: new CreateSearchIndexHandler(repository, ids, events, clock),
-      search: new SearchIndexHandler(executor),
+      search: new SearchIndexHandler(executor, readModel),
       getIndex: new GetSearchIndexHandler(readModel),
       indexDocument: new IndexSearchDocumentHandler(repository, indexer, events, clock),
     };

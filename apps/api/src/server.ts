@@ -2,6 +2,8 @@ import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import multipart from '@fastify/multipart';
+import { optionalEnv } from '@wisdum/config';
+import { createLogger } from '@wisdum/logger';
 import { createKernel } from '@wisdum/kernel';
 import type { Kernel } from '@wisdum/kernel';
 import Fastify from 'fastify';
@@ -45,6 +47,7 @@ import {
   REASONING_HANDLERS,
   SEARCH_HANDLERS,
   AGENT_HANDLERS,
+  ACCESS_POLICY,
   TOKEN_SERVICE,
   WORKSPACE_HANDLERS,
   VECTOR_STORE,
@@ -56,7 +59,11 @@ import {
   CAPTURE_HANDLERS,
   EVENT_BUS,
 } from './container/tokens.js';
+import { seedDevelopmentData } from './bootstrap/dev-seed.js';
+import { createSignupPolicy } from './bootstrap/signup-policy.js';
+import { resolveRuntimeEnvironment } from './config/runtime-environment.js';
 import { createAuthHook } from './middleware/auth-context.js';
+import { createRoutePolicy } from './security/route-permissions.js';
 import { errorHandler } from './middleware/error-handler.js';
 import {
   registerAiRoutes,
@@ -78,12 +85,23 @@ import {
 
 
 
+/** A route as registered with Fastify, recorded so security policy can be checked against it. */
+export interface RegisteredRoute {
+  readonly method: string;
+  readonly url: string;
+  readonly public: boolean;
+}
+
 /**
  * Composes the kernel (every bounded context's module) and the Fastify
  * app on top of it. Pure composition — no business logic lives here or
  * anywhere else in `apps/api`.
  */
-export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Kernel }> {
+export async function buildServer(): Promise<{
+  app: FastifyInstance;
+  kernel: Kernel;
+  routes: readonly RegisteredRoute[];
+}> {
   const kernel = createKernel();
   kernel
     .use(new CoreModule())
@@ -109,7 +127,40 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
     .use(new CaptureModule());
   await kernel.start();
 
+  const identityHandlers = kernel.container.resolve(IDENTITY_HANDLERS);
+  const pool = kernel.container.resolve(PG_POOL);
+  const ids = kernel.container.resolve(ID_GENERATOR);
+  const clock = kernel.container.resolve(CLOCK);
+  const access = kernel.container.resolve(ACCESS_POLICY);
+
+  const signupPolicy = createSignupPolicy({
+    allowOpenSignup: optionalEnv('WISDUM_ALLOW_SIGNUP', 'false') === 'true',
+    pool,
+  });
+
+  if (optionalEnv('WISDUM_DEV_SEED', 'false') === 'true') {
+    await seedDevelopmentData({
+      environment: resolveRuntimeEnvironment(),
+      handlers: identityHandlers,
+      ids,
+      clock,
+      access,
+      pool,
+    });
+    signupPolicy.recordTenantCreated();
+    createLogger('api').warn(
+      'Development seed enabled: a development account exists. Never enable WISDUM_DEV_SEED on a reachable deployment.',
+    );
+  }
+
   const app = Fastify({ logger: true });
+
+  const routes: RegisteredRoute[] = [];
+  app.addHook('onRoute', (route) => {
+    for (const method of Array.isArray(route.method) ? route.method : [route.method]) {
+      routes.push({ method, url: route.url, public: route.config?.public === true });
+    }
+  });
 
   await app.register(cors, {
     origin: true,
@@ -124,7 +175,15 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
     },
   });
   app.setErrorHandler(errorHandler);
-  app.addHook('onRequest', createAuthHook(kernel.container.resolve(TOKEN_SERVICE)));
+  app.addHook(
+    'onRequest',
+    createAuthHook({
+      tokens: kernel.container.resolve(TOKEN_SERVICE),
+      apiKeys: identityHandlers.authenticateApiKey,
+      access,
+      routePolicy: createRoutePolicy(),
+    }),
+  );
 
   await app.register(swagger, {
     openapi: {
@@ -133,7 +192,7 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
   });
   await app.register(swaggerUi, { routePrefix: '/docs' });
 
-  app.get('/health', async () => kernel.report());
+  app.get('/health', { config: { public: true } }, async () => kernel.report());
 
   registerKnowledgeRoutes(
     app,
@@ -150,14 +209,15 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
     kernel.container.resolve(EMBEDDING_MODEL),
     kernel.container.resolve(KNOWLEDGE_HANDLERS),
   );
-  registerIdentityRoutes(
-    app,
-    kernel.container.resolve(IDENTITY_HANDLERS),
-    kernel.container.resolve(PG_POOL),
-    kernel.container.resolve(TOKEN_SERVICE),
-    kernel.container.resolve(ID_GENERATOR),
-    kernel.container.resolve(CLOCK),
-  );
+  registerIdentityRoutes(app, {
+    handlers: identityHandlers,
+    tokens: kernel.container.resolve(TOKEN_SERVICE),
+    ids,
+    clock,
+    access,
+    signupPolicy,
+    pool,
+  });
   registerWorkspaceRoutes(app, kernel.container.resolve(WORKSPACE_HANDLERS));
   registerOrganizationRoutes(app, kernel.container.resolve(ORGANIZATION_HANDLERS));
   registerPluginRoutes(app, kernel.container.resolve(PLUGIN_HANDLERS));
@@ -179,7 +239,7 @@ export async function buildServer(): Promise<{ app: FastifyInstance; kernel: Ker
   registerEventStreamRoutes(app, kernel.container.resolve(EVENT_BUS));
   registerHealthRoutes(app);
 
-  return { app, kernel };
+  return { app, kernel, routes };
 }
 
 

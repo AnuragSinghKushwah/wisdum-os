@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-wisdum}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wisdum_prod_secret}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (there is no default)}
       POSTGRES_DB: ${POSTGRES_DB:-wisdum_prod}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -45,9 +45,11 @@ services:
       - "${API_PORT:-3001}:3001"
     environment:
       NODE_ENV: production
+      WISDUM_ENV: production
       PORT: 3001
-      JWT_SECRET: ${JWT_SECRET:-wisdum-prod-jwt-secret-replace-in-production}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-wisdum}:${POSTGRES_PASSWORD:-wisdum_prod_secret}@postgres:5432/${POSTGRES_DB:-wisdum_prod}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (at least 32 characters, e.g. openssl rand -hex 32)}
+      WISDUM_ALLOW_SIGNUP: ${WISDUM_ALLOW_SIGNUP:-false}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-wisdum}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-wisdum_prod}
       REDIS_URL: redis://redis:6379/0
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}

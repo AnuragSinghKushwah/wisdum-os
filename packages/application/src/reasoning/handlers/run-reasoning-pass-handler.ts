@@ -88,7 +88,7 @@ export class RunReasoningPassHandler implements CommandHandler<
     for (const asset of knowledgeAssets) {
       const reference = asset.contentReferences[0];
       if (reference === undefined) continue;
-      const document = await this.documentReads.findById(reference.reference);
+      const document = await this.documentReads.findById(tenantId, reference.reference);
       if (document === undefined || document.content.trim().length === 0) continue;
 
       const extracted = await this.extractConcepts(document.content);

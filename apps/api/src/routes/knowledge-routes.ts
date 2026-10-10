@@ -10,9 +10,8 @@ import {
   listKnowledgeQuery,
   publishKnowledgeCommand,
   updateKnowledgeCommand,
-  AuthenticationError,
 } from '@wisdum/application';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import type { KnowledgeHandlers, DocumentHandlers } from '../container/tokens.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
 import {
@@ -24,7 +23,6 @@ import {
   knowledgeIdParamsSchema,
   updateKnowledgeBodySchema,
 } from '../validation/knowledge-schemas.js';
-import { optionalEnv } from '@wisdum/config';
 
 interface CreateKnowledgeBody {
   readonly title: string;
@@ -65,15 +63,6 @@ interface CreateWebhookKnowledgeBody {
   readonly labels?: readonly string[];
 }
 
-function verifyWebhookAuth(request: FastifyRequest): void {
-  const expectedApiKey = optionalEnv('WISDUM_API_KEY', 'dev-webhook-key');
-  const headerKey = request.headers['x-api-key'];
-  const actualKey = Array.isArray(headerKey) ? headerKey[0] : headerKey;
-  if (actualKey === undefined || actualKey !== expectedApiKey) {
-    throw new AuthenticationError('Invalid or missing x-api-key header');
-  }
-}
-
 /** Wires the Knowledge context's handlers to HTTP. No business logic — composition only. */
 export function registerKnowledgeRoutes(
   app: FastifyInstance,
@@ -86,7 +75,7 @@ export function registerKnowledgeRoutes(
     async (request, reply) => {
       const tenantId = requireTenantId(request);
       const body = request.body as CreateKnowledgeBody;
-      const result = await handlers.create.execute(createKnowledgeCommand({ tenantId, ...body }));
+      const result = await handlers.create.execute(createKnowledgeCommand({ ...body, tenantId }));
       await reply.status(201).send(result);
     },
   );
@@ -98,7 +87,7 @@ export function registerKnowledgeRoutes(
       const tenantId = requireTenantId(request);
       const { id } = request.params as { id: string };
       const body = request.body as UpdateKnowledgeBody;
-      await handlers.update.execute(updateKnowledgeCommand({ knowledgeId: id, tenantId, ...body }));
+      await handlers.update.execute(updateKnowledgeCommand({ knowledgeId: id, ...body, tenantId }));
       return { status: 'updated' };
     },
   );
@@ -136,7 +125,7 @@ export function registerKnowledgeRoutes(
       const { id } = request.params as { id: string };
       const body = request.body as ImportKnowledgeBody;
       await handlers.import.execute(
-        importKnowledgeCommand({ knowledgeId: id, tenantId, ...body }),
+        importKnowledgeCommand({ knowledgeId: id, ...body, tenantId }),
       );
       return { status: 'imported' };
     },
@@ -146,7 +135,6 @@ export function registerKnowledgeRoutes(
     '/v1/webhooks/knowledge',
     { schema: { body: createWebhookKnowledgeBodySchema } },
     async (request, reply) => {
-      verifyWebhookAuth(request);
       const tenantId = requireTenantId(request);
 
       const {
@@ -187,6 +175,7 @@ export function registerKnowledgeRoutes(
 
         await handlers.attachContent.execute(
           attachKnowledgeContentCommand({
+            tenantId,
             knowledgeId,
             reference: documentId,
             mimeType: 'text/plain',
@@ -243,7 +232,7 @@ export function registerKnowledgeRoutes(
       const { id } = request.params as { id: string };
       const body = request.body as AttachKnowledgeContentBody;
       await handlers.attachContent.execute(
-        attachKnowledgeContentCommand({ knowledgeId: id, ...body }),
+        attachKnowledgeContentCommand({ knowledgeId: id, ...body, tenantId: requireTenantId(request) }),
       );
       return { status: 'attached' };
     },
@@ -306,6 +295,7 @@ export function registerKnowledgeRoutes(
 
       await handlers.attachContent.execute(
         attachKnowledgeContentCommand({
+          tenantId,
           knowledgeId,
           reference: docResult.documentId,
           mimeType,

@@ -1,7 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { optionalEnv } from '@wisdum/config';
-import type { TenantId } from '@wisdum/types';
-import { AuthenticationError, ingestWebhookCommand } from '@wisdum/application';
+import { ingestWebhookCommand } from '@wisdum/application';
 import type { CaptureHandlers } from '../container/tokens.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
 import { ingestWebhookBodySchema } from '../validation/webhook-schemas.js';
@@ -11,25 +9,11 @@ export function registerWebhookRoutes(app: FastifyInstance, handlers: CaptureHan
     '/v1/webhooks/ingest',
     { schema: { body: ingestWebhookBodySchema } },
     async (request, reply) => {
-      // 1. Verify API Key
-      const apiKeyHeader = request.headers['x-api-key'];
-      const expectedKey = optionalEnv('WISDUM_API_KEY', 'dev-webhook-key');
+      // The caller was authenticated by the global auth hook; the tenant comes from
+      // the credential itself, never from a header the caller controls.
+      const tenantId = requireTenantId(request);
 
-      if (typeof apiKeyHeader !== 'string' || apiKeyHeader !== expectedKey) {
-        throw new AuthenticationError('Invalid API Key for webhook ingestion.', {
-          provided: typeof apiKeyHeader === 'string' ? '***' : 'missing',
-        });
-      }
-
-      // 2. Resolve Tenant Context
-      const tenantIdHeader = request.headers['x-tenant-id'];
-      const tenantId = (
-        typeof tenantIdHeader === 'string' && tenantIdHeader.trim().length > 0
-          ? tenantIdHeader
-          : requireTenantId(request)
-      ) as TenantId;
-
-      // 3. Extract Body
+      // Extract the body
       const {
         source,
         title,
@@ -48,7 +32,7 @@ export function registerWebhookRoutes(app: FastifyInstance, handlers: CaptureHan
         triggerReasoningPass?: boolean;
       };
 
-      // 4. Execute Ingestion Command
+      // Execute the ingestion command
       const result = await handlers.ingestWebhook.execute(
         ingestWebhookCommand({
           tenantId,

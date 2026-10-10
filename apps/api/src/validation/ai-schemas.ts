@@ -1,9 +1,10 @@
 export const startConversationBodySchema = {
   type: 'object',
-  required: ['provider', 'modelName', 'ownerId'],
+  required: ['provider', 'modelName'],
   properties: {
     provider: { type: 'string' },
     modelName: { type: 'string' },
+    /** Optional: the owner is always the authenticated user; a different value is refused. */
     ownerId: { type: 'string', format: 'uuid' },
     title: { type: 'string' },
   },

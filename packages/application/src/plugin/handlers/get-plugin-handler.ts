@@ -8,7 +8,7 @@ export class GetPluginHandler implements QueryHandler<GetPluginQuery, PluginDto>
   constructor(private readonly reads: PluginReadModel) {}
 
   async execute(query: GetPluginQuery): Promise<PluginDto> {
-    const dto = await this.reads.findById(query.pluginId);
+    const dto = await this.reads.findById(query.tenantId, query.pluginId);
     if (dto === undefined) {
       throw new NotFoundError('Plugin not found', { pluginId: query.pluginId });
     }

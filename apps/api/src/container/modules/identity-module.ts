@@ -1,5 +1,7 @@
 import {
+  AccessPolicy,
   AssignRoleHandler,
+  AuthenticateApiKeyHandler,
   AuthenticateUserHandler,
   CreateUserHandler,
   GetUserHandler,
@@ -16,6 +18,7 @@ import {
   PostgresUserReadModel,
   PostgresUserRepository,
   ScryptPasswordHasher,
+  Sha256ApiKeyHasher,
   PostgresApiKeyRepository,
   InMemoryApiKeyRepository,
   PostgresApiKeyReadModel,
@@ -23,6 +26,7 @@ import {
 } from '@wisdum/infrastructure';
 import type { Container, KernelModule } from '@wisdum/kernel';
 import {
+  ACCESS_POLICY,
   CLOCK,
   EVENT_BUS,
   ID_GENERATOR,
@@ -30,6 +34,7 @@ import {
   PG_POOL,
   TOKEN_SERVICE,
   API_KEY_READ_MODEL,
+  USER_READ_MODEL,
 } from '../tokens.js';
 import type { IdentityHandlers } from '../tokens.js';
 
@@ -59,21 +64,26 @@ export class IdentityModule implements KernelModule {
       apiKeyReads = new InMemoryApiKeyReadModel(inMemoryApiKeys);
     }
     const hasher = new ScryptPasswordHasher();
+    const apiKeyHasher = new Sha256ApiKeyHasher();
     const events = new EventBusDomainEventPublisher(container.resolve(EVENT_BUS));
     const clock = container.resolve(CLOCK);
     const ids = container.resolve(ID_GENERATOR);
     const tokens = container.resolve(TOKEN_SERVICE);
+    const access = new AccessPolicy();
 
     const handlers: IdentityHandlers = {
       createUser: new CreateUserHandler(repository, ids, hasher, events, clock),
-      assignRole: new AssignRoleHandler(repository, events, clock),
+      assignRole: new AssignRoleHandler(repository, access, events, clock),
       getUser: new GetUserHandler(readModel),
       authenticate: new AuthenticateUserHandler(repository, hasher, tokens),
-      createApiKey: new CreateApiKeyHandler(apiKeys, hasher, ids, events, clock),
+      authenticateApiKey: new AuthenticateApiKeyHandler(apiKeys, apiKeyHasher, clock),
+      createApiKey: new CreateApiKeyHandler(apiKeys, apiKeyHasher, ids, events, clock),
       revokeApiKey: new RevokeApiKeyHandler(apiKeys, events, clock),
       listApiKeys: new ListApiKeysHandler(apiKeyReads),
     };
     container.registerValue(IDENTITY_HANDLERS, handlers);
     container.registerValue(API_KEY_READ_MODEL, apiKeyReads);
+    container.registerValue(ACCESS_POLICY, access);
+    container.registerValue(USER_READ_MODEL, readModel);
   }
 }

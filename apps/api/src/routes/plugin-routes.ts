@@ -52,7 +52,7 @@ export function registerPluginRoutes(app: FastifyInstance, handlers: PluginHandl
 
   app.get('/v1/plugins/:id', { schema: { params: pluginIdParamsSchema } }, async (request) => {
     const { id } = request.params as { id: string };
-    return handlers.get.execute(getPluginQuery({ pluginId: id }));
+    return handlers.get.execute(getPluginQuery({ pluginId: id, tenantId: requireTenantId(request) }));
   });
 
   app.post(
@@ -60,7 +60,7 @@ export function registerPluginRoutes(app: FastifyInstance, handlers: PluginHandl
     { schema: { params: pluginIdParamsSchema } },
     async (request) => {
       const { id } = request.params as { id: string };
-      await handlers.enable.execute(enablePluginCommand({ pluginId: id }));
+      await handlers.enable.execute(enablePluginCommand({ pluginId: id, tenantId: requireTenantId(request) }));
       return { status: 'enabled' };
     },
   );
@@ -70,7 +70,7 @@ export function registerPluginRoutes(app: FastifyInstance, handlers: PluginHandl
     { schema: { params: pluginIdParamsSchema } },
     async (request) => {
       const { id } = request.params as { id: string };
-      await handlers.disable.execute(disablePluginCommand({ pluginId: id }));
+      await handlers.disable.execute(disablePluginCommand({ pluginId: id, tenantId: requireTenantId(request) }));
       return { status: 'disabled' };
     },
   );

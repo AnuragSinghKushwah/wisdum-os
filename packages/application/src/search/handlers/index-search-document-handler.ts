@@ -22,7 +22,7 @@ export class IndexSearchDocumentHandler
 
   async execute(command: IndexSearchDocumentCommand): Promise<void> {
     const found = await this.repository.findById(SearchIndexId.create(command.searchIndexId));
-    if (!found.some) {
+    if (!found.some || found.value.tenantId !== command.tenantId) {
       throw new NotFoundError('Search index not found', { searchIndexId: command.searchIndexId });
     }
     const index = found.value;

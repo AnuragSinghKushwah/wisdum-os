@@ -14,7 +14,7 @@ export class DismissOpportunityHandler implements CommandHandler<DismissOpportun
 
   async execute(command: DismissOpportunityCommand): Promise<void> {
     const found = await this.repository.findById(OpportunityId.create(command.opportunityId));
-    if (!found.some) {
+    if (!found.some || found.value.tenantId !== command.tenantId) {
       throw new NotFoundError('Opportunity not found', { opportunityId: command.opportunityId });
     }
     const opportunity = found.value;

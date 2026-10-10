@@ -7,9 +7,9 @@ import type { PostgresWorkspaceRepository } from '../../persistence/postgres/wor
 export class PostgresWorkspaceReadModel implements WorkspaceReadModel {
   constructor(private readonly repository: PostgresWorkspaceRepository) {}
 
-  async findById(workspaceId: string): Promise<WorkspaceDto | undefined> {
+  async findById(tenantId: TenantId, workspaceId: string): Promise<WorkspaceDto | undefined> {
     const found = await this.repository.findById(WorkspaceId.create(workspaceId));
-    return found.some ? toWorkspaceDto(found.value) : undefined;
+    return found.some && found.value.tenantId === tenantId ? toWorkspaceDto(found.value) : undefined;
   }
 
   async listByOrganization(

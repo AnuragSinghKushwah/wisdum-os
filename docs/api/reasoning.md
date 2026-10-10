@@ -9,7 +9,7 @@ Executes an explicit concept co-occurrence and opportunity discovery pass.
 ### Example Request
 ```bash
 curl -X POST http://localhost:3000/v1/reasoning/pass \
-  -H "x-tenant-id: 00000000-0000-4000-8000-000000000001"
+  -H "authorization: Bearer $WISDUM_TOKEN"
 ```
 
 ### Response Schema (`200 OK`)

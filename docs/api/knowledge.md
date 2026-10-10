@@ -10,8 +10,8 @@ Comprehensive REST API for managing knowledge assets in the Wisdum platform.
 
 | Header | Required | Type | Description |
 |---|---|---|---|
-| `x-tenant-id` | **Yes** | String (UUID) | Tenant context boundary |
-| `x-api-key` | Webhook only | String | API key authentication for ingestion webhooks |
+| `authorization` | **Yes** | String | `Bearer <token>` from `POST /v1/auth/login`, or an API key. The tenant comes from it. |
+| `x-api-key` | Alternative | String | An API key instead of `authorization`; see [Identity](identity.md) |
 | `Content-Type` | **Yes** | String | `application/json` (or `multipart/form-data` for `/upload`) |
 
 ---
@@ -36,7 +36,7 @@ Comprehensive REST API for managing knowledge assets in the Wisdum platform.
 #### Example Request
 ```bash
 curl -X POST http://localhost:3000/v1/knowledge \
-  -H "x-tenant-id: 00000000-0000-0000-0000-000000000001" \
+  -H "authorization: Bearer $WISDUM_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Architecture Blueprint",
@@ -71,7 +71,7 @@ curl -X POST http://localhost:3000/v1/knowledge \
 #### Example Request
 ```bash
 curl -X PATCH http://localhost:3000/v1/knowledge/00000000-0000-0000-0000-000000000042 \
-  -H "x-tenant-id: 00000000-0000-0000-0000-000000000001" \
+  -H "authorization: Bearer $WISDUM_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Updated Architecture Blueprint",
@@ -115,20 +115,19 @@ curl -X PATCH http://localhost:3000/v1/knowledge/00000000-0000-0000-0000-0000000
 #### Example Request
 ```bash
 curl -X DELETE http://localhost:3000/v1/knowledge/00000000-0000-0000-0000-000000000042 \
-  -H "x-tenant-id: 00000000-0000-0000-0000-000000000001"
+  -H "authorization: Bearer $WISDUM_TOKEN"
 ```
 
 ---
 
-### 6. Public Ingestion Webhook
+### 6. Ingestion Webhook
 
 `POST /v1/webhooks/knowledge`
 
 #### Headers
 | Header | Required | Value |
 |---|---|---|
-| `x-api-key` | **Yes** | Matching `WISDUM_API_KEY` |
-| `x-tenant-id` | **Yes** | Target tenant UUID |
+| `x-api-key` | **Yes** | An API key with the `capture:ingest` scope (or send it as `authorization: Bearer w_sk_…`). The key decides the tenant. |
 
 #### Request Body
 ```json

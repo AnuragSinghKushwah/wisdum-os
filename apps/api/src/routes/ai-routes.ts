@@ -7,6 +7,7 @@ import { ConfigurationError } from '@wisdum/errors';
 import type { ConversationRuntime } from '@wisdum/platform-ai';
 import type { FastifyInstance } from 'fastify';
 import type { AiHandlers } from '../container/tokens.js';
+import { actingUserId } from '../middleware/auth-context.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
 import {
   appendMessageBodySchema,
@@ -18,7 +19,7 @@ import {
 interface StartConversationBody {
   readonly provider: string;
   readonly modelName: string;
-  readonly ownerId: string;
+  readonly ownerId?: string;
   readonly title?: string;
 }
 
@@ -47,7 +48,11 @@ export function registerAiRoutes(
       const tenantId = requireTenantId(request);
       const body = request.body as StartConversationBody;
       const result = await handlers.startConversation.execute(
-        startConversationCommand({ tenantId, ...body }),
+        startConversationCommand({
+          ...body,
+          tenantId,
+          ownerId: actingUserId(request, body.ownerId),
+        }),
       );
       await reply.status(201).send(result);
     },
@@ -58,7 +63,9 @@ export function registerAiRoutes(
     { schema: { params: conversationIdParamsSchema } },
     async (request) => {
       const { id } = request.params as { id: string };
-      return handlers.getConversation.execute(getConversationQuery({ conversationId: id }));
+      return handlers.getConversation.execute(
+        getConversationQuery({ conversationId: id, tenantId: requireTenantId(request) }),
+      );
     },
   );
 
@@ -68,7 +75,9 @@ export function registerAiRoutes(
     async (request) => {
       const { id } = request.params as { id: string };
       const body = request.body as AppendMessageBody;
-      await handlers.appendMessage.execute(appendMessageCommand({ conversationId: id, ...body }));
+      await handlers.appendMessage.execute(
+        appendMessageCommand({ conversationId: id, ...body, tenantId: requireTenantId(request) }),
+      );
       return { status: 'appended' };
     },
   );
@@ -84,7 +93,7 @@ export function registerAiRoutes(
       }
       const { id } = request.params as { id: string };
       const body = request.body as RunTurnBody;
-      return runtime.runTurn({ conversationId: id, ...body });
+      return runtime.runTurn({ conversationId: id, ...body, tenantId: requireTenantId(request) });
     },
   );
 }

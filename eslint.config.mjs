@@ -45,4 +45,9 @@ export default tseslint.config(
     files: ['apps/web/src/**'],
     rules: { 'no-console': ['error', { allow: ['warn', 'error'] }] },
   },
+  {
+    // Operator tools are plain Node scripts that talk to the user through the terminal.
+    files: ['tools/**/*.mjs'],
+    languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
+  },
 );

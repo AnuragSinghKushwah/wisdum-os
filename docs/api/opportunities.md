@@ -9,7 +9,7 @@ Retrieves content creation opportunities identified during reasoning passes.
 ### Example Request
 ```bash
 curl -X GET http://localhost:3000/v1/opportunities \
-  -H "x-tenant-id: 00000000-0000-4000-8000-000000000001"
+  -H "authorization: Bearer $WISDUM_TOKEN"
 ```
 
 ### Response Schema (`200 OK`)
@@ -42,7 +42,7 @@ Publishes an opportunity draft to external platforms (Dev.to, Ghost, Substack, L
 ### Example Request
 ```bash
 curl -X POST http://localhost:3000/v1/opportunities/00000000-0000-4000-8000-000000000055/publish \
-  -H "x-tenant-id: 00000000-0000-4000-8000-000000000001" \
+  -H "authorization: Bearer $WISDUM_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "targetPlatform": "devto",

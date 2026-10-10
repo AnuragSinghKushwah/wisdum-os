@@ -31,7 +31,7 @@ export function registerOrganizationRoutes(
       const tenantId = requireTenantId(request);
       const body = request.body as CreateOrganizationBody;
       const result = await handlers.create.execute(
-        createOrganizationCommand({ tenantId, ...body }),
+        createOrganizationCommand({ ...body, tenantId }),
       );
       await reply.status(201).send(result);
     },
@@ -42,7 +42,9 @@ export function registerOrganizationRoutes(
     { schema: { params: organizationIdParamsSchema } },
     async (request) => {
       const { id } = request.params as { id: string };
-      return handlers.get.execute(getOrganizationQuery({ organizationId: id }));
+      return handlers.get.execute(
+        getOrganizationQuery({ organizationId: id, tenantId: requireTenantId(request) }),
+      );
     },
   );
 
@@ -53,7 +55,11 @@ export function registerOrganizationRoutes(
       const { id } = request.params as { id: string };
       const { workspaceId } = request.body as AttachWorkspaceBody;
       await handlers.attachWorkspace.execute(
-        attachWorkspaceCommand({ organizationId: id, workspaceId }),
+        attachWorkspaceCommand({
+          organizationId: id,
+          workspaceId,
+          tenantId: requireTenantId(request),
+        }),
       );
       return { status: 'attached' };
     },

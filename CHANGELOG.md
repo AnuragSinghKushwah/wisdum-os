@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Authentication, authorization, and tenant isolation** ([ADR 0016](docs/adr/0016-authentication-authorization-and-tenant-isolation.md)):
+  - Every endpoint now requires a credential unless it is explicitly public (nine routes, pinned by a test), and each has a permission requirement in `apps/api/src/security/route-permissions.ts`; a route missing from that table is refused. A completeness test checks the table against the registered routes.
+  - Permission catalog, `PermissionSet`, and four system roles (`owner`, `admin`, `member`, `viewer`) in `@wisdum/domain`; `AccessPolicy` derives per-tenant role ids so no role rows are needed. Assigning a role or minting an API key cannot exceed what the caller holds.
+  - API keys now authenticate: `x-api-key: w_sk_…` or `Authorization: Bearer w_sk_…`, scoped, tenant-bound, and revocable. `GET /v1/identity/roles` lists a tenant's roles. Webhook ingestion needs a key with the `capture:ingest` scope.
+  - `403 authorization_error` response, and `AuthorizationError`.
+  - `WISDUM_ALLOW_SIGNUP` (sign-up is closed once a tenant exists) and `WISDUM_DEV_SEED` / `NEXT_PUBLIC_WISDUM_DEV_SEED` (a development account and the web "Quick Dev Sign In", refused in production).
+  - `tools/grant-system-role` to give users created before roles were enforced a role.
+  - Tests: access policy, API key handlers, auth hook, secret resolution, route policy completeness, tenant isolation (two real tenants), and role/key escalation. The suite grows from 242 to 402 passing tests.
 - ADRs 0008 to 0015 recording decisions already implemented since ADR 0007: layering, PostgreSQL persistence, search, event delivery, the HTTP API and authentication, the plugin system, AI providers, and blob storage. Each states its known gaps. ADR 0003 is marked partially superseded.
 - Design documents in `docs/domains/` for the ten bounded contexts that lacked one (agent, ai, document, graph, identity, opportunity, organization, plugin, search, workspace), and an index; `knowledge.md` brought up to date with the code.
 - `cwd` option on the CLI's `runInit`, and tests that write to a temporary directory.
@@ -120,12 +128,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Breaking:** requests without a bearer token or API key are rejected with `401`. An `x-tenant-id` header no longer selects a tenant (it is read only on `POST /v1/auth/login`); the tenant comes from the credential. The shared `WISDUM_API_KEY` webhook key is removed in favour of scoped API keys, and keys created earlier must be revoked and re-issued because they could never authenticate.
+- **Breaking:** users created before this release have no role and receive `403` until given one (`tools/grant-system-role`). Tokens issued by sign-up now carry the owner role.
+- `JWT_SECRET` must be at least 32 characters and not a known default or placeholder. It is required in production; in development an unset secret becomes a random per-process one. `NODE_ENV=production` now counts as production. `docker-compose.prod.yml` requires `JWT_SECRET` and `POSTGRES_PASSWORD` and sets `WISDUM_ENV`; `.env.production.example` no longer contains a usable secret.
+- `POST /v1/onboarding/setup` validates its input and, after the first tenant, is closed unless `WISDUM_ALLOW_SIGNUP=true`. `createdBy` (workspaces) and `ownerId` (conversations) are optional and must match the caller.
+- Read-model `findById` ports take a tenant; `AttachWorkspace`, `CreateWorkspace`, and `AddWorkspaceMember` check the referenced organization, workspace, or user is in the caller's tenant.
+- `GET /v1/published/:id` is an explicit public route (the web app has a public page for it).
+- `docs/api/*` examples use bearer tokens; `docs/api/identity.md` rewritten to match the real endpoints.
 - ESLint resolves its 112 outstanding errors: unused imports and variables removed, `any` replaced with real types, type-only imports marked. `no-console` is now allowed in `packages/cli` (terminal output is its interface) and for `console.warn` and `console.error` in `apps/web/src` (browser code has no log transport).
 - `QueueProcessor` logs job failures through `@wisdum/logger` (accepting an injected `Logger`) instead of `console`; `@wisdum/platform-jobs` now depends on `@wisdum/logger`.
 - `search-routes.ts` and `core-module.ts` use the real `VectorStore` and `EmbeddingProvider` types instead of `any` or ad-hoc shapes.
 
 ### Fixed
 
+- **Security:** removed the hard-coded bearer tokens (`dev-token`, `dev-session-token`, `mock-jwt-token`), the public signing secrets (`dev-secret-change-me` and the one in `docker-compose.prod.yml`), the default webhook key (`dev-webhook-key`), and the default production database password.
+- **Security:** a user of one tenant could read, change, or delete another tenant's knowledge, documents, organizations, workspaces, plugins, search indexes, conversations, opportunities, and users, by id; every id-based handler now treats another tenant's resource as not found.
+- **Security:** most routes trusted a caller-supplied `x-tenant-id` header and needed no credential.
+- `POST /v1/conversations/:id/turns` returned `500` for a missing conversation; it now returns `404`.
 - `GET` and `POST /v1/agents/tasks` are served again. The `registerAgentRoutes` call was dropped from `server.ts` in `8a89aa0`, so the documented endpoints returned 404.
 - `npm test` no longer overwrites a developer's `.wisdumrc.json` or leaves `.temp-test-plugins-*` directories in the repository root; `.wisdumrc.json` is now gitignored.
 - `ExecuteAgentTaskHandler` falls back to a default message when a thrown error has an empty message.

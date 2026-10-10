@@ -8,9 +8,21 @@ interface ApiKeyDto {
   readonly id: string;
   readonly label: string;
   readonly status: 'active' | 'revoked';
+  readonly scopes: readonly string[];
   readonly expiresAt?: string;
   readonly createdAt: string;
 }
+
+/**
+ * What a new key may do. A key can only carry permissions its creator holds, so the API
+ * refuses any of these the signed-in user lacks.
+ */
+const KEY_SCOPES: readonly { readonly value: string; readonly label: string }[] = [
+  { value: 'capture:ingest', label: 'Ingest content (webhooks)' },
+  { value: 'knowledge:read', label: 'Read knowledge' },
+  { value: 'knowledge:write', label: 'Create and edit knowledge' },
+  { value: 'search:read', label: 'Search' },
+];
 
 export default function SettingsPage() {
   const { session } = useAuth();
@@ -20,6 +32,7 @@ export default function SettingsPage() {
   const [apiKeys, setApiKeys] = useState<readonly ApiKeyDto[]>([]);
   const [isLoadingKeys, setIsLoadingKeys] = useState(false);
   const [newKeyLabel, setNewKeyLabel] = useState('');
+  const [newKeyScopes, setNewKeyScopes] = useState<readonly string[]>(['capture:ingest']);
   const [isCreatingKey, setIsCreatingKey] = useState(false);
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [keyError, setKeyError] = useState<string | null>(null);
@@ -48,7 +61,7 @@ export default function SettingsPage() {
   // Create API key
   async function handleCreateKey(e: React.FormEvent) {
     e.preventDefault();
-    if (!newKeyLabel.trim()) return;
+    if (!newKeyLabel.trim() || newKeyScopes.length === 0) return;
 
     setIsCreatingKey(true);
     setKeyError(null);
@@ -56,7 +69,7 @@ export default function SettingsPage() {
     try {
       const res = await apiFetch<{ apiKeyId: string; plaintextKey: string }>('/v1/identity/api-keys', {
         method: 'POST',
-        body: { label: newKeyLabel },
+        body: { label: newKeyLabel, scopes: newKeyScopes },
       });
       setGeneratedKey(res.plaintextKey);
       setNewKeyLabel('');
@@ -177,7 +190,8 @@ export default function SettingsPage() {
             )}
 
             {/* Creation Form */}
-            <form onSubmit={handleCreateKey} className="flex gap-2.5 items-end max-w-md border-b border-neutral-100 dark:border-neutral-800/80 pb-6">
+            <form onSubmit={handleCreateKey} className="flex flex-col gap-4 max-w-md border-b border-neutral-100 dark:border-neutral-800/80 pb-6">
+              <div className="flex gap-2.5 items-end">
               <label className="flex-1 flex flex-col gap-1.5 text-xs font-semibold text-neutral-600 dark:text-neutral-400">
                 New Key Label
                 <input
@@ -192,11 +206,32 @@ export default function SettingsPage() {
               </label>
               <button
                 type="submit"
-                disabled={isCreatingKey || !newKeyLabel.trim()}
+                disabled={isCreatingKey || !newKeyLabel.trim() || newKeyScopes.length === 0}
                 className="rounded-xl bg-neutral-950 dark:bg-white text-white dark:text-neutral-950 px-4 py-2.5 text-xs font-bold shadow-sm hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer h-[38px] shrink-0"
               >
                 {isCreatingKey ? 'Creating…' : 'Create Key'}
               </button>
+              </div>
+              <fieldset className="flex flex-col gap-2 text-xs text-neutral-600 dark:text-neutral-400" disabled={isCreatingKey}>
+                <legend className="mb-1 font-semibold">Permissions</legend>
+                {KEY_SCOPES.map((scope) => (
+                  <label key={scope.value} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="rounded border-neutral-350 dark:border-neutral-750 text-amber-500 focus:ring-amber-500 h-4 w-4 cursor-pointer"
+                      checked={newKeyScopes.includes(scope.value)}
+                      onChange={(e) =>
+                        setNewKeyScopes((current) =>
+                          e.target.checked
+                            ? [...current, scope.value]
+                            : current.filter((value) => value !== scope.value),
+                        )
+                      }
+                    />
+                    {scope.label}
+                  </label>
+                ))}
+              </fieldset>
             </form>
 
             {/* API Keys Table */}
@@ -215,6 +250,7 @@ export default function SettingsPage() {
                     <thead>
                       <tr className="bg-neutral-50/50 dark:bg-neutral-900/30 border-b border-neutral-200/60 dark:border-neutral-800 text-neutral-400 font-bold uppercase tracking-wider text-[10px]">
                         <th className="p-3">Label</th>
+                        <th className="p-3">Permissions</th>
                         <th className="p-3">Status</th>
                         <th className="p-3 text-right">Created</th>
                         <th className="p-3 text-center">Action</th>
@@ -224,6 +260,7 @@ export default function SettingsPage() {
                       {apiKeys.map((key) => (
                         <tr key={key.id} className="hover:bg-neutral-50/20 dark:hover:bg-neutral-900/10 transition-colors">
                           <td className="p-3 font-semibold text-neutral-850 dark:text-neutral-200">{key.label}</td>
+                          <td className="p-3 font-mono text-[10px] text-neutral-500">{key.scopes.join(', ')}</td>
                           <td className="p-3">
                             <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider border ${
                               key.status === 'active'

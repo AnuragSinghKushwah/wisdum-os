@@ -18,6 +18,16 @@ export interface SlugGenerator {
 }
 
 /**
+ * Answers whether something exists *within a tenant*. Handlers use it to
+ * validate an id a command refers to (an organization, a workspace, a user)
+ * without depending on that context's repositories. A resource in another
+ * tenant answers `false`, exactly like one that does not exist.
+ */
+export interface TenantResourceLookup {
+  existsInTenant(tenantId: TenantId, id: string): Promise<boolean>;
+}
+
+/**
  * Publishes domain events pulled from aggregates after persistence.
  * Implementations assign event identity and map to the transport envelope.
  */

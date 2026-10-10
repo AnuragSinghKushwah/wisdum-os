@@ -14,7 +14,7 @@ export class ChangeKnowledgeVisibilityHandler implements CommandHandler<ChangeKn
 
   async execute(command: ChangeKnowledgeVisibilityCommand): Promise<void> {
     const found = await this.repository.findById(KnowledgeId.create(command.knowledgeId));
-    if (!found.some) {
+    if (!found.some || found.value.tenantId !== command.tenantId) {
       throw new NotFoundError('Knowledge asset not found', { knowledgeId: command.knowledgeId });
     }
     const knowledge = found.value;

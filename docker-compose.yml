@@ -35,7 +35,11 @@ services:
       - '3001:3001'
     environment:
       PORT: 3001
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      WISDUM_ENV: development
+      # Leave unset to get a random per-container secret (sessions end on restart).
+      JWT_SECRET: ${JWT_SECRET:-}
+      WISDUM_DEV_SEED: ${WISDUM_DEV_SEED:-false}
+      WISDUM_ALLOW_SIGNUP: ${WISDUM_ALLOW_SIGNUP:-false}
       DATABASE_URL: postgresql://wisdum:wisdum@postgres:5432/wisdum
       REDIS_URL: redis://redis:6379/0
       CORS_ORIGIN: http://localhost:3000

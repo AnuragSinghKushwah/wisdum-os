@@ -45,9 +45,9 @@ class FakeOrganizationRepository implements OrganizationRepository {
 class FakeOrganizationReadModel implements OrganizationReadModel {
   constructor(private repo: FakeOrganizationRepository) {}
 
-  async findById(id: string): Promise<OrganizationDto | undefined> {
+  async findById(tenantId: TenantId, id: string): Promise<OrganizationDto | undefined> {
     const opt = await this.repo.findById(OrganizationId.create(id));
-    if (!opt.some) return undefined;
+    if (!opt.some || opt.value.tenantId !== tenantId) return undefined;
     const org = (opt as { value: Organization }).value;
     return {
       id: org.getId().value(),
@@ -114,7 +114,12 @@ describe('Organization Handlers', () => {
       mockEvents,
       mockClock,
     );
-    const attachHandler = new AttachWorkspaceHandler(repo, mockEvents, mockClock);
+    const attachHandler = new AttachWorkspaceHandler(
+      repo,
+      { existsInTenant: async () => true },
+      mockEvents,
+      mockClock,
+    );
 
     const { organizationId } = await createHandler.execute(
       createOrganizationCommand({
@@ -125,6 +130,7 @@ describe('Organization Handlers', () => {
 
     await attachHandler.execute(
       attachWorkspaceCommand({
+        tenantId: '00000000-0000-4000-8000-000000000001' as TenantId,
         organizationId,
         workspaceId: '00000000-0000-4000-8000-000000000099',
       }),
@@ -156,6 +162,7 @@ describe('Organization Handlers', () => {
 
     const dto = await getHandler.execute(
       getOrganizationQuery({
+        tenantId: '00000000-0000-4000-8000-000000000001' as TenantId,
         organizationId,
       }),
     );
@@ -163,5 +170,37 @@ describe('Organization Handlers', () => {
     expect(dto).not.toBeUndefined();
     expect(dto?.name).toBe('Global Tech');
     expect(dto?.slug).toBe('global-tech');
+  });
+
+  it("AttachWorkspaceHandler refuses a workspace that is not in the organization's tenant", async () => {
+    const repo = new FakeOrganizationRepository();
+    const { organizationId } = await new CreateOrganizationHandler(
+      repo,
+      mockIdGenerator,
+      mockSlugGenerator,
+      mockEvents,
+      mockClock,
+    ).execute(
+      createOrganizationCommand({
+        tenantId: '00000000-0000-4000-8000-000000000001' as TenantId,
+        name: 'Acme Corp',
+      }),
+    );
+
+    await expect(
+      new AttachWorkspaceHandler(
+        repo,
+        { existsInTenant: async () => false },
+        mockEvents,
+        mockClock,
+      ).execute(
+        attachWorkspaceCommand({
+          tenantId: '00000000-0000-4000-8000-000000000001' as TenantId,
+          organizationId,
+          workspaceId: '00000000-0000-4000-8000-000000000099',
+        }),
+      ),
+    ).rejects.toThrow('Workspace not found');
+    expect(repo.items.get(organizationId)?.workspaceIds.length).toBe(0);
   });
 });

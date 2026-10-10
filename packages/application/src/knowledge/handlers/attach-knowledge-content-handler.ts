@@ -21,7 +21,7 @@ export class AttachKnowledgeContentHandler implements CommandHandler<AttachKnowl
 
   async execute(command: AttachKnowledgeContentCommand): Promise<void> {
     const found = await this.repository.findById(KnowledgeId.create(command.knowledgeId));
-    if (!found.some) {
+    if (!found.some || found.value.tenantId !== command.tenantId) {
       throw new NotFoundError('Knowledge asset not found', { knowledgeId: command.knowledgeId });
     }
     const knowledge = found.value;
@@ -33,6 +33,10 @@ export class AttachKnowledgeContentHandler implements CommandHandler<AttachKnowl
 
     // Query document content to set dynamic statuses
     const docFound = await this.documentRepository.findById(DocumentId.create(command.reference));
+    // A document in another tenant is reported exactly like a missing one.
+    if (docFound.some && docFound.value.tenantId !== command.tenantId) {
+      throw new NotFoundError('Document not found', { documentId: command.reference });
+    }
     if (docFound.some) {
       const doc = docFound.value;
       const content = doc.content.value;

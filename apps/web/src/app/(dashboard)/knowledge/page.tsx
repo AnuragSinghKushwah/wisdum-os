@@ -196,7 +196,9 @@ export default function KnowledgePage() {
       if (session?.token) {
         headers.authorization = `Bearer ${session.token}`;
       }
-      headers['x-tenant-id'] = session?.tenantId ?? '00000000-0000-4000-8000-000000000001';
+      if (session?.tenantId) {
+        headers['x-tenant-id'] = session.tenantId;
+      }
 
       const response = await fetch(`${API_URL}/v1/knowledge/upload`, {
         method: 'POST',

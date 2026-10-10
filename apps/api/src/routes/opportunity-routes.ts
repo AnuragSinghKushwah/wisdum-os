@@ -146,7 +146,7 @@ export function registerOpportunityRoutes(
       const { id } = request.params as { id: string };
       const body = request.body as UpdateContentDraftBody;
       await handlers.updateDraft.execute(
-        updateContentDraftCommand({ tenantId, draftId: id, ...body }),
+        updateContentDraftCommand({ draftId: id, ...body, tenantId }),
       );
       return { status: 'updated' };
     },
@@ -169,7 +169,8 @@ export function registerOpportunityRoutes(
 
   app.get(
     '/v1/published/:id',
-    { schema: { params: publishedContentIdParamsSchema } },
+    // Published pieces are shared publicly by their unguessable id; see GetPublishedContentQuery.
+    { config: { public: true }, schema: { params: publishedContentIdParamsSchema } },
     async (request) => {
       const { id } = request.params as { id: string };
       return handlers.getPublished.execute(getPublishedContentQuery({ publishedContentId: id }));

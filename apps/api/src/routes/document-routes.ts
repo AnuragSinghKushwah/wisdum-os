@@ -31,14 +31,16 @@ export function registerDocumentRoutes(app: FastifyInstance, handlers: DocumentH
     async (request, reply) => {
       const tenantId = requireTenantId(request);
       const body = request.body as CreateDocumentBody;
-      const result = await handlers.create.execute(createDocumentCommand({ tenantId, ...body }));
+      const result = await handlers.create.execute(createDocumentCommand({ ...body, tenantId }));
       await reply.status(201).send(result);
     },
   );
 
   app.get('/v1/documents/:id', { schema: { params: documentIdParamsSchema } }, async (request) => {
     const { id } = request.params as { id: string };
-    return handlers.get.execute(getDocumentQuery({ documentId: id }));
+    return handlers.get.execute(
+      getDocumentQuery({ documentId: id, tenantId: requireTenantId(request) }),
+    );
   });
 
   app.put(
@@ -48,7 +50,11 @@ export function registerDocumentRoutes(app: FastifyInstance, handlers: DocumentH
       const { id } = request.params as { id: string };
       const body = request.body as ReplaceDocumentContentBody;
       await handlers.replaceContent.execute(
-        replaceDocumentContentCommand({ documentId: id, ...body }),
+        replaceDocumentContentCommand({
+          documentId: id,
+          ...body,
+          tenantId: requireTenantId(request),
+        }),
       );
       return { status: 'updated' };
     },

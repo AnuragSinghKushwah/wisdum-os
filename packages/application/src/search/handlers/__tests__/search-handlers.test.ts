@@ -70,9 +70,9 @@ class FakeSearchQueryExecutor implements SearchQueryExecutor {
 class FakeSearchIndexReadModel implements SearchIndexReadModel {
   constructor(private repo: FakeSearchIndexRepository) {}
 
-  async findById(id: string): Promise<SearchIndexDto | undefined> {
+  async findById(tenantId: TenantId, id: string): Promise<SearchIndexDto | undefined> {
     const opt = await this.repo.findById(SearchIndexId.create(id));
-    if (!opt.some) return undefined;
+    if (!opt.some || opt.value.tenantId !== tenantId) return undefined;
     const idx = (opt as { value: SearchIndex }).value;
     return {
       id: idx.getId().value(),
@@ -140,6 +140,7 @@ describe('Search Handlers', () => {
 
     await indexHandler.execute(
       indexSearchDocumentCommand({
+        tenantId: '00000000-0000-4000-8000-000000000001' as TenantId,
         searchIndexId,
         sourceId: '00000000-0000-4000-8000-000000000099',
         sourceType: 'document',
@@ -151,18 +152,62 @@ describe('Search Handlers', () => {
     expect(indexer.indexedDocs[0]?.text).toBe('Sample knowledge text to index');
   });
 
-  it('SearchIndexHandler delegates search query execution to SearchQueryExecutor', async () => {
-    const executor = new FakeSearchQueryExecutor();
-    const handler = new SearchIndexHandler(executor);
+  describe('SearchIndexHandler', () => {
+    const OWNER = '00000000-0000-4000-8000-000000000001' as TenantId;
+    const STRANGER = '00000000-0000-4000-8000-000000000777' as TenantId;
 
-    const results = await handler.execute(
-      searchIndexQuery({
-        searchIndexId: 'index-001',
-        text: 'vector database architecture',
-      }),
-    );
+    async function setup() {
+      const repo = new FakeSearchIndexRepository();
+      const executor = new FakeSearchQueryExecutor();
+      const calls: string[] = [];
+      const spyingExecutor: SearchQueryExecutor = {
+        execute: (indexId) => {
+          calls.push(indexId);
+          return executor.execute();
+        },
+      };
+      const { searchIndexId } = await new CreateSearchIndexHandler(
+        repo,
+        mockIdGenerator,
+        mockEvents,
+        mockClock,
+      ).execute(createSearchIndexCommand({ tenantId: OWNER, name: 'knowledge', mode: 'hybrid' }));
+      const handler = new SearchIndexHandler(spyingExecutor, new FakeSearchIndexReadModel(repo));
+      return { handler, searchIndexId, calls };
+    }
 
-    expect(results.length).toBe(2);
+    it("delegates to the SearchQueryExecutor for an index in the caller's tenant", async () => {
+      const { handler, searchIndexId, calls } = await setup();
+
+      const results = await handler.execute(
+        searchIndexQuery({ tenantId: OWNER, searchIndexId, text: 'vector database architecture' }),
+      );
+
+      expect(results.length).toBe(2);
+      expect(calls).toEqual([searchIndexId]);
+    });
+
+    it("treats another tenant's index as missing and never queries it", async () => {
+      const { handler, searchIndexId, calls } = await setup();
+
+      await expect(
+        handler.execute(searchIndexQuery({ tenantId: STRANGER, searchIndexId, text: 'anything' })),
+      ).rejects.toThrow('Search index not found');
+      expect(calls).toEqual([]);
+    });
+
+    it('rejects an index that does not exist', async () => {
+      const { handler } = await setup();
+      await expect(
+        handler.execute(
+          searchIndexQuery({
+            tenantId: OWNER,
+            searchIndexId: '00000000-0000-4000-8000-0000000000aa',
+            text: 'anything',
+          }),
+        ),
+      ).rejects.toThrow('Search index not found');
+    });
   });
 
   it('GetSearchIndexHandler retrieves search index metadata DTO', async () => {
@@ -186,6 +231,7 @@ describe('Search Handlers', () => {
 
     const dto = await getHandler.execute(
       getSearchIndexQuery({
+        tenantId: '00000000-0000-4000-8000-000000000001' as TenantId,
         searchIndexId,
       }),
     );

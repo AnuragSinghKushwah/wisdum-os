@@ -83,7 +83,8 @@ In [`packages/application/src/opportunity/`](../../packages/application/src/oppo
 | `GET` | `/v1/drafts`, `/v1/drafts/:id` | List and fetch drafts. |
 | `PUT` | `/v1/drafts/:id` | Edit a draft. |
 | `POST` | `/v1/drafts/:id/publish` | Publish a draft. |
-| `GET` | `/v1/published`, `/v1/published/:id` | List and fetch published content. |
+| `GET` | `/v1/published` | List the tenant's published content. Needs `draft:read`. |
+| `GET` | `/v1/published/:id` | **Public.** Fetch one published piece by its unguessable id and count a view. |
 | `GET` | `/v1/dashboard/stats` | Dashboard counters. |
 
 Details: [docs/api/opportunities.md](../api/opportunities.md). Routes are in `apps/api/src/routes/opportunity-routes.ts`.

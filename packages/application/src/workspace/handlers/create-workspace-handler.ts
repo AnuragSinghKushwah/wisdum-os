@@ -2,7 +2,13 @@ import { Workspace, WorkspaceId, WorkspaceName, WorkspaceSlug } from '@wisdum/do
 import type { Clock, WorkspaceRepository } from '@wisdum/domain';
 import type { UUID } from '@wisdum/types';
 import type { CommandHandler } from '../../shared/messages.js';
-import type { DomainEventPublisher, IdGenerator, SlugGenerator } from '../../shared/ports.js';
+import { NotFoundError } from '../../shared/errors.js';
+import type {
+  DomainEventPublisher,
+  IdGenerator,
+  SlugGenerator,
+  TenantResourceLookup,
+} from '../../shared/ports.js';
 import type { CreateWorkspaceCommand } from '../commands/create-workspace-command.js';
 
 export class CreateWorkspaceHandler implements CommandHandler<
@@ -11,6 +17,7 @@ export class CreateWorkspaceHandler implements CommandHandler<
 > {
   constructor(
     private readonly repository: WorkspaceRepository,
+    private readonly organizations: TenantResourceLookup,
     private readonly ids: IdGenerator,
     private readonly slugs: SlugGenerator,
     private readonly events: DomainEventPublisher,
@@ -18,6 +25,10 @@ export class CreateWorkspaceHandler implements CommandHandler<
   ) {}
 
   async execute(command: CreateWorkspaceCommand): Promise<{ workspaceId: string }> {
+    if (!(await this.organizations.existsInTenant(command.tenantId, command.organizationId))) {
+      throw new NotFoundError('Organization not found', { organizationId: command.organizationId });
+    }
+
     const baseSlug = this.slugs.slugify(command.name);
     const slug = await this.uniqueSlug(command.tenantId, baseSlug);
 

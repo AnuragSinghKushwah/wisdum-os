@@ -1,9 +1,10 @@
 export const createWorkspaceBodySchema = {
   type: 'object',
-  required: ['organizationId', 'name', 'createdBy'],
+  required: ['organizationId', 'name'],
   properties: {
     organizationId: { type: 'string', format: 'uuid' },
     name: { type: 'string' },
+    /** Optional: the creator is always the authenticated user; a different value is refused. */
     createdBy: { type: 'string', format: 'uuid' },
   },
   additionalProperties: false,

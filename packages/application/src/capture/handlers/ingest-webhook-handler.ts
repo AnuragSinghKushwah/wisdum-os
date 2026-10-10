@@ -83,6 +83,7 @@ export class IngestWebhookHandler implements CommandHandler<IngestWebhookCommand
     // 4. Attach document content to knowledge asset
     await this.attachContent.execute(
       attachKnowledgeContentCommand({
+        tenantId: command.tenantId,
         knowledgeId,
         reference: documentId,
         mimeType,

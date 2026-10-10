@@ -56,7 +56,7 @@ export function registerSearchRoutes(
       const tenantId = requireTenantId(request);
       const body = request.body as CreateSearchIndexBody;
       const result = await handlers.createIndex.execute(
-        createSearchIndexCommand({ tenantId, ...body }),
+        createSearchIndexCommand({ ...body, tenantId }),
       );
       await reply.status(201).send(result);
     },
@@ -67,7 +67,7 @@ export function registerSearchRoutes(
     { schema: { params: searchIndexIdParamsSchema } },
     async (request) => {
       const { id } = request.params as { id: string };
-      return handlers.getIndex.execute(getSearchIndexQuery({ searchIndexId: id }));
+      return handlers.getIndex.execute(getSearchIndexQuery({ searchIndexId: id, tenantId: requireTenantId(request) }));
     },
   );
 
@@ -77,7 +77,7 @@ export function registerSearchRoutes(
     async (request) => {
       const { id } = request.params as { id: string };
       const query = request.query as SearchQueryParams;
-      return handlers.search.execute(searchIndexQuery({ searchIndexId: id, ...query }));
+      return handlers.search.execute(searchIndexQuery({ searchIndexId: id, ...query, tenantId: requireTenantId(request) }));
     },
   );
 
@@ -88,7 +88,7 @@ export function registerSearchRoutes(
       const { id } = request.params as { id: string };
       const body = request.body as IndexSearchDocumentBody;
       await handlers.indexDocument.execute(
-        indexSearchDocumentCommand({ searchIndexId: id, ...body }),
+        indexSearchDocumentCommand({ searchIndexId: id, ...body, tenantId: requireTenantId(request) }),
       );
       await reply.status(202).send({ status: 'indexed' });
     },

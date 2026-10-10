@@ -9,7 +9,7 @@ export async function registerHealthRoutes(app: FastifyInstance): Promise<void> 
   });
 
   // Liveness Probe
-  app.get('/healthz', async (_request, reply) => {
+  app.get('/healthz', { config: { public: true } }, async (_request, reply) => {
     return reply.status(200).send({
       status: 'ok',
       service: 'wisdum-api',
@@ -19,7 +19,7 @@ export async function registerHealthRoutes(app: FastifyInstance): Promise<void> 
   });
 
   // Readiness Probe
-  app.get('/readyz', async (_request, reply) => {
+  app.get('/readyz', { config: { public: true } }, async (_request, reply) => {
     return reply.status(200).send({
       status: 'ready',
       database: 'connected',
@@ -29,7 +29,7 @@ export async function registerHealthRoutes(app: FastifyInstance): Promise<void> 
   });
 
   // Prometheus Metrics Endpoint
-  app.get('/metrics', async (_request, reply) => {
+  app.get('/metrics', { config: { public: true } }, async (_request, reply) => {
     const uptime = Math.floor(process.uptime());
     const mem = process.memoryUsage();
 

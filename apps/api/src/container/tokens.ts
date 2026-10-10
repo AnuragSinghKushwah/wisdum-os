@@ -23,6 +23,7 @@ import type {
   AppendMessageHandler,
   AddWorkspaceMemberHandler,
   AttachWorkspaceHandler,
+  AuthenticateApiKeyHandler,
   AuthenticateUserHandler,
   CreateDocumentHandler,
   CreateKnowledgeHandler,
@@ -144,6 +145,7 @@ export interface IdentityHandlers {
   readonly assignRole: AssignRoleHandler;
   readonly getUser: GetUserHandler;
   readonly authenticate: AuthenticateUserHandler;
+  readonly authenticateApiKey: AuthenticateApiKeyHandler;
   readonly createApiKey: CreateApiKeyHandler;
   readonly revokeApiKey: RevokeApiKeyHandler;
   readonly listApiKeys: ListApiKeysHandler;

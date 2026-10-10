@@ -10,10 +10,11 @@ export class PostgresApiKeyReadModel implements ApiKeyReadModel {
       id: string;
       label: string;
       status: string;
+      scopes: string[];
       expires_at: Date | null;
       created_at: Date;
     }>(
-      'SELECT id, label, status, expires_at, created_at FROM api_keys WHERE tenant_id = $1 ORDER BY created_at DESC',
+      'SELECT id, label, status, scopes, expires_at, created_at FROM api_keys WHERE tenant_id = $1 ORDER BY created_at DESC',
       [tenantId],
     );
 
@@ -21,6 +22,7 @@ export class PostgresApiKeyReadModel implements ApiKeyReadModel {
       id: row.id,
       label: row.label,
       status: row.status as 'active' | 'revoked',
+      scopes: row.scopes,
       expiresAt: row.expires_at?.toISOString(),
       createdAt: row.created_at.toISOString(),
     }));

@@ -15,6 +15,8 @@ export default defineConfig({
     {
       command: 'npm run dev:api',
       cwd: '../../',
+      // Creates the development account the "Quick Dev Sign In" button signs in as.
+      env: { WISDUM_DEV_SEED: 'true' },
       url: 'http://localhost:3001/health',
       reuseExistingServer: true,
       timeout: 60000,
@@ -22,6 +24,7 @@ export default defineConfig({
     {
       command: 'npm run dev:web',
       cwd: '../../',
+      env: { NEXT_PUBLIC_WISDUM_DEV_SEED: 'true' },
       url: 'http://localhost:3000',
       reuseExistingServer: true,
       timeout: 60000,

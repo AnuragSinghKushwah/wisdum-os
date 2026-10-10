@@ -1,29 +1,43 @@
-import { ApiKey, ApiKeyId, PasswordHash } from '@wisdum/domain';
+import { ApiKey, ApiKeyId, PasswordHash, PermissionName } from '@wisdum/domain';
 import type { ApiKeyRepository, Clock } from '@wisdum/domain';
+import { ValidationError } from '@wisdum/errors';
 import type { CommandHandler } from '../../shared/messages.js';
 import type { DomainEventPublisher, IdGenerator } from '../../shared/ports.js';
-import type { PasswordHasher } from '../ports/password-hasher.js';
+import type { ApiKeyHasher } from '../ports/api-key-hasher.js';
 import type { CreateApiKeyCommand } from '../commands/create-api-key-command.js';
 import { randomBytes } from 'node:crypto';
 
+/** Prefix that marks a string as a Wisdum API key, so credentials can be told apart cheaply. */
+export const API_KEY_PREFIX = 'w_sk_';
+
 export interface CreateApiKeyResult {
   readonly apiKeyId: string;
+  /** Shown exactly once; only its hash is stored. */
   readonly plaintextKey: string;
 }
 
 export class CreateApiKeyHandler implements CommandHandler<CreateApiKeyCommand, CreateApiKeyResult> {
   constructor(
     private readonly repository: ApiKeyRepository,
-    private readonly hasher: PasswordHasher,
+    private readonly hasher: ApiKeyHasher,
     private readonly ids: IdGenerator,
     private readonly events: DomainEventPublisher,
     private readonly clock: Clock,
   ) {}
 
   async execute(command: CreateApiKeyCommand): Promise<CreateApiKeyResult> {
-    const rawSecret = `w_sk_${randomBytes(24).toString('hex')}`;
-    const hashStr = await this.hasher.hash(rawSecret);
-    const keyHash = PasswordHash.create(hashStr);
+    if (command.scopes.length === 0) {
+      throw new ValidationError('An API key needs at least one scope', { field: 'scopes' });
+    }
+    const distinct = new Map<string, PermissionName>();
+    for (const scope of command.scopes) {
+      const permission = PermissionName.create(scope);
+      distinct.set(permission.value, permission);
+    }
+    const scopes = [...distinct.values()];
+
+    const rawSecret = `${API_KEY_PREFIX}${randomBytes(24).toString('hex')}`;
+    const keyHash = PasswordHash.create(this.hasher.hash(rawSecret));
 
     const id = ApiKeyId.create(this.ids.nextId());
     const apiKey = ApiKey.create(
@@ -34,7 +48,7 @@ export class CreateApiKeyHandler implements CommandHandler<CreateApiKeyCommand, 
         ownerType: 'user',
         label: command.label,
         keyHash,
-        scopes: [],
+        scopes,
       },
       this.clock,
     );

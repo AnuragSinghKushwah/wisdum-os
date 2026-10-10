@@ -10,9 +10,8 @@ import {
   listKnowledgeQuery,
   publishKnowledgeCommand,
   updateKnowledgeCommand,
-  AuthenticationError,
 } from '@wisdum/application';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import type { KnowledgeHandlers, DocumentHandlers } from '../container/tokens.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
 import {
@@ -24,7 +23,6 @@ import {
   knowledgeIdParamsSchema,
   updateKnowledgeBodySchema,
 } from '../validation/knowledge-schemas.js';
-import { optionalEnv } from '@wisdum/config';
 
 interface CreateKnowledgeBody {
   readonly title: string;
@@ -63,15 +61,6 @@ interface CreateWebhookKnowledgeBody {
   readonly visibility?: string;
   readonly description?: string;
   readonly labels?: readonly string[];
-}
-
-function verifyWebhookAuth(request: FastifyRequest): void {
-  const expectedApiKey = optionalEnv('WISDUM_API_KEY', 'dev-webhook-key');
-  const headerKey = request.headers['x-api-key'];
-  const actualKey = Array.isArray(headerKey) ? headerKey[0] : headerKey;
-  if (actualKey === undefined || actualKey !== expectedApiKey) {
-    throw new AuthenticationError('Invalid or missing x-api-key header');
-  }
 }
 
 /** Wires the Knowledge context's handlers to HTTP. No business logic — composition only. */
@@ -146,7 +135,6 @@ export function registerKnowledgeRoutes(
     '/v1/webhooks/knowledge',
     { schema: { body: createWebhookKnowledgeBodySchema } },
     async (request, reply) => {
-      verifyWebhookAuth(request);
       const tenantId = requireTenantId(request);
 
       const {

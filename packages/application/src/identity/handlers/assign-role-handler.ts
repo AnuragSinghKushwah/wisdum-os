@@ -14,7 +14,8 @@ export class AssignRoleHandler implements CommandHandler<AssignRoleCommand> {
 
   async execute(command: AssignRoleCommand): Promise<void> {
     const found = await this.repository.findById(UserId.create(command.userId));
-    if (!found.some) {
+    // A user in another tenant is reported exactly like a missing one.
+    if (!found.some || found.value.tenantId !== command.tenantId) {
       throw new NotFoundError('User not found', { userId: command.userId });
     }
     const user = found.value;

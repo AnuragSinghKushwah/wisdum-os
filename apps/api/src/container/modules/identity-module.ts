@@ -1,5 +1,6 @@
 import {
   AssignRoleHandler,
+  AuthenticateApiKeyHandler,
   AuthenticateUserHandler,
   CreateUserHandler,
   GetUserHandler,
@@ -16,6 +17,7 @@ import {
   PostgresUserReadModel,
   PostgresUserRepository,
   ScryptPasswordHasher,
+  Sha256ApiKeyHasher,
   PostgresApiKeyRepository,
   InMemoryApiKeyRepository,
   PostgresApiKeyReadModel,
@@ -59,6 +61,7 @@ export class IdentityModule implements KernelModule {
       apiKeyReads = new InMemoryApiKeyReadModel(inMemoryApiKeys);
     }
     const hasher = new ScryptPasswordHasher();
+    const apiKeyHasher = new Sha256ApiKeyHasher();
     const events = new EventBusDomainEventPublisher(container.resolve(EVENT_BUS));
     const clock = container.resolve(CLOCK);
     const ids = container.resolve(ID_GENERATOR);
@@ -69,7 +72,8 @@ export class IdentityModule implements KernelModule {
       assignRole: new AssignRoleHandler(repository, events, clock),
       getUser: new GetUserHandler(readModel),
       authenticate: new AuthenticateUserHandler(repository, hasher, tokens),
-      createApiKey: new CreateApiKeyHandler(apiKeys, hasher, ids, events, clock),
+      authenticateApiKey: new AuthenticateApiKeyHandler(apiKeys, apiKeyHasher, clock),
+      createApiKey: new CreateApiKeyHandler(apiKeys, apiKeyHasher, ids, events, clock),
       revokeApiKey: new RevokeApiKeyHandler(apiKeys, events, clock),
       listApiKeys: new ListApiKeysHandler(apiKeyReads),
     };

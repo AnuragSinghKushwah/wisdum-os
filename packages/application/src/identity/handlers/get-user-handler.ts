@@ -8,7 +8,7 @@ export class GetUserHandler implements QueryHandler<GetUserQuery, UserDto> {
   constructor(private readonly reads: UserReadModel) {}
 
   async execute(query: GetUserQuery): Promise<UserDto> {
-    const dto = await this.reads.findById(query.userId);
+    const dto = await this.reads.findById(query.tenantId, query.userId);
     if (dto === undefined) {
       throw new NotFoundError('User not found', { userId: query.userId });
     }

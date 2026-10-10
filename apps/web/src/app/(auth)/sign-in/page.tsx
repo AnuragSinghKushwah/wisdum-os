@@ -12,6 +12,15 @@ interface LoginResponse {
   readonly token: string;
 }
 
+/**
+ * Matches the account the API creates when it runs with `WISDUM_DEV_SEED=true`.
+ * The button is only rendered when the web app is built with
+ * `NEXT_PUBLIC_WISDUM_DEV_SEED=true`, and it signs in through the normal login
+ * endpoint like any other user.
+ */
+const DEV_SEED_ENABLED = process.env.NEXT_PUBLIC_WISDUM_DEV_SEED === 'true';
+const DEV_CREDENTIALS = { email: 'dev@wisdum.local', password: 'wisdum-dev-password' } as const;
+
 export default function SignInPage() {
   const router = useRouter();
   const { login } = useAuth();
@@ -20,22 +29,21 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function signIn(credentials: { email: string; password: string }) {
     setError(null);
     setIsSubmitting(true);
     try {
       // 1. Resolve tenant ID first by email
       const { tenantId } = await apiFetch<{ tenantId: string }>('/v1/auth/resolve-tenant', {
         method: 'POST',
-        body: { email },
+        body: { email: credentials.email },
       });
 
       // 2. Perform authentic login
       const result = await apiFetch<LoginResponse>('/v1/auth/login', {
         method: 'POST',
         tenantId,
-        body: { email, password },
+        body: credentials,
       });
       login({ token: result.token, userId: result.userId, tenantId });
       router.push('/dashboard');
@@ -44,6 +52,11 @@ export default function SignInPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void signIn({ email, password });
   }
 
   return (
@@ -78,20 +91,16 @@ export default function SignInPage() {
         >
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            login({
-              token: 'dev-token',
-              userId: '00000000-0000-4000-8000-000000000002',
-              tenantId: '00000000-0000-4000-8000-000000000001',
-            });
-            router.push('/dashboard');
-          }}
-          className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all cursor-pointer"
-        >
-          ⚡ Quick Dev Sign In
-        </button>
+        {DEV_SEED_ENABLED && (
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => void signIn(DEV_CREDENTIALS)}
+            className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all cursor-pointer disabled:opacity-50"
+          >
+            ⚡ Quick Dev Sign In
+          </button>
+        )}
       </form>
       <div className="flex flex-col gap-2 items-center text-sm">
         <Link href="/forgot-password" className="underline text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">

@@ -3,6 +3,9 @@ import OpenAI from 'openai';
 import { createPgPool, migrateUp } from '@wisdum/database';
 import { optionalEnv } from '@wisdum/config';
 import { SystemClock } from '@wisdum/domain';
+import { createLogger } from '@wisdum/logger';
+import { resolveJwtSecret } from '../../config/jwt-secret.js';
+import { resolveRuntimeEnvironment } from '../../config/runtime-environment.js';
 import {
   InMemoryEventBus,
   JwtTokenService,
@@ -141,7 +144,13 @@ export class CoreModule implements KernelModule {
     const pool = databaseUrl.length > 0 ? createPgPool({ url: databaseUrl }) : undefined;
     container.registerValue(PG_POOL, pool);
 
-    container.registerValue(TOKEN_SERVICE, new JwtTokenService(optionalEnv('JWT_SECRET', 'dev-secret-change-me')));
+    const jwt = resolveJwtSecret(process.env['JWT_SECRET'], resolveRuntimeEnvironment());
+    if (jwt.generated) {
+      createLogger('core').warn(
+        'JWT_SECRET is not set; signing tokens with a random per-process secret. Sessions will not survive a restart.',
+      );
+    }
+    container.registerValue(TOKEN_SERVICE, new JwtTokenService(jwt.secret));
 
     const llm = createLlmProvider();
     container.registerValue(LLM_PROVIDER, llm?.provider);

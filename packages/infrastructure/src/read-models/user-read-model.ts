@@ -7,9 +7,9 @@ import type { InMemoryUserRepository } from '../persistence/identity-repositorie
 export class InMemoryUserReadModel implements UserReadModel {
   constructor(private readonly repository: InMemoryUserRepository) {}
 
-  async findById(userId: string): Promise<UserDto | undefined> {
+  async findById(tenantId: TenantId, userId: string): Promise<UserDto | undefined> {
     const found = await this.repository.findById(UserId.create(userId));
-    return found.some ? toUserDto(found.value) : undefined;
+    return found.some && found.value.tenantId === tenantId ? toUserDto(found.value) : undefined;
   }
 
   listByTenant(tenantId: TenantId): Promise<readonly UserDto[]> {

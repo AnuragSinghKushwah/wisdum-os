@@ -96,11 +96,24 @@ function toFinishReason(finishReason: string): LlmFinishReason {
   return 'stop';
 }
 
+export interface OpenAiLlmProviderOptions {
+  /**
+   * Send the model id exactly as configured. By default everything up to the first `/` is dropped
+   * (`openai/gpt-4o-mini` becomes `gpt-4o-mini`), which would turn an OpenAI-compatible server's own
+   * `namespace/name` ids, such as `meta/llama-3.1-8b-instruct`, into names it does not know.
+   */
+  readonly verbatimModelIds?: boolean;
+}
+
 export class OpenAiLlmProvider implements LlmProvider {
-  constructor(private readonly client: OpenAiClientLike) {}
+  constructor(
+    private readonly client: OpenAiClientLike,
+    private readonly options: OpenAiLlmProviderOptions = {},
+  ) {}
 
   async complete(request: LlmCompletionRequest): Promise<LlmCompletionResult> {
-    const model = stripProviderPrefix(request.model);
+    const model =
+      this.options.verbatimModelIds === true ? request.model : stripProviderPrefix(request.model);
     const response = await this.client.chat.completions.create({
       model,
       messages: toOpenAiMessages(request.messages),

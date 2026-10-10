@@ -9,4 +9,4 @@ node tools/stub-llm/stub-llm.mjs                      # listens on :4010
 OPENAI_API_KEY=stub OPENAI_BASE_URL=http://localhost:4010/v1 npm run dev:api
 ```
 
-Use it to check wiring, permissions and the UI. Use a real provider key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` or `OLLAMA_HOST`) to judge the quality of the drafts.
+Use it to check wiring, permissions and the UI. Use a real provider key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `NVIDIA_API_KEY` or `OLLAMA_HOST`) to judge the quality of the drafts.

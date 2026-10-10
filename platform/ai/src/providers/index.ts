@@ -2,6 +2,7 @@ export * from './llm-provider.js';
 export * from './anthropic-llm-provider.js';
 export * from './openai-llm-provider.js';
 export * from './gemini-llm-provider.js';
+export * from './nvidia-nim-llm-provider.js';
 export * from './ollama-llm-provider.js';
 export * from './llm-provider-factory.js';
 export * from './embedding-provider.js';

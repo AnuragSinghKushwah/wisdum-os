@@ -19,6 +19,7 @@ import type { GenerateContentDraftCommand } from '../commands/generate-content-d
 import { buildDraftPrompt } from '../prompts/draft-prompt.js';
 import { cleanModelOutput } from '../services/clean-model-output.js';
 import type { SourceMaterialLoader } from '../services/source-material-loader.js';
+import { fitThread } from '../services/x-thread.js';
 
 /**
  * Room for a full first draft plus any thinking the model does first: some models spend part of
@@ -73,9 +74,14 @@ export class GenerateContentDraftHandler implements CommandHandler<
       }),
       { maxOutputTokens: DRAFT_MAX_OUTPUT_TOKENS, markTruncation: true },
     );
-    const bodyText = cleanModelOutput(rawBody);
+    let bodyText = cleanModelOutput(rawBody);
     if (bodyText.length === 0) {
       throw new Error('The model returned an empty draft. Try again.');
+    }
+    // X rejects a post over 280 characters and models write them anyway, so long posts are split in
+    // code. The offline demo model's canned sample text is left as it is.
+    if (opportunity.type.value === 'x_thread' && this.llm.isMock !== true) {
+      bodyText = fitThread(bodyText);
     }
 
     const draft = ContentDraft.create(

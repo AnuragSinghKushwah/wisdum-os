@@ -225,11 +225,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             role="status"
             className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
           >
-            <strong>Demo mode.</strong> No AI provider is configured, so opportunities and drafts shown
-            by automatic reasoning are sample text, not based on your sources, and “Create content from
-            this source” is disabled. Set <code>ANTHROPIC_API_KEY</code>, <code>OPENAI_API_KEY</code>,{' '}
-            <code>GEMINI_API_KEY</code> or <code>OLLAMA_HOST</code> in <code>.env</code> and restart the
-            API.
+            <strong>Demo mode.</strong> No AI provider is configured, so opportunities and drafts
+            shown by automatic reasoning are sample text, not based on your sources, and “Create
+            content from this source” is disabled. Set <code>ANTHROPIC_API_KEY</code>,{' '}
+            <code>OPENAI_API_KEY</code>, <code>GEMINI_API_KEY</code>, <code>NVIDIA_API_KEY</code> or{' '}
+            <code>OLLAMA_HOST</code> in <code>.env</code> and restart the API.
           </div>
         )}
         {children}

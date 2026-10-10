@@ -26,6 +26,8 @@ export default defineConfig({
         OPENAI_API_KEY: '',
         GEMINI_API_KEY: '',
         GOOGLE_API_KEY: '',
+        NVIDIA_API_KEY: '',
+        NVIDIA_BASE_URL: '',
         OLLAMA_HOST: '',
       },
       url: 'http://localhost:3001/health',

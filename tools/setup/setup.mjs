@@ -40,6 +40,8 @@ export function aiProviderIn(text) {
     ['OPENAI_API_KEY', 'OpenAI'],
     ['GEMINI_API_KEY', 'Gemini'],
     ['GOOGLE_API_KEY', 'Gemini'],
+    ['NVIDIA_API_KEY', 'NVIDIA NIM'],
+    ['NVIDIA_BASE_URL', 'NVIDIA NIM'],
     ['OLLAMA_HOST', 'Ollama (local)'],
   ];
   for (const [name, label] of order) {
@@ -48,13 +50,17 @@ export function aiProviderIn(text) {
   return undefined;
 }
 
-export function geminiNeedsModel(text) {
-  const usesGemini =
-    (readValue(text, 'GEMINI_API_KEY') ?? readValue(text, 'GOOGLE_API_KEY') ?? '').length > 0;
-  const earlier = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY'].some(
-    (name) => (readValue(text, name) ?? '').length > 0,
-  );
-  return usesGemini && !earlier && (readValue(text, 'REASONING_LLM_MODEL') ?? '').length === 0;
+/** Providers whose models are retired on a schedule, so the app has no built-in model for them. */
+const RETIRES_MODELS = {
+  Gemini: 'Google retires models on a schedule',
+  'NVIDIA NIM': 'NVIDIA retires models from its hosted catalog',
+};
+
+/** The provider that will be used, when it needs REASONING_LLM_MODEL set and that is empty. */
+export function providerNeedingModel(text) {
+  const provider = aiProviderIn(text);
+  if (provider === undefined || !(provider in RETIRES_MODELS)) return undefined;
+  return (readValue(text, 'REASONING_LLM_MODEL') ?? '').length === 0 ? provider : undefined;
 }
 
 function main() {
@@ -73,12 +79,13 @@ function main() {
   const provider = aiProviderIn(text);
   if (provider) {
     console.log(`AI provider: ${provider}`);
-    if (geminiNeedsModel(text)) {
+    const needsModel = providerNeedingModel(text);
+    if (needsModel !== undefined) {
       console.log(
-        'Gemini also needs REASONING_LLM_MODEL set to a model your key can use (Google retires models on a',
+        `${needsModel} also needs REASONING_LLM_MODEL set to a model your key can use (${RETIRES_MODELS[needsModel]},`,
       );
       console.log(
-        'schedule, so there is no built-in default). If it is wrong, the app lists the models your key can use.',
+        'so there is no built-in default). If it is wrong, the app lists the models your key can use.',
       );
     }
     console.log(
@@ -86,7 +93,7 @@ function main() {
     );
   } else {
     console.log(
-      'AI provider: none yet. Add ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY or OLLAMA_HOST',
+      'AI provider: none yet. Add ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, NVIDIA_API_KEY or OLLAMA_HOST',
     );
     console.log(`to ${envPath} to write real drafts. Without one the app runs in demo mode.`);
   }

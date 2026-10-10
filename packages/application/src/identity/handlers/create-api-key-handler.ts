@@ -1,7 +1,8 @@
-import { ApiKey, ApiKeyId, PasswordHash, PermissionName } from '@wisdum/domain';
+import { ApiKey, ApiKeyId, PasswordHash, PermissionName, PermissionSet } from '@wisdum/domain';
 import type { ApiKeyRepository, Clock } from '@wisdum/domain';
 import { ValidationError } from '@wisdum/errors';
 import type { CommandHandler } from '../../shared/messages.js';
+import { AuthorizationError } from '../../shared/errors.js';
 import type { DomainEventPublisher, IdGenerator } from '../../shared/ports.js';
 import type { ApiKeyHasher } from '../ports/api-key-hasher.js';
 import type { CreateApiKeyCommand } from '../commands/create-api-key-command.js';
@@ -35,6 +36,13 @@ export class CreateApiKeyHandler implements CommandHandler<CreateApiKeyCommand, 
       distinct.set(permission.value, permission);
     }
     const scopes = [...distinct.values()];
+
+    const requested = PermissionSet.of(scopes.map((scope) => scope.value));
+    if (!PermissionSet.of(command.grantorPermissions).includesAll(requested)) {
+      throw new AuthorizationError('An API key cannot carry permissions you do not hold', {
+        scopes: scopes.map((scope) => scope.value),
+      });
+    }
 
     const rawSecret = `${API_KEY_PREFIX}${randomBytes(24).toString('hex')}`;
     const keyHash = PasswordHash.create(this.hasher.hash(rawSecret));

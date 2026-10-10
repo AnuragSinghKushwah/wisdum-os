@@ -7,7 +7,7 @@ import {
   createApiKeyCommand,
   revokeApiKeyCommand,
 } from '@wisdum/application';
-import type { TokenService, IdGenerator } from '@wisdum/application';
+import type { AccessPolicy, TokenService, IdGenerator } from '@wisdum/application';
 import type { PgPool } from '@wisdum/database';
 import type { Clock } from '@wisdum/domain';
 import type { UUID } from '@wisdum/types';
@@ -60,6 +60,7 @@ export interface IdentityRouteDependencies {
   readonly tokens: TokenService;
   readonly ids: IdGenerator;
   readonly clock: Clock;
+  readonly access: AccessPolicy;
   readonly signupPolicy: SignupPolicy;
   /** Absent when the API runs against in-memory repositories. */
   readonly pool?: PgPool;
@@ -76,7 +77,7 @@ const PUBLIC = { public: true } as const;
 const FALLBACK_TENANT_ID = '00000000-0000-4000-8000-000000000001';
 
 export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityRouteDependencies): void {
-  const { handlers, tokens, ids, clock, signupPolicy, pool } = deps;
+  const { handlers, tokens, ids, clock, access, signupPolicy, pool } = deps;
 
   app.post('/v1/users', { schema: { body: createUserBodySchema } }, async (request, reply) => {
     const tenantId = requireTenantId(request);
@@ -96,12 +97,23 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityRoute
     async (request) => {
       const { id } = request.params as { id: string };
       const { roleId } = request.body as AssignRoleBody;
+      const principal = requirePrincipal(request);
       await handlers.assignRole.execute(
-        assignRoleCommand({ tenantId: requireTenantId(request), userId: id, roleId }),
+        assignRoleCommand({
+          tenantId: principal.tenantId,
+          userId: id,
+          roleId,
+          grantorPermissions: principal.permissions.toArray(),
+        }),
       );
       return { status: 'assigned' };
     },
   );
+
+  app.get('/v1/identity/roles', async (request) => {
+    const principal = requirePrincipal(request);
+    return access.listSystemRoles(principal.tenantId);
+  });
 
   app.post(
     '/v1/auth/login',
@@ -151,7 +163,7 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityRoute
       await signupPolicy.assertAllowed();
 
       const provisioned = await provisionTenant(
-        { handlers, ids, clock, pool },
+        { handlers, ids, clock, access, pool },
         request.body as OnboardingBody,
       );
       signupPolicy.recordTenantCreated();
@@ -159,7 +171,7 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityRoute
       const token = await tokens.issue({
         userId: provisioned.userId,
         tenantId: provisioned.tenantId,
-        roleIds: [],
+        roleIds: provisioned.roleIds,
       });
       return reply
         .status(201)
@@ -184,6 +196,7 @@ export function registerIdentityRoutes(app: FastifyInstance, deps: IdentityRoute
           ownerId: principal.userId as UUID,
           label,
           scopes,
+          grantorPermissions: principal.permissions.toArray(),
         }),
       );
       await reply.status(201).send(result);

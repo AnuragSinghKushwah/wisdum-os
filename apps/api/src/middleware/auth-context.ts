@@ -1,7 +1,14 @@
-import { API_KEY_PREFIX, AuthenticationError, authenticateApiKeyQuery } from '@wisdum/application';
-import type { AuthenticateApiKeyHandler, TokenService } from '@wisdum/application';
+import {
+  API_KEY_PREFIX,
+  AuthenticationError,
+  AuthorizationError,
+  authenticateApiKeyQuery,
+} from '@wisdum/application';
+import type { AccessPolicy, AuthenticateApiKeyHandler, TokenService } from '@wisdum/application';
+import { PermissionSet } from '@wisdum/domain';
 import type { TenantId } from '@wisdum/types';
 import type { FastifyRequest } from 'fastify';
+import type { RoutePolicy } from '../security/route-permissions.js';
 
 /** Who is making a request, as established by a verified credential. */
 export interface AuthPrincipal {
@@ -13,6 +20,8 @@ export interface AuthPrincipal {
   readonly roleIds: readonly string[];
   /** Permissions an API key was minted with; empty for a user session. */
   readonly scopes: readonly string[];
+  /** Everything this caller may do: the permissions of their roles, or an API key's scopes. */
+  readonly permissions: PermissionSet;
 }
 
 declare module 'fastify' {
@@ -28,6 +37,8 @@ declare module 'fastify' {
 export interface AuthHookDependencies {
   readonly tokens: TokenService;
   readonly apiKeys: AuthenticateApiKeyHandler;
+  readonly access: AccessPolicy;
+  readonly routePolicy: RoutePolicy;
 }
 
 const BEARER_PATTERN = /^Bearer\s+(\S+)$/i;
@@ -71,6 +82,7 @@ async function authenticate(
       tenantId: key.tenantId as TenantId,
       roleIds: [],
       scopes: key.scopes,
+      permissions: PermissionSet.of(key.scopes),
     };
   }
 
@@ -84,12 +96,33 @@ async function authenticate(
     tenantId: payload.tenantId as TenantId,
     roleIds: payload.roleIds,
     scopes: [],
+    permissions: deps.access.permissionsForRoles(payload.tenantId as TenantId, payload.roleIds),
   };
 }
 
+/** Refuses the request unless the principal holds everything the route's policy requires. */
+function authorize(request: FastifyRequest, principal: AuthPrincipal, policy: RoutePolicy): void {
+  const route = request.routeOptions.url ?? request.url;
+  const required = policy.requirementsFor(request.method, route);
+  if (required === undefined) {
+    // Fail closed: an endpoint nobody wrote a policy for is not served.
+    throw new AuthorizationError('This endpoint has no access policy', {
+      method: request.method,
+      route,
+    });
+  }
+  const missing = required.filter((permission) => !principal.permissions.allows(permission));
+  if (missing.length > 0) {
+    throw new AuthorizationError('You do not have permission to perform this action', {
+      required: missing,
+    });
+  }
+}
+
 /**
- * Authenticates every request before routing proceeds: a request needs a
- * valid bearer token or API key unless its route opts out with
+ * Authenticates and authorizes every request before routing proceeds. A
+ * request needs a valid bearer token or API key, and that caller must hold the
+ * permissions the route's policy requires, unless the route opts out with
  * `config: { public: true }`. Public routes are never given a principal, so
  * nothing on them can depend on a credential the caller happened to send.
  * Preflight and unmatched requests pass through untouched.
@@ -99,7 +132,9 @@ export function createAuthHook(deps: AuthHookDependencies) {
     if (request.method === 'OPTIONS' || request.is404 || isPublicRoute(request)) {
       return;
     }
-    request.principal = await authenticate(request, deps);
+    const principal = await authenticate(request, deps);
+    request.principal = principal;
+    authorize(request, principal, deps.routePolicy);
   };
 }
 

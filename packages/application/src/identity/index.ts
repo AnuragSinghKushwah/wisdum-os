@@ -22,3 +22,4 @@ export * from './handlers/create-api-key-handler.js';
 export * from './handlers/revoke-api-key-handler.js';
 export * from './handlers/list-api-keys-handler.js';
 export * from './handlers/authenticate-api-key-handler.js';
+export * from './access/access-policy.js';

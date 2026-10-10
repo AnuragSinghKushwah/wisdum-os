@@ -22,3 +22,6 @@ export * from './entities/api-key.js';
 export * from './entities/service-account.js';
 export * from './repositories/identity-repositories.js';
 export * from './specifications/identity-specifications.js';
+export * from './access/permission-catalog.js';
+export * from './access/permission-set.js';
+export * from './access/system-roles.js';

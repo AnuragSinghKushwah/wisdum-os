@@ -1,4 +1,10 @@
-import { ConflictError, createUserCommand } from '@wisdum/application';
+import {
+  AuthenticationError,
+  ConflictError,
+  assignRoleCommand,
+  authenticateUserCommand,
+  createUserCommand,
+} from '@wisdum/application';
 import type { Environment } from '@wisdum/config';
 import { ConfigurationError } from '@wisdum/errors';
 import type { TenantId } from '@wisdum/types';
@@ -65,4 +71,33 @@ export async function seedDevelopmentData(deps: DevSeedDeps): Promise<void> {
       throw error;
     }
   }
+
+  // The tenant predates the seed (or the seed ran before roles existed): make sure the
+  // development user can actually do something in it.
+  let userId: string;
+  try {
+    ({ userId } = await deps.handlers.authenticate.execute(
+      authenticateUserCommand({
+        tenantId: DEV_SEED.tenantId,
+        email: DEV_SEED.email,
+        password: DEV_SEED.password,
+      }),
+    ));
+  } catch (error) {
+    if (error instanceof AuthenticationError) {
+      throw new ConfigurationError(
+        `${DEV_SEED.email} already exists with a different password. Remove that user or unset WISDUM_DEV_SEED.`,
+        { variable: 'WISDUM_DEV_SEED' },
+      );
+    }
+    throw error;
+  }
+  await deps.handlers.assignRole.execute(
+    assignRoleCommand({
+      tenantId: DEV_SEED.tenantId,
+      userId,
+      roleId: deps.access.systemRoleId(DEV_SEED.tenantId, 'owner'),
+      grantorPermissions: deps.access.permissionsOfSystemRole('owner').toArray(),
+    }),
+  );
 }

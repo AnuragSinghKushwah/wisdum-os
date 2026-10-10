@@ -23,6 +23,7 @@ import type {
   AppendMessageHandler,
   AddWorkspaceMemberHandler,
   AttachWorkspaceHandler,
+  AccessPolicy,
   AuthenticateApiKeyHandler,
   AuthenticateUserHandler,
   CreateDocumentHandler,
@@ -152,6 +153,7 @@ export interface IdentityHandlers {
 }
 export const IDENTITY_HANDLERS = createToken<IdentityHandlers>('api.identity-handlers');
 export const API_KEY_READ_MODEL = createToken<ApiKeyReadModel>('api.api-key-read-model');
+export const ACCESS_POLICY = createToken<AccessPolicy>('api.access-policy');
 
 export interface WorkspaceHandlers {
   readonly create: CreateWorkspaceHandler;

@@ -13,6 +13,8 @@ import { API_KEY_PREFIX, CreateApiKeyHandler } from './create-api-key-handler.js
 const TENANT_ID = '11111111-1111-4111-8111-111111111111' as TenantId;
 const OWNER_ID = '22222222-2222-4222-8222-222222222222' as UUID;
 const KEY_ID = '33333333-3333-4333-8333-333333333333' as UUID;
+/** What the person minting keys in these tests holds. */
+const GRANTOR = ['knowledge:*', 'document:*'];
 
 const NOW = '2024-01-01T00:00:00.000Z' as IsoTimestamp;
 const clock: Clock = { now: () => NOW };
@@ -63,6 +65,7 @@ describe('CreateApiKeyHandler', () => {
         ownerId: OWNER_ID,
         label: 'ci',
         scopes: ['knowledge:write'],
+        grantorPermissions: GRANTOR,
       }),
     );
 
@@ -77,7 +80,13 @@ describe('CreateApiKeyHandler', () => {
     const { create } = setup();
     await expect(
       create.execute(
-        createApiKeyCommand({ tenantId: TENANT_ID, ownerId: OWNER_ID, label: 'x', scopes: [] }),
+        createApiKeyCommand({
+          tenantId: TENANT_ID,
+          ownerId: OWNER_ID,
+          label: 'x',
+          scopes: [],
+          grantorPermissions: GRANTOR,
+        }),
       ),
     ).rejects.toThrow('at least one scope');
   });
@@ -91,9 +100,28 @@ describe('CreateApiKeyHandler', () => {
           ownerId: OWNER_ID,
           label: 'x',
           scopes: ['not a permission'],
+          grantorPermissions: GRANTOR,
         }),
       ),
     ).rejects.toThrow();
+  });
+
+  it('refuses to mint a key that carries more than its creator holds', async () => {
+    const { repository, create } = setup();
+    const attempt = (scopes: string[], grantorPermissions: string[]) =>
+      create.execute(
+        createApiKeyCommand({ tenantId: TENANT_ID, ownerId: OWNER_ID, label: 'x', scopes, grantorPermissions }),
+      );
+
+    await expect(attempt(['user:manage'], ['knowledge:*'])).rejects.toThrow('do not hold');
+    await expect(attempt(['knowledge:write'], ['knowledge:read'])).rejects.toThrow('do not hold');
+    // Holding some actions on a resource is not holding the wildcard.
+    await expect(attempt(['knowledge:*'], ['knowledge:read', 'knowledge:write'])).rejects.toThrow(
+      'do not hold',
+    );
+    expect(repository.saved).toHaveLength(0);
+
+    await expect(attempt(['knowledge:write'], ['knowledge:*'])).resolves.toBeDefined();
   });
 
   it('collapses duplicate scopes', async () => {
@@ -104,6 +132,7 @@ describe('CreateApiKeyHandler', () => {
         ownerId: OWNER_ID,
         label: 'x',
         scopes: ['knowledge:read', 'Knowledge:Read', 'document:read'],
+        grantorPermissions: GRANTOR,
       }),
     );
     expect(repository.saved[0]?.scopes.map((scope) => scope.value)).toEqual([
@@ -122,6 +151,7 @@ describe('AuthenticateApiKeyHandler', () => {
         ownerId: OWNER_ID,
         label: 'ci',
         scopes: ['knowledge:write', 'document:read'],
+        grantorPermissions: GRANTOR,
       }),
     );
 
@@ -167,6 +197,7 @@ describe('AuthenticateApiKeyHandler', () => {
         ownerId: OWNER_ID,
         label: 'ci',
         scopes: ['knowledge:read'],
+        grantorPermissions: GRANTOR,
       }),
     );
     repository.saved[0]?.revoke(clock);

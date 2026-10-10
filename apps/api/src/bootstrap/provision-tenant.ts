@@ -1,5 +1,5 @@
-import { ConflictError, createUserCommand } from '@wisdum/application';
-import type { IdGenerator } from '@wisdum/application';
+import { ConflictError, assignRoleCommand, createUserCommand } from '@wisdum/application';
+import type { AccessPolicy, IdGenerator } from '@wisdum/application';
 import type { PgPool } from '@wisdum/database';
 import type { Clock } from '@wisdum/domain';
 import type { TenantId } from '@wisdum/types';
@@ -9,6 +9,7 @@ export interface ProvisionTenantDeps {
   readonly handlers: IdentityHandlers;
   readonly ids: IdGenerator;
   readonly clock: Clock;
+  readonly access: AccessPolicy;
   /** Absent when the API runs against in-memory repositories. */
   readonly pool?: PgPool;
 }
@@ -28,6 +29,8 @@ export interface ProvisionedTenant {
   readonly organizationId: string;
   readonly workspaceId: string;
   readonly userId: string;
+  /** The roles the first user was given: the tenant's owner role. */
+  readonly roleIds: readonly string[];
 }
 
 const UNIQUE_VIOLATION = '23505';
@@ -37,7 +40,8 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 /**
- * Creates a tenant with its organization, default workspace, and first user.
+ * Creates a tenant with its organization, default workspace, and first user,
+ * who becomes the tenant's owner.
  *
  * The steps are not wrapped in one transaction (the user is written through
  * its own repository), so a failure after the tenant row leaves a partial
@@ -47,7 +51,7 @@ export async function provisionTenant(
   deps: ProvisionTenantDeps,
   input: ProvisionTenantInput,
 ): Promise<ProvisionedTenant> {
-  const { handlers, ids, clock, pool } = deps;
+  const { handlers, ids, clock, access, pool } = deps;
   const tenantId = input.tenantId ?? ((ids.nextId() as string) as TenantId);
   const organizationId = ids.nextId();
   const workspaceId = ids.nextId();
@@ -98,5 +102,16 @@ export async function provisionTenant(
     );
   }
 
-  return { tenantId, organizationId, workspaceId, userId };
+  const ownerRoleId = access.systemRoleId(tenantId, 'owner');
+  await handlers.assignRole.execute(
+    assignRoleCommand({
+      tenantId,
+      userId,
+      roleId: ownerRoleId,
+      // The system itself makes the first user an owner, so it acts with everything the role grants.
+      grantorPermissions: access.permissionsOfSystemRole('owner').toArray(),
+    }),
+  );
+
+  return { tenantId, organizationId, workspaceId, userId, roleIds: [ownerRoleId] };
 }

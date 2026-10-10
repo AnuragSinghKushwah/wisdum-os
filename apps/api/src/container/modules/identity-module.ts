@@ -1,4 +1,5 @@
 import {
+  AccessPolicy,
   AssignRoleHandler,
   AuthenticateApiKeyHandler,
   AuthenticateUserHandler,
@@ -25,6 +26,7 @@ import {
 } from '@wisdum/infrastructure';
 import type { Container, KernelModule } from '@wisdum/kernel';
 import {
+  ACCESS_POLICY,
   CLOCK,
   EVENT_BUS,
   ID_GENERATOR,
@@ -66,10 +68,11 @@ export class IdentityModule implements KernelModule {
     const clock = container.resolve(CLOCK);
     const ids = container.resolve(ID_GENERATOR);
     const tokens = container.resolve(TOKEN_SERVICE);
+    const access = new AccessPolicy();
 
     const handlers: IdentityHandlers = {
       createUser: new CreateUserHandler(repository, ids, hasher, events, clock),
-      assignRole: new AssignRoleHandler(repository, events, clock),
+      assignRole: new AssignRoleHandler(repository, access, events, clock),
       getUser: new GetUserHandler(readModel),
       authenticate: new AuthenticateUserHandler(repository, hasher, tokens),
       authenticateApiKey: new AuthenticateApiKeyHandler(apiKeys, apiKeyHasher, clock),
@@ -79,5 +82,6 @@ export class IdentityModule implements KernelModule {
     };
     container.registerValue(IDENTITY_HANDLERS, handlers);
     container.registerValue(API_KEY_READ_MODEL, apiKeyReads);
+    container.registerValue(ACCESS_POLICY, access);
   }
 }

@@ -58,6 +58,7 @@ import {
   GRAPH_HANDLERS,
   CAPTURE_HANDLERS,
   EVENT_BUS,
+  LLM_STATUS,
 } from './container/tokens.js';
 import type { LlmSelection } from './container/modules/core-module.js';
 import { seedDevelopmentData } from './bootstrap/dev-seed.js';
@@ -82,6 +83,7 @@ import {
   registerWebhookRoutes,
   registerEventStreamRoutes,
   registerHealthRoutes,
+  registerSystemRoutes,
 } from './routes/index.js';
 
 
@@ -239,6 +241,7 @@ export async function buildServer(options: { readonly llm?: LlmSelection } = {})
   registerWebhookRoutes(app, kernel.container.resolve(CAPTURE_HANDLERS));
   registerEventStreamRoutes(app, kernel.container.resolve(EVENT_BUS));
   registerHealthRoutes(app);
+  registerSystemRoutes(app, kernel.container.resolve(LLM_STATUS));
 
   return { app, kernel, routes };
 }

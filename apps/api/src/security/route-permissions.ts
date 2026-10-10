@@ -77,6 +77,7 @@ export const ROUTE_PERMISSIONS: Readonly<Record<string, Requirement>> = {
   'POST /v1/opportunities/:id/dismiss': 'opportunity:write',
   'POST /v1/opportunities/:id/draft': 'draft:write',
   'POST /v1/knowledge/:id/generate': ['knowledge:read', 'opportunity:write', 'draft:write'],
+  'GET /v1/system/capabilities': 'dashboard:read',
 
   // Organizations
   'POST /v1/organizations': 'organization:write',

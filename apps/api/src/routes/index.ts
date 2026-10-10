@@ -13,6 +13,7 @@ export * from './graph-routes.js';
 export * from './webhook-routes.js';
 export * from './event-routes.js';
 export * from './health-routes.js';
+export * from './system-routes.js';
 
 
 

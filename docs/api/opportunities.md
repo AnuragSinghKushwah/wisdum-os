@@ -86,9 +86,11 @@ Each platform succeeds or fails on its own. An opportunity whose draft failed st
   "results": [
     { "platform": "linkedin_post", "opportunityId": "…", "draftId": "…" },
     { "platform": "newsletter", "opportunityId": "…", "error": "model overloaded" }
-  ]
+  ],
+  "sourceTruncated": false
 }
 ```
+`sourceTruncated` is `true` when the asset is longer than the source budget (60,000 characters by default; set `WISDUM_SOURCE_BUDGET_CHARS` to change it), so the drafts were written from its first part only.
 
 ### Errors
 | Status | Code | When |

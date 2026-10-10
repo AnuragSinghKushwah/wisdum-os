@@ -55,5 +55,6 @@ Bug fixes, refactors within a domain, and additive features that follow existing
 | [0018](0018-usable-local-deployment-and-honest-output.md) | A usable local deployment, and output that is never made up | Accepted |
 | [0019](0019-verify-the-ai-provider-and-size-output-for-thinking-models.md) | Verify the AI provider at start-up, and size output for thinking models | Accepted |
 | [0020](0020-nvidia-nim-as-an-ai-provider.md) | NVIDIA NIM as an AI provider | Accepted |
+| [0021](0021-enforce-platform-limits-in-code.md) | Enforce platform limits in code, not by asking the model | Accepted |
 
 ADRs 0008 to 0015 were written retroactively on 2026-10-07 to record decisions that had already been implemented. They describe the code as it is, including gaps; each says so in its header. Keep this index up to date when adding ADRs.

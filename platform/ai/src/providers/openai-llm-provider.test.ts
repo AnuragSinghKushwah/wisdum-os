@@ -111,4 +111,42 @@ describe('OpenAiLlmProvider', () => {
       provider.complete({ model: 'openai/gpt-5', messages: [{ role: 'user', content: 'hi' }] }),
     ).rejects.toThrow(/no choices/);
   });
+
+  describe('the output limit parameter', () => {
+    async function paramsFor(model: string): Promise<OpenAiCreateParams | undefined> {
+      let seen: OpenAiCreateParams | undefined;
+      const provider = new OpenAiLlmProvider(
+        fakeClient((params) => {
+          seen = params;
+          return { choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }] };
+        }),
+      );
+      await provider.complete({
+        model,
+        messages: [{ role: 'user', content: 'Hello' }],
+        maxOutputTokens: 777,
+      });
+      return seen;
+    }
+
+    it.each(['openai/gpt-5', 'gpt-5.4-mini', 'openai/o3', 'o4-mini'])(
+      'uses max_completion_tokens for %s, which rejects max_tokens',
+      async (model) => {
+        const seen = await paramsFor(model);
+
+        expect(seen?.max_completion_tokens).toBe(777);
+        expect(seen).not.toHaveProperty('max_tokens');
+      },
+    );
+
+    it.each(['openai/gpt-4o-mini', 'gpt-4.1', 'llama3'])(
+      'uses max_tokens for %s',
+      async (model) => {
+        const seen = await paramsFor(model);
+
+        expect(seen?.max_tokens).toBe(777);
+        expect(seen).not.toHaveProperty('max_completion_tokens');
+      },
+    );
+  });
 });

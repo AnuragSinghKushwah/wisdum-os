@@ -46,9 +46,10 @@ Bug fixes, refactors within a domain, and additive features that follow existing
 | [0009](0009-postgresql-persistence-without-an-orm.md) | PostgreSQL persistence without an ORM | Accepted |
 | [0010](0010-search-postgresql-full-text-and-pgvector.md) | Search on PostgreSQL full-text and pgvector | Accepted |
 | [0011](0011-event-delivery-in-process-and-redis-pub-sub.md) | Event delivery: in-process and Redis Pub/Sub buses | Accepted |
-| [0012](0012-http-api-fastify-bearer-auth-and-tenant-resolution.md) | HTTP API: Fastify, bearer tokens, and tenant resolution | Accepted, with known deficiencies |
+| [0012](0012-http-api-fastify-bearer-auth-and-tenant-resolution.md) | HTTP API: Fastify, bearer tokens, and tenant resolution | Accepted; deficiencies mostly resolved by 0016 |
 | [0013](0013-plugin-system-sdk-runtime-and-sandbox.md) | Plugin system: SDK, runtime, and sandbox | Accepted (partially implemented) |
 | [0014](0014-ai-provider-abstraction.md) | AI provider abstraction | Accepted |
 | [0015](0015-blob-storage-abstraction.md) | Blob storage abstraction | Accepted |
+| [0016](0016-authentication-authorization-and-tenant-isolation.md) | Authentication, authorization, and tenant isolation | Accepted |
 
 ADRs 0008 to 0015 were written retroactively on 2026-10-07 to record decisions that had already been implemented. They describe the code as it is, including gaps; each says so in its header. Keep this index up to date when adding ADRs.

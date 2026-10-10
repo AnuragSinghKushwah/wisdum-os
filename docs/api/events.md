@@ -15,7 +15,7 @@ Opens a persistent HTTP connection streaming JSON event frames.
 ### Example Request
 ```bash
 curl -N http://localhost:3000/v1/events/stream \
-  -H "x-tenant-id: 00000000-0000-4000-8000-000000000001"
+  -H "authorization: Bearer $WISDUM_TOKEN"
 ```
 
 ### Event Stream Frame Payload

@@ -23,6 +23,19 @@ All Wisdum APIs must:
 6. **Paginate list endpoints** — cursor-based pagination (`cursor`, `limit`) with a `next_cursor` in responses.
 7. **Support filtering** where applicable, via query parameters.
 8. **Be tenant-scoped** — tenancy is resolved from authentication context, never from client-supplied identifiers.
+9. **Be authenticated and authorized by default** — every endpoint needs a credential and a permission unless it is explicitly public. See [Authentication](#authentication-and-authorization).
+
+## Authentication and authorization
+
+Send `Authorization: Bearer <token>` (a session token from `POST /v1/auth/login`) or an API key (`x-api-key: w_sk_…`) on every request. The tenant comes from the credential. Failures use the error body above:
+
+| Status | `error.code` | Meaning |
+| --- | --- | --- |
+| `401` | `authentication_error` | Missing, invalid, expired, or revoked credential |
+| `403` | `authorization_error` | Valid credential without the required permission (`error.details.required` says which) |
+| `404` | `not_found` | No such resource in your tenant; other tenants' resources look the same |
+
+Roles, permissions, API keys, and sign-up are documented in the [Identity API](identity.md), and the reasoning is in [ADR 0016](../adr/0016-authentication-authorization-and-tenant-isolation.md).
 
 ## Events as API
 

@@ -16,7 +16,7 @@ Performs search over tenant documents and knowledge assets.
 ### Example Request
 ```bash
 curl -X GET "http://localhost:3000/v1/search?q=vector+architecture&mode=hybrid" \
-  -H "x-tenant-id: 00000000-0000-4000-8000-000000000001"
+  -H "authorization: Bearer $WISDUM_TOKEN"
 ```
 
 ### Response Schema (`200 OK`)

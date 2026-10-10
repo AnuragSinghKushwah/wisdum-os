@@ -23,7 +23,7 @@
 - SQL is explicit and reviewable, and aggregates stay free of persistence annotations.
 - Each aggregate needs hand-written mapping between row, snapshot, and aggregate. Drift between SQL, row types, and snapshots is caught only by tests.
 - **Rollback is untested.** Every up migration has a down script, but `migrateDown` is not called by any automated test, contrary to the project rule that rollback scripts are tested before merge. This gap should be closed with a migrate-up/migrate-down round-trip test.
-- **Tenant isolation is by convention.** Nothing in the database enforces the `tenant_id` filter; a repository that omits it would leak across tenants. The two search storage tables, `search_provider_documents` and `vector_records`, have no tenant column at all, so isolation there depends on index names such as `knowledge:<tenantId>`. Row-level security is a possible hardening step.
+- **Tenant isolation is by convention.** Nothing in the database enforces the `tenant_id` filter; a repository that omits it would leak across tenants. Because repositories look aggregates up by id alone, every handler that loads one must also compare its `tenantId` with the caller's; many did not, and [ADR 0016](0016-authentication-authorization-and-tenant-isolation.md) closes that and adds `tenant-isolation.test.ts` to keep it closed. The two search storage tables, `search_provider_documents` and `vector_records`, have no tenant column at all, so isolation there depends on index names such as `knowledge:<tenantId>`. Row-level security is a possible hardening step.
 - A migration that fails or runs long blocks API startup on every replica.
 
 ## Alternatives considered

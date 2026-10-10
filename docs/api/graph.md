@@ -9,7 +9,7 @@ Retrieves concept nodes extracted from document assets.
 ### Example Request
 ```bash
 curl -X GET http://localhost:3000/v1/graph/concepts \
-  -H "x-tenant-id: 00000000-0000-4000-8000-000000000001"
+  -H "authorization: Bearer $WISDUM_TOKEN"
 ```
 
 ### Response Schema (`200 OK`)
@@ -33,7 +33,7 @@ Retrieves graph relationship edges connecting co-occurring concepts.
 ### Example Request
 ```bash
 curl -X GET http://localhost:3000/v1/graph/relationships \
-  -H "x-tenant-id: 00000000-0000-4000-8000-000000000001"
+  -H "authorization: Bearer $WISDUM_TOKEN"
 ```
 
 ### Response Schema (`200 OK`)

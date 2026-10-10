@@ -1,6 +1,6 @@
 # Webhook Ingestion API
 
-This specification documents public endpoints for ingesting knowledge assets into Wisdum from external applications, scripts, integrations, or crawlers (Product Bible §5 & §6).
+This specification documents the endpoints for ingesting knowledge assets into Wisdum from external applications, scripts, integrations, or crawlers (Product Bible §5 & §6). Callers authenticate with an API key; see [Identity](identity.md#7-api-keys).
 
 ## 1. Unified Webhook Ingestion Endpoint (`POST /v1/webhooks/ingest`)
 
@@ -14,8 +14,11 @@ This specification documents public endpoints for ingesting knowledge assets int
 | Header | Type | Required | Description |
 | --- | --- | --- | --- |
 | `Content-Type` | `string` | **Yes** | Must be `application/json` |
-| `x-api-key` | `string` | **Yes** | Security token matching `WISDUM_API_KEY` (defaults to `dev-webhook-key`). |
-| `x-tenant-id` | `string` | **Yes** | Tenant ID (e.g. `tenant-123`). |
+| `x-api-key` | `string` | **Yes** | An API key with the `capture:ingest` scope (`w_sk_…`). You can send it as `authorization: Bearer w_sk_…` instead. |
+
+The key decides which tenant the content lands in; there is no tenant header. Create a key with
+`POST /v1/identity/api-keys` and `"scopes": ["capture:ingest"]`. A key without that scope gets `403`, and a missing,
+revoked, or wrong key gets `401`.
 
 ### Request Body
 
@@ -50,8 +53,7 @@ This specification documents public endpoints for ingesting knowledge assets int
 ```bash
 curl -X POST http://localhost:3001/v1/webhooks/ingest \
   -H "content-type: application/json" \
-  -H "x-api-key: dev-webhook-key" \
-  -H "x-tenant-id: tenant-123" \
+  -H "x-api-key: $WISDUM_INGEST_KEY" \
   -d '{
     "source": "github",
     "title": "Release Notes v2.7",

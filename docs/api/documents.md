@@ -9,7 +9,7 @@ Uploads or registers a new document for processing into the knowledge pipeline.
 ### Request Headers
 | Header | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `x-tenant-id` | `string (UUID)` | **Yes** | Tenant boundary context |
+| `authorization` | `string` | **Yes** | `Bearer <token>` from [`POST /v1/auth/login`](identity.md), or an API key. The tenant comes from it. |
 | `Content-Type` | `string` | **Yes** | `application/json` |
 
 ### Request Body
@@ -22,7 +22,7 @@ Uploads or registers a new document for processing into the knowledge pipeline.
 ### Example Request
 ```bash
 curl -X POST http://localhost:3000/v1/documents \
-  -H "x-tenant-id: 00000000-0000-4000-8000-000000000001" \
+  -H "authorization: Bearer $WISDUM_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "System Architecture Overview",
@@ -46,7 +46,7 @@ Retrieves a document asset by ID.
 ### Example Request
 ```bash
 curl -X GET http://localhost:3000/v1/documents/00000000-0000-4000-8000-000000000010 \
-  -H "x-tenant-id: 00000000-0000-4000-8000-000000000001"
+  -H "authorization: Bearer $WISDUM_TOKEN"
 ```
 
 ### Response Schema (`200 OK`)

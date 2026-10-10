@@ -9,6 +9,8 @@ const logger = createLogger('api');
 async function main(): Promise<void> {
   const { app, kernel } = await buildServer();
   const port = Number(optionalEnv('PORT', '3001'));
+  // All interfaces by default (needed inside a container); `npm run local` binds to this machine only.
+  const host = optionalEnv('HOST', '0.0.0.0');
 
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     process.on(signal, () => {
@@ -20,8 +22,8 @@ async function main(): Promise<void> {
     });
   }
 
-  await app.listen({ port, host: '0.0.0.0' });
-  logger.info('Wisdum API listening', { environment: getEnvironment(), port });
+  await app.listen({ port, host });
+  logger.info('Wisdum API listening', { environment: getEnvironment(), host, port });
 }
 
 main().catch((error: unknown) => {

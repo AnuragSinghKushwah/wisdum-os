@@ -39,6 +39,42 @@ Wisdum is **not** a simple note-taking app or CMS. It is an open-source, multi-t
 
 ---
 
+## 🚀 Use it today
+
+The shortest path from a clean checkout to drafts written from your own material. You need Node.js 22, npm, and Docker (for Postgres and Redis, so your data survives restarts).
+
+```bash
+git clone https://github.com/AnuragSinghKushwah/wisdum-os.git && cd wisdum-os
+npm install
+npm run setup     # creates .env, generates a session secret, tells you which AI provider is configured
+```
+
+Add **one** AI provider to `.env` (the first one set is used, in this order). Without one, the app runs in *demo mode* and cannot write from your sources.
+
+| Variable | Provider |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | Claude |
+| `OPENAI_API_KEY` | OpenAI |
+| `GEMINI_API_KEY` | Gemini |
+| `OLLAMA_HOST` | A local Ollama (for example `http://localhost:11434`; set `REASONING_LLM_MODEL` to a model you have pulled) |
+
+Then start everything with one command:
+
+```bash
+npm run local     # starts Postgres + Redis with Docker if needed, then the API and the web app. Ctrl-C stops them.
+```
+
+1. Open <http://localhost:3000/sign-up> and create your workspace. The first account on an empty database becomes the owner, and sign-up then closes. If it says sign-up is closed (the database already has a tenant), stop and run `npm run local -- --signup` once, create your account, then restart with plain `npm run local`.
+2. **Knowledge** → *Add Asset*: paste text, upload a PDF, `.txt` or `.md`, or paste a web address. YouTube links are not turned into transcripts yet; paste the transcript.
+3. Open the asset and use **Create content from this source**: pick LinkedIn, X thread, newsletter, blog, YouTube script or podcast, optionally add an angle, and create the drafts.
+4. In **Drafts**, edit, then **Copy text** and post it. **Publish** creates a shareable page on your own Wisdum site (and posts blog drafts to Dev.to or Ghost if you configure them in `.env`). LinkedIn and X have no integration; copy and paste.
+
+Your data lives in the `postgres_data` Docker volume and survives restarts. To stop the databases: `npm run docker:down` (your data stays). To back up: `docker compose exec -T postgres pg_dump -U wisdum wisdum > wisdum-backup.sql`.
+
+Drafts are written from your source and told not to invent facts, but a model can still get things wrong. Read each one before you publish it.
+
+---
+
 ## 🚀 Quick Start & Installation
 
 ### Prerequisites

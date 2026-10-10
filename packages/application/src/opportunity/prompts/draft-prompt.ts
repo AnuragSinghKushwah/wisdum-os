@@ -54,16 +54,22 @@ export function buildDraftPrompt(input: DraftPromptInput): string {
 Keep it under 1,300 characters. Plain text only: LinkedIn does not render Markdown, so no headings, no bold, no frontmatter.`;
   } else if (normType === 'newsletter') {
     formatInstructions = `This is an EMAIL NEWSLETTER EDITION. Structure it with:
-1. **YAML Frontmatter**: subject_line_options (3 variants), preheader_text, read_time.
-2. **Subject Line A/B Test Options**: 3 distinct high-open-rate subject lines.
-3. **Greeting & Opening**: a short editorial intro drawn from the source material.
-4. **Core Insight / Main Lesson**: Deep breakdown of the topic with actionable tips.
-5. **Key Takeaways**: three to five, from the source material. Link only to sources the material itself names.
-6. **Footer Call to Action**: Reply trigger, feedback poll, or subscription forward link.`;
+1. **Frontmatter**: subject_line_options (three distinct subject lines) and preheader_text.
+2. **Opening**: a short editorial intro drawn from the source material.
+3. **Core insight**: the main lesson, with actionable tips from the source material.
+4. **Key takeaways**: three to five, from the source material. Link only to sources the material itself names.
+5. **Closing**: one line inviting a reply or a forward. Do not mention polls, surveys, forms or links that the source material does not contain.`;
+  } else if (normType === 'blog_post') {
+    formatInstructions = `This is a BLOG POST for the author's readers. Structure it with:
+1. **Frontmatter**: title (a real headline), description (one sentence) and tags (three to five keywords), all written from the post itself.
+2. An opening that puts the problem or claim the reader cares about in its first two sentences.
+3. Sections under "##" headings, each making one point with a concrete detail from the source material.
+4. A conclusion saying what the reader should do or remember.
+Write directly to the reader. Do not describe the source document itself ("this post summarizes…"), and do not add a table of contents or a references section the source does not call for.`;
   } else if (normType === 'x_thread') {
     formatInstructions = `This is an X (TWITTER) THREAD, written to be pasted post by post. Write only the thread:
 1. A hook post that stands on its own and earns the click.
-2. Numbered posts ("2/", "3/", ...), one idea each, one post per paragraph.
+2. Numbered posts ("2/", "3/", ...), one idea each, one post per paragraph. Aim for six to ten posts in all: choose the ideas that matter most rather than covering everything.
 3. A closing post with the takeaway.
 Every post must be 280 characters or fewer. Plain text only: no Markdown, no frontmatter, and at most one hashtag in the whole thread.`;
   } else if (normType === 'architecture_document') {
@@ -111,6 +117,7 @@ Every post must be 280 characters or fewer. Plain text only: no Markdown, no fro
 
   return [
     `Write a comprehensive, professional first draft, in Markdown, for a "${type.replace(/_/g, ' ')}" titled "${title}".`,
+    'The title is a working label and may be a file name: where the format calls for a headline, write a real one from the material.',
     `Why this content is valuable/necessary: ${rationale}`,
     insightSummary !== undefined ? `Source knowledge observation: ${insightSummary}` : undefined,
     instructions !== undefined && instructions.trim().length > 0
@@ -119,7 +126,7 @@ Every post must be 280 characters or fewer. Plain text only: no Markdown, no fro
     sources.length > 0 ? renderSources(sources) : undefined,
     formatInstructions,
     sources.length > 0 ? GROUNDING_RULES : undefined,
-    'Return only the raw Markdown content — do not wrap in backticks or include any pre- or post-commentary outside the Markdown document.',
+    'Return only the raw Markdown content — do not wrap in backticks or include any pre- or post-commentary outside the Markdown document. Put any YAML frontmatter between "---" lines at the very top, never inside a code block.',
   ]
     .filter((line): line is string => line !== undefined && line.trim().length > 0)
     .join('\n\n');

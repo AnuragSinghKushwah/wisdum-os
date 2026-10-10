@@ -250,6 +250,7 @@ describe('GenerateContentDraftHandler grounding', () => {
     ctx: ReturnType<typeof build>,
     sourceKnowledgeIds: readonly string[],
     tenantId: TenantId = TENANT,
+    type = 'linkedin_post',
   ): Promise<string> {
     const insight = Insight.create(
       {
@@ -269,7 +270,7 @@ describe('GenerateContentDraftHandler grounding', () => {
         insightId: insight.getId().value(),
         title: OpportunityTitle.create('A title'),
         rationale: OpportunityRationale.create('A reason'),
-        type: OpportunityType.create('linkedin_post'),
+        type: OpportunityType.create(type),
       },
       clock,
     );
@@ -337,6 +338,63 @@ describe('GenerateContentDraftHandler grounding', () => {
     await expect(
       ctx.drafting.execute(generateContentDraftCommand({ tenantId: TENANT, opportunityId })),
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  describe('an X thread', () => {
+    const LONG_POST = `3/ ${'This explanation keeps going well past what X will accept in one post. '.repeat(6).trim()}`;
+    const FITTING = '1/ A hook.\n\n2/ A short point.\n\n3/ A takeaway.';
+    const posts = (body: string | undefined): string[] =>
+      (body ?? '').split('\n\n').map((post) => post.trim());
+
+    it('is saved exactly as written, with a single request, when every post fits', async () => {
+      const llm = new RecordingLlm(() => FITTING);
+      const ctx = build({ llm });
+      const opportunityId = await opportunityWithSource(ctx, ['asset-1'], TENANT, 'x_thread');
+
+      await ctx.drafting.execute(generateContentDraftCommand({ tenantId: TENANT, opportunityId }));
+
+      expect(llm.prompts).toHaveLength(1);
+      expect(ctx.drafts.all()[0]?.body.value).toBe(FITTING);
+    });
+
+    it('has its long posts split in code, not by asking the model again, and renumbered in order', async () => {
+      const llm = new RecordingLlm(
+        () => `1/ A hook.\n\n2/ A point.\n\n${LONG_POST}\n\n4/ The end.`,
+      );
+      const ctx = build({ llm });
+      const opportunityId = await opportunityWithSource(ctx, ['asset-1'], TENANT, 'x_thread');
+
+      await ctx.drafting.execute(generateContentDraftCommand({ tenantId: TENANT, opportunityId }));
+
+      const saved = posts(ctx.drafts.all()[0]?.body.value);
+      expect(llm.prompts).toHaveLength(1);
+      expect(saved.length).toBeGreaterThan(4);
+      expect(saved.every((post) => post.length <= 280)).toBe(true);
+      expect(saved.map((post) => /^\d+/.exec(post)?.[0])).toEqual(
+        saved.map((_post, index) => String(index + 1)),
+      );
+      expect(saved.at(-1)).toBe(`${saved.length}/ The end.`);
+    });
+
+    it("leaves the offline demo model's sample text as it is", async () => {
+      const llm = new RecordingLlm(() => LONG_POST, true);
+      const ctx = build({ llm });
+      const opportunityId = await opportunityWithSource(ctx, ['asset-1'], TENANT, 'x_thread');
+
+      await ctx.drafting.execute(generateContentDraftCommand({ tenantId: TENANT, opportunityId }));
+
+      expect(ctx.drafts.all()[0]?.body.value).toBe(LONG_POST);
+    });
+
+    it('is the only format held to the post limit', async () => {
+      const llm = new RecordingLlm(() => 'x'.repeat(2000));
+      const ctx = build({ llm });
+      const opportunityId = await opportunityWithSource(ctx, ['asset-1'], TENANT, 'blog_post');
+
+      await ctx.drafting.execute(generateContentDraftCommand({ tenantId: TENANT, opportunityId }));
+
+      expect(ctx.drafts.all()[0]?.body.value).toBe('x'.repeat(2000));
+    });
   });
 });
 

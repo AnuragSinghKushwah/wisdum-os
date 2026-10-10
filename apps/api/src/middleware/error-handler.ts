@@ -36,6 +36,14 @@ export function errorHandler(error: unknown, request: FastifyRequest, reply: Fas
     reply.status(400).send({ error: { code: 'validation_error', message: error.message } });
     return;
   }
+  // Fastify's own client errors (a malformed or empty body, an unsupported media type) carry a 4xx status.
+  if (error instanceof Error && 'statusCode' in error) {
+    const status = (error as { statusCode?: unknown }).statusCode;
+    if (typeof status === 'number' && status >= 400 && status < 500) {
+      reply.status(status).send({ error: { code: 'bad_request', message: error.message } });
+      return;
+    }
+  }
   logger.error('Unexpected error', {
     method: request.method,
     url: request.url,

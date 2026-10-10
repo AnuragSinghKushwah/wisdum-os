@@ -1,5 +1,6 @@
 import {
   CapabilityPluginProvisioner,
+  DEFAULT_SOURCE_BUDGET_CHARS,
   CreateOpportunityHandler,
   DismissOpportunityHandler,
   GenerateContentDraftHandler,
@@ -15,6 +16,7 @@ import {
   UpdateContentDraftHandler,
 } from '@wisdum/application';
 import type { OpportunityReadModel } from '@wisdum/application';
+import { optionalEnv } from '@wisdum/config';
 import type {
   ContentDraftRepository,
   InsightRepository,
@@ -55,6 +57,14 @@ import {
   KNOWLEDGE_READ_MODEL,
 } from '../tokens.js';
 import type { OpportunityHandlers } from '../tokens.js';
+
+/** Characters of source text sent per draft; `WISDUM_SOURCE_BUDGET_CHARS` overrides it, within sane limits. */
+function sourceBudgetChars(): number {
+  const configured = Number(optionalEnv('WISDUM_SOURCE_BUDGET_CHARS', ''));
+  return Number.isFinite(configured) && configured > 0
+    ? Math.min(Math.max(Math.floor(configured), 2_000), 400_000)
+    : DEFAULT_SOURCE_BUDGET_CHARS;
+}
 
 export class OpportunityModule implements KernelModule {
   readonly name = 'opportunity';
@@ -99,7 +109,11 @@ export class OpportunityModule implements KernelModule {
     const slugs = container.resolve(SLUG_GENERATOR);
     const llm = createLlmCompletionPort(container.resolve(LLM_PROVIDER), container.resolve(LLM_MODEL));
     const knowledgeReads = container.resolve(KNOWLEDGE_READ_MODEL);
-    const sources = new SourceMaterialLoader(knowledgeReads, container.resolve(DOCUMENT_READ_MODEL));
+    const sources = new SourceMaterialLoader(
+      knowledgeReads,
+      container.resolve(DOCUMENT_READ_MODEL),
+      sourceBudgetChars(),
+    );
 
     const plugins = container.resolve(PLUGIN_REPOSITORY);
     const provisioner = new CapabilityPluginProvisioner(plugins, ids, events, clock);

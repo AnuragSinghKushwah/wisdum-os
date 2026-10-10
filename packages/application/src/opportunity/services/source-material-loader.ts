@@ -11,8 +11,8 @@ export interface SourceExcerpt {
   readonly truncated: boolean;
 }
 
-/** Total characters of source text sent per draft (about 6k tokens), shared across sources. */
-export const DEFAULT_SOURCE_BUDGET_CHARS = 24_000;
+/** Total characters of source text sent per draft (about 15k tokens), shared across sources. */
+export const DEFAULT_SOURCE_BUDGET_CHARS = 60_000;
 
 /**
  * Reads the text of knowledge assets so a draft can be written from what the

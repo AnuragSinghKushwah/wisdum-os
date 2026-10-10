@@ -50,6 +50,7 @@ export function KnowledgeDetailClient({ id }: { id: string }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [results, setResults] = useState<readonly PlatformResult[] | null>(null);
+  const [sourceTruncated, setSourceTruncated] = useState(false);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -117,18 +118,20 @@ export function KnowledgeDetailClient({ id }: { id: string }) {
     setIsGenerating(true);
     setGenerateError(null);
     setResults(null);
+    setSourceTruncated(false);
     try {
-      const response = await apiFetch<{ results: readonly PlatformResult[] }>(
-        `/v1/knowledge/${id}/generate`,
-        {
-          method: 'POST',
-          body: {
-            platforms: [...platforms],
-            ...(instructions.trim().length > 0 ? { instructions: instructions.trim() } : {}),
-          },
+      const response = await apiFetch<{
+        results: readonly PlatformResult[];
+        sourceTruncated: boolean;
+      }>(`/v1/knowledge/${id}/generate`, {
+        method: 'POST',
+        body: {
+          platforms: [...platforms],
+          ...(instructions.trim().length > 0 ? { instructions: instructions.trim() } : {}),
         },
-      );
+      });
       setResults(response.results);
+      setSourceTruncated(response.sourceTruncated);
     } catch (cause) {
       setGenerateError(cause instanceof ApiError ? cause.message : 'Failed to create content.');
     } finally {
@@ -270,6 +273,14 @@ export function KnowledgeDetailClient({ id }: { id: string }) {
         {generateError !== null && (
           <p role="alert" className="mt-3 text-sm text-red-600 dark:text-red-400">
             {generateError}
+          </p>
+        )}
+
+        {results !== null && sourceTruncated && (
+          <p role="status" className="mt-4 text-sm text-amber-700 dark:text-amber-400">
+            This source is longer than Wisdum can read in one pass, so the drafts are based on its
+            first part. For full coverage, split it into separate assets and create content from
+            each.
           </p>
         )}
 

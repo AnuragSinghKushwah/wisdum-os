@@ -15,7 +15,7 @@ import { createServer } from 'node:http';
 const port = Number(process.env.STUB_LLM_PORT ?? 4010);
 
 const FORMATS = [
-  ['LINKEDIN CAROUSEL', 'LinkedIn post'],
+  ['LINKEDIN POST', 'LinkedIn post'],
   ['X (TWITTER) THREAD', 'X thread'],
   ['EMAIL NEWSLETTER', 'Newsletter'],
   ['TELEPROMPTER VIDEO SCRIPT', 'YouTube script'],

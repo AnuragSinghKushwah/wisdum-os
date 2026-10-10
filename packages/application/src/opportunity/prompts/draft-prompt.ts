@@ -45,30 +45,27 @@ export function buildDraftPrompt(input: DraftPromptInput): string {
 4. **Host Talking Points & Guest Discussion Prompts**: Bulleted prompts and quotes.
 5. **Outro & Sponsor Reads**: Mid-roll/outro message and social handles.`;
   } else if (normType === 'linkedin_post') {
-    formatInstructions = `This is a LINKEDIN CAROUSEL & POST PACKAGE. Structure it with:
-1. **YAML Frontmatter**: format ("Carousel + Post"), target_audience, slide_count.
-2. **LinkedIn Post Copy**: Hook sentence (first 2 lines before "see more"), short punchy body paragraphs, bullet points, and 5 relevant hashtags.
-3. **Slide-by-Slide Carousel Breakdown**:
-   - \`### Slide 1: Cover (Hook Title + Subtitle)\`
-   - \`### Slide 2: The Problem\`
-   - \`### Slide 3-5: Step-by-Step Insights / Visual Diagram Breakdown\`
-   - \`### Slide 6: Summary & CTA (Follow + Repost)\`
-4. **Engagement Question**: End with a conversation starter.`;
+    formatInstructions = `This is a LINKEDIN POST, written to be pasted into LinkedIn exactly as it is. Write only the post:
+1. A hook in the first two lines (they show before "see more"): a specific claim or question, not a greeting.
+2. Short paragraphs of one to three sentences, with a blank line between them.
+3. One concrete detail or example taken from the source material.
+4. A closing line that invites a reply.
+5. Three to five relevant hashtags on the last line.
+Keep it under 1,300 characters. Plain text only: LinkedIn does not render Markdown, so no headings, no bold, no frontmatter.`;
   } else if (normType === 'newsletter') {
     formatInstructions = `This is an EMAIL NEWSLETTER EDITION. Structure it with:
 1. **YAML Frontmatter**: subject_line_options (3 variants), preheader_text, read_time.
 2. **Subject Line A/B Test Options**: 3 distinct high-open-rate subject lines.
-3. **Personal Greeting & Opening Story**: Engaging editorial intro.
+3. **Greeting & Opening**: a short editorial intro drawn from the source material.
 4. **Core Insight / Main Lesson**: Deep breakdown of the topic with actionable tips.
-5. **Quick Links / Resource Recommendations**: 3 curated links or key takeaways.
+5. **Key Takeaways**: three to five, from the source material. Link only to sources the material itself names.
 6. **Footer Call to Action**: Reply trigger, feedback poll, or subscription forward link.`;
   } else if (normType === 'x_thread') {
-    formatInstructions = `This is an X (TWITTER) THREAD. Structure it with:
-1. **YAML Frontmatter**: format ("Thread"), tweet_count, target_audience.
-2. **Hook Post (1/N)**: a standalone first post that earns the click.
-3. **Numbered Posts (2/N, 3/N, ...)**: one idea per post, each written as its own line starting with its number.
-4. **Closing Post**: the takeaway and one call to action.
-Every post must be 280 characters or fewer.`;
+    formatInstructions = `This is an X (TWITTER) THREAD, written to be pasted post by post. Write only the thread:
+1. A hook post that stands on its own and earns the click.
+2. Numbered posts ("2/", "3/", ...), one idea each, one post per paragraph.
+3. A closing post with the takeaway.
+Every post must be 280 characters or fewer. Plain text only: no Markdown, no frontmatter, and at most one hashtag in the whole thread.`;
   } else if (normType === 'architecture_document') {
     formatInstructions = `This is an ENGINEERING ARCHITECTURE SPECIFICATION (ADR / RFC). Structure it with:
 1. **YAML Frontmatter**: status ("Proposed / Accepted"), authors, date, domain.

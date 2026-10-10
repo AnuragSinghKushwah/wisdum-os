@@ -17,6 +17,7 @@ import { NotFoundError } from '../../shared/errors.js';
 import type { DomainEventPublisher, IdGenerator, LlmCompletionPort } from '../../shared/ports.js';
 import type { GenerateContentDraftCommand } from '../commands/generate-content-draft-command.js';
 import { buildDraftPrompt } from '../prompts/draft-prompt.js';
+import { cleanModelOutput } from '../services/clean-model-output.js';
 import type { SourceMaterialLoader } from '../services/source-material-loader.js';
 
 /** Room for a full first draft (a long blog post or script runs to a few thousand words). */
@@ -57,7 +58,7 @@ export class GenerateContentDraftHandler implements CommandHandler<
     const insight = foundInsight.some ? foundInsight.value : undefined;
     const sources = await this.sources.load(command.tenantId, insight?.sourceKnowledgeIds ?? []);
 
-    const bodyText = await this.llm.complete(
+    const rawBody = await this.llm.complete(
       buildDraftPrompt({
         title: opportunity.title.value,
         rationale: opportunity.rationale.value,
@@ -68,6 +69,10 @@ export class GenerateContentDraftHandler implements CommandHandler<
       }),
       { maxOutputTokens: DRAFT_MAX_OUTPUT_TOKENS },
     );
+    const bodyText = cleanModelOutput(rawBody);
+    if (bodyText.length === 0) {
+      throw new Error('The model returned an empty draft. Try again.');
+    }
 
     const draft = ContentDraft.create(
       {

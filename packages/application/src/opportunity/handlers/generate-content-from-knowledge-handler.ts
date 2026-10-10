@@ -31,6 +31,8 @@ export interface PlatformContentResult {
 
 export interface GenerateContentFromKnowledgeResult {
   readonly results: readonly PlatformContentResult[];
+  /** True when the asset is longer than the source budget, so the drafts use only its first part. */
+  readonly sourceTruncated: boolean;
 }
 
 /** Most platforms one request can target, to bound the model calls it fans out into. */
@@ -159,7 +161,7 @@ export class GenerateContentFromKnowledgeHandler implements CommandHandler<
         error: reason instanceof Error ? reason.message : 'Drafting failed.',
       };
     });
-    return { results };
+    return { results, sourceTruncated: loaded.some((excerpt) => excerpt.truncated) };
   }
 
   private validatePlatforms(requested: readonly string[]): readonly string[] {

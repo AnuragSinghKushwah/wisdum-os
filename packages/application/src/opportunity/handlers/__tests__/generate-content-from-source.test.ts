@@ -170,7 +170,9 @@ const ASSET: SeededAsset = {
   text: SOURCE_TEXT,
 };
 
-function build(options: { assets?: readonly SeededAsset[]; llm?: LlmCompletionPort } = {}) {
+function build(
+  options: { assets?: readonly SeededAsset[]; llm?: LlmCompletionPort; budgetChars?: number } = {},
+) {
   const assets = options.assets ?? [ASSET];
   const llm = options.llm ?? new RecordingLlm();
   const ids = makeIds();
@@ -178,7 +180,11 @@ function build(options: { assets?: readonly SeededAsset[]; llm?: LlmCompletionPo
   const opportunities = new FakeOpportunities();
   const drafts = new FakeDrafts();
   const knowledge = new FakeKnowledge(assets);
-  const sources = new SourceMaterialLoader(knowledge, new FakeDocuments(assets));
+  const sources = new SourceMaterialLoader(
+    knowledge,
+    new FakeDocuments(assets),
+    options.budgetChars,
+  );
   const drafting = new GenerateContentDraftHandler(
     opportunities,
     insights,
@@ -365,9 +371,63 @@ describe('GenerateContentFromKnowledgeHandler', () => {
 
     expect(llm.prompts).toHaveLength(3);
     for (const prompt of llm.prompts) expect(prompt).toContain(SOURCE_TEXT);
-    expect(llm.prompts.some((p) => p.includes('LINKEDIN CAROUSEL'))).toBe(true);
+    expect(llm.prompts.some((p) => p.includes('LINKEDIN POST'))).toBe(true);
     expect(llm.prompts.some((p) => p.includes('EMAIL NEWSLETTER'))).toBe(true);
     expect(llm.prompts.some((p) => p.includes('X (TWITTER) THREAD'))).toBe(true);
+  });
+
+  it('says when the source is longer than it can read, and only then', async () => {
+    const long = { ...ASSET, text: `${'A full sentence about retries. '.repeat(200)}`.trim() };
+    const command = (assets: readonly SeededAsset[]) => ({
+      tenantId: TENANT,
+      knowledgeId: 'asset-1',
+      platforms: ['linkedin_post'],
+      assets,
+    });
+
+    const cut = build({ assets: [long], budgetChars: 500 });
+    const cutResult = await cut.fromKnowledge.execute(
+      generateContentFromKnowledgeCommand(command([long])),
+    );
+    const whole = build();
+    const wholeResult = await whole.fromKnowledge.execute(
+      generateContentFromKnowledgeCommand(command([ASSET])),
+    );
+
+    expect(cutResult.sourceTruncated).toBe(true);
+    expect(wholeResult.sourceTruncated).toBe(false);
+  });
+
+  it('stores a draft the model wrapped in a code fence without the fence', async () => {
+    const llm = new RecordingLlm(() => '```markdown\nA post about backoff.\n```');
+    const ctx = build({ llm });
+
+    await ctx.fromKnowledge.execute(
+      generateContentFromKnowledgeCommand({
+        tenantId: TENANT,
+        knowledgeId: 'asset-1',
+        platforms: ['linkedin_post'],
+      }),
+    );
+
+    expect(ctx.drafts.all()[0]?.body.value).toBe('A post about backoff.');
+  });
+
+  it('reports a platform whose model answer is empty instead of saving a blank draft', async () => {
+    const llm = new RecordingLlm(() => '   ');
+    const ctx = build({ llm });
+
+    const { results } = await ctx.fromKnowledge.execute(
+      generateContentFromKnowledgeCommand({
+        tenantId: TENANT,
+        knowledgeId: 'asset-1',
+        platforms: ['linkedin_post'],
+      }),
+    );
+
+    expect(results[0]?.draftId).toBeUndefined();
+    expect(results[0]?.error).toContain('empty draft');
+    expect(ctx.drafts.all()).toHaveLength(0);
   });
 
   it('collapses duplicate platforms into one draft each', async () => {

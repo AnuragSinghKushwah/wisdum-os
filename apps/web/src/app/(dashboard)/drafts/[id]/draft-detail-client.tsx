@@ -39,6 +39,7 @@ export function DraftDetailClient({ id }: { id: string }) {
   const [scriptHashtags, setScriptHashtags] = useState('');
   const [higgsfieldPrompt, setHiggsfieldPrompt] = useState('');
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [copiedDraft, setCopiedDraft] = useState(false);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -159,6 +160,13 @@ export function DraftDetailClient({ id }: { id: string }) {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function handleCopyDraft() {
+    void navigator.clipboard.writeText(bodyDraft).then(() => {
+      setCopiedDraft(true);
+      setTimeout(() => setCopiedDraft(false), 2000);
+    });
   }
 
   async function handlePublish() {
@@ -807,6 +815,13 @@ export function DraftDetailClient({ id }: { id: string }) {
               className="rounded bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 hover:opacity-90 transition-opacity"
             >
               {isPublished ? 'Published' : isPublishing ? 'Publishing…' : 'Publish'}
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyDraft}
+              className="rounded border border-neutral-350 px-4 py-2 text-sm font-medium dark:border-neutral-750 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer"
+            >
+              {copiedDraft ? '✓ Copied' : 'Copy text'}
             </button>
             <button
               type="button"

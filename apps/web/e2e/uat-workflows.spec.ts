@@ -69,10 +69,10 @@ test.describe('Workflow 1: Knowledge Asset Lifecycle', () => {
     // Step 8: Click the asset card to open the detail modal
     await assetCard.click();
 
-    // Step 9: Verify detail modal shows parsing pipeline badges
-    await expect(page.getByText('Text Chunked')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText('Vector Embedded')).toBeVisible();
-    await expect(page.getByText('Knowledge Graph Linked')).toBeVisible();
+    // Step 9: Verify the detail modal shows the text exactly as it was ingested
+    await expect(page.getByText('Ingested Source Document Content')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('pre').first()).toHaveText(assetContent);
+    await expect(page.getByRole('link', { name: /open & create content/i })).toBeVisible();
 
     // Step 10: Verify the ingested document content section exists
     const docContentSection = page.getByText('Ingested Source Document Content');

@@ -11,7 +11,7 @@ export type AiCheck =
 export interface AiCheckTarget {
   readonly provider: LlmProvider;
   readonly model: string;
-  /** Short provider name: `anthropic`, `openai`, `gemini` or `ollama`. */
+  /** Short provider name: `anthropic`, `openai`, `gemini`, `nvidia-nim` or `ollama`. */
   readonly name: string;
   /** Lists the models this account can use, to help when the configured one is missing. */
   readonly listModels?: () => Promise<readonly string[]>;
@@ -21,6 +21,7 @@ const SETTING_FOR_PROVIDER: Readonly<Record<string, string>> = {
   anthropic: 'ANTHROPIC_API_KEY',
   openai: 'OPENAI_API_KEY',
   gemini: 'GEMINI_API_KEY',
+  'nvidia-nim': 'NVIDIA_API_KEY',
   ollama: 'OLLAMA_HOST',
 };
 
@@ -74,10 +75,21 @@ export function describeAiFailure(
       `Set REASONING_LLM_MODEL in .env to one you can use, then restart.${models}`
     );
   }
+  // 410 Gone: the model existed and has been switched off (NVIDIA's hosted catalog answers this way).
+  if (status === 410) {
+    return (
+      `${target.name} has retired the model "${target.model}" and no longer serves it. ` +
+      `Set REASONING_LLM_MODEL in .env to a current one, then restart.${models}`
+    );
+  }
   if (status === 429 || /quota|credit|billing|insufficient/i.test(raw)) {
     return `${target.name} refused the request: the account is rate limited, out of credit, or over its quota. (${raw.slice(0, 160)})`;
   }
-  if (/ECONNREFUSED|ENOTFOUND|ETIMEDOUT|fetch failed|timed out|Could not reach/i.test(raw)) {
+  if (
+    /ECONNREFUSED|ENOTFOUND|ETIMEDOUT|fetch failed|timed out|Could not reach|connection error/i.test(
+      raw,
+    )
+  ) {
     return `Could not reach ${target.name}: ${raw.slice(0, 200)}`;
   }
   return `${target.name} returned an error: ${raw.slice(0, 240)}${models}`;
@@ -108,7 +120,10 @@ export async function checkAiProvider(target: AiCheckTarget): Promise<AiCheck> {
     return { status: 'ok', latencyMs: Date.now() - started };
   } catch (error) {
     let available: readonly string[] = [];
-    const missingModel = statusOf(error) === 404 || /REASONING_LLM_MODEL/.test(messageOf(error));
+    const missingModel =
+      statusOf(error) === 404 ||
+      statusOf(error) === 410 ||
+      /REASONING_LLM_MODEL/.test(messageOf(error));
     if (missingModel && target.listModels !== undefined) {
       available = await target.listModels().catch(() => []);
     }

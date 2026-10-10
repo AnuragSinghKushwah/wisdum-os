@@ -91,7 +91,7 @@ export class GenerateContentFromKnowledgeHandler implements CommandHandler<
     if (this.llm.isMock === true) {
       throw new ConfigurationError(
         'No AI provider is configured, so content cannot be written from your source. ' +
-          'Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY or OLLAMA_HOST and restart the API.',
+          'Set ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, NVIDIA_API_KEY or OLLAMA_HOST and restart the API.',
       );
     }
 

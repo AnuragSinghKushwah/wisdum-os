@@ -117,6 +117,30 @@ describe('checkAiProvider', () => {
     expect((result as { message: string }).message).toContain('Could not reach anthropic');
   });
 
+  it('says a retired model is gone, and lists what is available, when the provider answers 410', async () => {
+    const result = await checkAiProvider({
+      ...target(
+        failing(
+          410,
+          "410 The model 'meta/llama-3.3-70b-instruct' has reached its end of life and is no longer available.",
+        ),
+        { name: 'nvidia-nim', model: 'meta/llama-3.3-70b-instruct' },
+      ),
+      listModels: () => Promise.resolve(['nvidia/nemotron-3-super-120b-a12b']),
+    });
+
+    const message = (result as { message: string }).message;
+    expect(message).toContain('has retired the model "meta/llama-3.3-70b-instruct"');
+    expect(message).toContain('REASONING_LLM_MODEL');
+    expect(message).toContain('nvidia/nemotron-3-super-120b-a12b');
+  });
+
+  it('explains an unreachable server when the SDK reports only "Connection error."', async () => {
+    const result = await checkAiProvider(target(failing(undefined, 'Connection error.')));
+
+    expect((result as { message: string }).message).toContain('Could not reach anthropic');
+  });
+
   it('recognises Gemini reporting a bad key as a 400 with a message', async () => {
     const result = await checkAiProvider(
       target(
@@ -150,6 +174,12 @@ describe('describeAiFailure', () => {
         model: 'm',
       }),
     ).toContain('GEMINI_API_KEY');
+    expect(
+      describeAiFailure(Object.assign(new Error('Authorization failed'), { status: 403 }), {
+        name: 'nvidia-nim',
+        model: 'm',
+      }),
+    ).toContain('NVIDIA_API_KEY');
   });
 
   it('never returns an empty message', () => {

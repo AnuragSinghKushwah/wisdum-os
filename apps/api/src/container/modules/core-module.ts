@@ -25,6 +25,7 @@ import {
   createLazyLocalFeatureExtractor,
 } from '@wisdum/platform-ai';
 import { GeminiLlmProvider, OllamaLlmProvider, listGeminiModels } from '@wisdum/platform-ai';
+import { NVIDIA_NIM_BASE_URL, NvidiaNimLlmProvider, nimChatModels } from '@wisdum/platform-ai';
 import type { EmbeddingProvider, LlmProvider } from '@wisdum/platform-ai';
 import type { InputConnector } from '@wisdum/platform-inputs';
 import { DefaultEmbeddingPipeline, FixedSizeChunker, InMemoryVectorStore } from '@wisdum/platform-search';
@@ -65,12 +66,13 @@ export interface LlmSelection {
 /**
  * Picks a real `LlmProvider` (and a matching default model name) from
  * whichever provider is configured, in this order: Anthropic, OpenAI, Gemini,
+ * NVIDIA NIM (`NVIDIA_API_KEY`, or `NVIDIA_BASE_URL` for a self-hosted NIM),
  * then a local Ollama (`OLLAMA_HOST`). Shared by AiModule (chat) and ReasoningModule (one-shot
  * completions) — neither vendor SDK is referenced outside this composition
  * root. The model name is overridable via `REASONING_LLM_MODEL` since
  * exact available model ids drift over time.
  */
-function createLlmProvider(): LlmSelection | undefined {
+export function createLlmProvider(): LlmSelection | undefined {
   const model = (fallback: string): string => optionalEnv('REASONING_LLM_MODEL', fallback);
 
   const anthropicKey = optionalEnv('ANTHROPIC_API_KEY', '');
@@ -103,6 +105,23 @@ function createLlmProvider(): LlmSelection | undefined {
       // check lists what the key can use when this is empty or wrong.
       model: model(''),
       listModels: () => listGeminiModels(geminiKey),
+    };
+  }
+  const nvidiaKey = optionalEnv('NVIDIA_API_KEY', '');
+  const nvidiaBaseUrl = optionalEnv('NVIDIA_BASE_URL', '');
+  if (nvidiaKey.length > 0 || nvidiaBaseUrl.length > 0) {
+    const client = new OpenAI({
+      // A self-hosted NIM does not ask for a key, but the client insists on having one to send.
+      apiKey: nvidiaKey.length > 0 ? nvidiaKey : 'not-required',
+      baseURL: nvidiaBaseUrl.length > 0 ? nvidiaBaseUrl : NVIDIA_NIM_BASE_URL,
+    });
+    return {
+      name: 'nvidia-nim',
+      provider: new NvidiaNimLlmProvider(client),
+      // No built-in model: the hosted catalog retires models, so a default goes stale (the start-up
+      // check lists what is available when this is empty or wrong).
+      model: model(''),
+      listModels: async () => nimChatModels((await client.models.list()).data.map((m) => m.id)),
     };
   }
   // Never probed: a local Ollama is used only when the operator points at it.
@@ -223,7 +242,7 @@ export class CoreModule implements KernelModule {
     container.registerValue(LLM_STATUS, this.status);
     if (llm === undefined) {
       createLogger('core').warn(
-        'No AI provider configured (ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY or OLLAMA_HOST): reasoning and drafting return canned sample text and "create content from source" is disabled.',
+        'No AI provider configured (ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, NVIDIA_API_KEY or OLLAMA_HOST): reasoning and drafting return canned sample text and "create content from source" is disabled.',
       );
     }
 

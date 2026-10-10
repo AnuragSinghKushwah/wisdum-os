@@ -42,6 +42,7 @@ import type {
   DocumentReadModel,
   EnablePluginHandler,
   GenerateContentDraftHandler,
+  GenerateContentFromKnowledgeHandler,
   GetConversationHandler,
   GetContentDraftHandler,
   GetDocumentHandler,
@@ -223,6 +224,7 @@ export interface OpportunityHandlers {
   readonly get: GetOpportunityHandler;
   readonly list: ListOpportunitiesHandler;
   readonly generateDraft: GenerateContentDraftHandler;
+  readonly generateFromKnowledge: GenerateContentFromKnowledgeHandler;
   readonly getDraft: GetContentDraftHandler;
   readonly listDrafts: ListContentDraftsHandler;
   readonly updateDraft: UpdateContentDraftHandler;

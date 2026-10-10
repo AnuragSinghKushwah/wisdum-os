@@ -7,6 +7,7 @@
 export const OPPORTUNITY_TYPES = [
   'blog_post',
   'linkedin_post',
+  'x_thread',
   'newsletter',
   'youtube_script',
   'course_module',

@@ -2,6 +2,7 @@ import {
   createOpportunityCommand,
   dismissOpportunityCommand,
   generateContentDraftCommand,
+  generateContentFromKnowledgeCommand,
   getContentDraftQuery,
   getOpportunityQuery,
   getPublishedContentQuery,
@@ -18,6 +19,8 @@ import type { OpportunityHandlers } from '../container/tokens.js';
 import { requireTenantId } from '../middleware/tenant-context.js';
 import {
   draftIdParamsSchema,
+  generateFromKnowledgeBodySchema,
+  generateFromKnowledgeParamsSchema,
   opportunityIdParamsSchema,
   publishedContentIdParamsSchema,
   updateContentDraftBodySchema,
@@ -27,6 +30,11 @@ interface CreateOpportunityBody {
   readonly title: string;
   readonly type: string;
   readonly rationale: string;
+}
+
+interface GenerateFromKnowledgeBody {
+  readonly platforms: readonly string[];
+  readonly instructions?: string;
 }
 
 interface UpdateContentDraftBody {
@@ -124,6 +132,26 @@ export function registerOpportunityRoutes(
         generateContentDraftCommand({ tenantId, opportunityId: id }),
       );
       await reply.status(201).send(result);
+    },
+  );
+
+  app.post(
+    '/v1/knowledge/:id/generate',
+    {
+      schema: { params: generateFromKnowledgeParamsSchema, body: generateFromKnowledgeBodySchema },
+    },
+    async (request) => {
+      const tenantId = requireTenantId(request);
+      const { id } = request.params as { id: string };
+      const body = request.body as GenerateFromKnowledgeBody;
+      return handlers.generateFromKnowledge.execute(
+        generateContentFromKnowledgeCommand({
+          tenantId,
+          knowledgeId: id,
+          platforms: body.platforms,
+          ...(body.instructions !== undefined ? { instructions: body.instructions } : {}),
+        }),
+      );
     },
   );
 

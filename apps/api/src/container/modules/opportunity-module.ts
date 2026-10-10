@@ -3,6 +3,7 @@ import {
   CreateOpportunityHandler,
   DismissOpportunityHandler,
   GenerateContentDraftHandler,
+  GenerateContentFromKnowledgeHandler,
   GetContentDraftHandler,
   GetOpportunityHandler,
   GetPublishedContentHandler,
@@ -10,6 +11,7 @@ import {
   ListOpportunitiesHandler,
   ListPublishedContentHandler,
   PublishContentDraftHandler,
+  SourceMaterialLoader,
   UpdateContentDraftHandler,
 } from '@wisdum/application';
 import type { OpportunityReadModel } from '@wisdum/application';
@@ -37,6 +39,7 @@ import { createLlmCompletionPort } from '../llm-completion-adapter.js';
 import { createPublishingProviders } from '../publishing-providers.js';
 import {
   CLOCK,
+  DOCUMENT_READ_MODEL,
   EVENT_BUS,
   ID_GENERATOR,
   INSIGHT_REPOSITORY,
@@ -55,7 +58,7 @@ import type { OpportunityHandlers } from '../tokens.js';
 
 export class OpportunityModule implements KernelModule {
   readonly name = 'opportunity';
-  readonly dependsOn = ['core', 'plugin'];
+  readonly dependsOn = ['core', 'plugin', 'document', 'knowledge'];
 
   register(container: Container): void {
     const pool = container.resolve(PG_POOL);
@@ -95,18 +98,41 @@ export class OpportunityModule implements KernelModule {
     const ids = container.resolve(ID_GENERATOR);
     const slugs = container.resolve(SLUG_GENERATOR);
     const llm = createLlmCompletionPort(container.resolve(LLM_PROVIDER), container.resolve(LLM_MODEL));
+    const knowledgeReads = container.resolve(KNOWLEDGE_READ_MODEL);
+    const sources = new SourceMaterialLoader(knowledgeReads, container.resolve(DOCUMENT_READ_MODEL));
 
     const plugins = container.resolve(PLUGIN_REPOSITORY);
     const provisioner = new CapabilityPluginProvisioner(plugins, ids, events, clock);
     const providers = createPublishingProviders();
     container.registerValue(PUBLISHING_PROVIDERS, providers);
 
+    const generateDraft = new GenerateContentDraftHandler(
+      opportunities,
+      insights,
+      drafts,
+      llm,
+      sources,
+      ids,
+      events,
+      clock,
+    );
     const handlers: OpportunityHandlers = {
       create: new CreateOpportunityHandler(opportunities, insights, ids, events, clock),
       dismiss: new DismissOpportunityHandler(opportunities, events, clock),
       get: new GetOpportunityHandler(readModel),
       list: new ListOpportunitiesHandler(readModel),
-      generateDraft: new GenerateContentDraftHandler(opportunities, insights, drafts, llm, ids, events, clock),
+      generateDraft,
+      generateFromKnowledge: new GenerateContentFromKnowledgeHandler(
+        knowledgeReads,
+        sources,
+        opportunities,
+        insights,
+        generateDraft,
+        llm,
+        ids,
+        events,
+        clock,
+      ),
       getDraft: new GetContentDraftHandler(drafts),
       listDrafts: new ListContentDraftsHandler(drafts),
       updateDraft: new UpdateContentDraftHandler(drafts, clock),

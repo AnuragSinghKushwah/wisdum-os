@@ -34,6 +34,8 @@ Send `Authorization: Bearer <token>` (a session token from `POST /v1/auth/login`
 | `401` | `authentication_error` | Missing, invalid, expired, or revoked credential |
 | `403` | `authorization_error` | Valid credential without the required permission (`error.details.required` says which) |
 | `404` | `not_found` | No such resource in your tenant; other tenants' resources look the same |
+| `502` | `ai_provider_error` | The AI provider failed the request (bad key, unreachable, retired model, out of quota); `error.message` says what to do |
+| `503` | `configuration_error` | Something the request needs is not set up, such as an AI provider |
 
 Roles, permissions, API keys, and sign-up are documented in the [Identity API](identity.md), and the reasoning is in [ADR 0016](../adr/0016-authentication-authorization-and-tenant-isolation.md).
 

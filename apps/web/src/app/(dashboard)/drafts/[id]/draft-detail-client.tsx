@@ -164,7 +164,7 @@ export function DraftDetailClient({ id }: { id: string }) {
     }
 
     return (
-      <div className="flex flex-col h-full min-h-[350px] overflow-y-auto max-h-[450px] pr-2">
+      <div className="flex flex-col">
         {Object.keys(frontmatter).length > 0 && (
           <div className="mb-6 rounded-lg bg-neutral-50 dark:bg-neutral-950 p-4 border border-neutral-100 dark:border-neutral-900 text-xs">
             <span className="font-semibold text-neutral-400 uppercase tracking-wider text-[10px] block mb-2">
@@ -176,16 +176,16 @@ export function DraftDetailClient({ id }: { id: string }) {
                   <span className="font-semibold text-neutral-500">Title:</span> {frontmatter.title}
                 </div>
               )}
-              {frontmatter.seo_description && (
+              {(frontmatter.seo_description ?? frontmatter.description) && (
                 <div>
                   <span className="font-semibold text-neutral-500">Description:</span>{' '}
-                  {frontmatter.seo_description}
+                  {frontmatter.seo_description ?? frontmatter.description}
                 </div>
               )}
-              {frontmatter.seo_keywords && (
+              {(frontmatter.seo_keywords ?? frontmatter.tags) && (
                 <div>
                   <span className="font-semibold text-neutral-500">Keywords:</span>{' '}
-                  {frontmatter.seo_keywords}
+                  {frontmatter.seo_keywords ?? frontmatter.tags}
                 </div>
               )}
               {frontmatter.target_audience && (
@@ -478,7 +478,7 @@ export function DraftDetailClient({ id }: { id: string }) {
         </div>
 
         {/* Right Side: Visual Preview */}
-        <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40 p-6 shadow-sm flex flex-col min-h-[450px]">
+        <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/40 p-6 shadow-sm flex flex-col min-h-[450px] lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-12rem)]">
           <div className="flex items-center justify-between pb-4 border-b border-neutral-100 dark:border-neutral-800">
             <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
               Layout Preview
@@ -488,7 +488,7 @@ export function DraftDetailClient({ id }: { id: string }) {
             </span>
           </div>
 
-          <div className="mt-4 flex-1">{renderPreview()}</div>
+          <div className="mt-4 flex-1 min-h-0 overflow-y-auto pr-2">{renderPreview()}</div>
         </div>
       </div>
     </div>

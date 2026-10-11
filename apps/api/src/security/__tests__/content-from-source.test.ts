@@ -69,11 +69,21 @@ describe('POST /v1/knowledge/:id/generate', () => {
     expect(generated.body.results.map((r) => r.platform)).toEqual(['linkedin_post', 'x_thread']);
     expect(generated.body.results.every((r) => r.draftId !== undefined)).toBe(true);
 
-    expect(provider.requests).toHaveLength(2);
-    for (const request of provider.requests) {
-      const prompt = request.messages.map((m) => m.content).join('\n');
+    // Each draft is written, then checked against its source, which is on by default.
+    const prompts = provider.requests.map((request) =>
+      request.messages.map((m) => m.content).join('\n'),
+    );
+    const writing = prompts.filter((prompt) => !prompt.includes('fact-checking editor'));
+    const checking = prompts.filter((prompt) => prompt.includes('fact-checking editor'));
+    expect(writing).toHaveLength(2);
+    expect(checking).toHaveLength(2);
+    for (const prompt of writing) {
       expect(prompt).toContain(SOURCE_TEXT);
       expect(prompt).toContain('Aim at engineering leads');
+    }
+    for (const prompt of checking) {
+      expect(prompt).toContain(SOURCE_TEXT);
+      expect(prompt).toContain('draft written by the scripted model');
     }
 
     const linkedin = generated.body.results.find((r) => r.platform === 'linkedin_post');

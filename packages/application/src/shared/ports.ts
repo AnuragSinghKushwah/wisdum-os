@@ -73,3 +73,7 @@ export interface LlmCompletionPort {
 export interface TenantDirectory {
   listAllTenantIds(): Promise<readonly TenantId[]>;
 }
+
+/** Appended to a completion that stopped at its output limit, when the caller asked for it to be marked. */
+export const TRUNCATION_NOTICE =
+  '⚠ The model stopped at its output limit, so this draft may end abruptly. Edit it, or create it again.';

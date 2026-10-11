@@ -3,6 +3,7 @@ import {
   DEFAULT_SOURCE_BUDGET_CHARS,
   CreateOpportunityHandler,
   DismissOpportunityHandler,
+  DraftWriter,
   GenerateContentDraftHandler,
   GenerateContentFromKnowledgeHandler,
   GetContentDraftHandler,
@@ -17,6 +18,7 @@ import {
 } from '@wisdum/application';
 import type { OpportunityReadModel } from '@wisdum/application';
 import { optionalEnv } from '@wisdum/config';
+import { createLogger } from '@wisdum/logger';
 import type {
   ContentDraftRepository,
   InsightRepository,
@@ -126,12 +128,17 @@ export class OpportunityModule implements KernelModule {
     const providers = createPublishingProviders();
     container.registerValue(PUBLISHING_PROVIDERS, providers);
 
+    const writer = new DraftWriter(llm, sources, {
+      // One more request per draft, so drafts take longer and cost more; WISDUM_DRAFT_REVIEW=false skips it.
+      reviewDrafts: optionalEnv('WISDUM_DRAFT_REVIEW', 'true') !== 'false',
+      onReviewSkipped: (reason) =>
+        createLogger('opportunity').warn('Draft saved without the source check', { reason }),
+    });
     const generateDraft = new GenerateContentDraftHandler(
       opportunities,
       insights,
       drafts,
-      llm,
-      sources,
+      writer,
       ids,
       events,
       clock,

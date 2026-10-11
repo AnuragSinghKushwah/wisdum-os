@@ -24,6 +24,7 @@ import type { DocumentReadModel } from '../../../document/ports/document-read-mo
 import type { KnowledgeDto } from '../../../knowledge/dto/knowledge-dto.js';
 import type { KnowledgeReadModel } from '../../../knowledge/ports/knowledge-read-model.js';
 import { NotFoundError } from '../../../shared/errors.js';
+import { TRUNCATION_NOTICE } from '../../../shared/ports.js';
 import type {
   DomainEventPublisher,
   IdGenerator,
@@ -33,6 +34,8 @@ import type {
 import { generateContentDraftCommand } from '../../commands/generate-content-draft-command.js';
 import { generateContentFromKnowledgeCommand } from '../../commands/generate-content-from-knowledge-command.js';
 import { SourceMaterialLoader } from '../../services/source-material-loader.js';
+import { DraftWriter } from '../../services/draft-writer.js';
+import type { DraftWriterOptions } from '../../services/draft-writer.js';
 import { GenerateContentDraftHandler } from '../generate-content-draft-handler.js';
 import { GenerateContentFromKnowledgeHandler } from '../generate-content-from-knowledge-handler.js';
 
@@ -171,7 +174,12 @@ const ASSET: SeededAsset = {
 };
 
 function build(
-  options: { assets?: readonly SeededAsset[]; llm?: LlmCompletionPort; budgetChars?: number } = {},
+  options: {
+    assets?: readonly SeededAsset[];
+    llm?: LlmCompletionPort;
+    budgetChars?: number;
+    drafting?: DraftWriterOptions;
+  } = {},
 ) {
   const assets = options.assets ?? [ASSET];
   const llm = options.llm ?? new RecordingLlm();
@@ -185,12 +193,12 @@ function build(
     new FakeDocuments(assets),
     options.budgetChars,
   );
+  const writer = new DraftWriter(llm, sources, options.drafting);
   const drafting = new GenerateContentDraftHandler(
     opportunities,
     insights,
     drafts,
-    llm,
-    sources,
+    writer,
     ids,
     events,
     clock,
@@ -338,6 +346,120 @@ describe('GenerateContentDraftHandler grounding', () => {
     await expect(
       ctx.drafting.execute(generateContentDraftCommand({ tenantId: TENANT, opportunityId })),
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  describe('the check against the source', () => {
+    const FIRST =
+      '---\ntitle: "T"\n---\n\nA first draft that claims lower costs the source never mentions.';
+    const CHECKED =
+      '---\ntitle: "T"\n---\n\nA draft that sticks to what the source says, and keeps its sections.';
+    const isReview = (prompt: string): boolean => prompt.includes('fact-checking editor');
+    const answer =
+      (review: (prompt: string) => string) =>
+      (prompt: string): string =>
+        isReview(prompt) ? review(prompt) : FIRST;
+
+    async function draftWith(
+      llm: LlmCompletionPort,
+      drafting: DraftWriterOptions | undefined,
+      sourceIds: readonly string[] = ['asset-1'],
+      type = 'blog_post',
+    ) {
+      const ctx = build({ llm, drafting });
+      const opportunityId = await opportunityWithSource(ctx, sourceIds, TENANT, type);
+      await ctx.drafting.execute(generateContentDraftCommand({ tenantId: TENANT, opportunityId }));
+      return ctx.drafts.all()[0]?.body.value;
+    }
+
+    it('replaces the draft with the checked one, and sends the model the source and the draft', async () => {
+      const llm = new RecordingLlm(answer(() => CHECKED));
+
+      const saved = await draftWith(llm, { reviewDrafts: true });
+
+      expect(saved).toBe(CHECKED);
+      expect(llm.prompts).toHaveLength(2);
+      expect(llm.prompts[1]).toContain(SOURCE_TEXT);
+      expect(llm.prompts[1]).toContain(FIRST);
+      expect(llm.options[1]?.markTruncation).toBe(true);
+    });
+
+    it('is not done unless it is turned on', async () => {
+      const llm = new RecordingLlm(answer(() => CHECKED));
+
+      expect(await draftWith(llm, undefined)).toBe(FIRST);
+      expect(await draftWith(llm, { reviewDrafts: false })).toBe(FIRST);
+      expect(llm.prompts.every((prompt) => !isReview(prompt))).toBe(true);
+    });
+
+    it('is skipped when the opportunity has no source to check against', async () => {
+      const llm = new RecordingLlm(answer(() => CHECKED));
+
+      expect(await draftWith(llm, { reviewDrafts: true }, [])).toBe(FIRST);
+      expect(llm.prompts).toHaveLength(1);
+    });
+
+    it("is skipped for the offline demo model's sample text", async () => {
+      const llm = new RecordingLlm(
+        answer(() => CHECKED),
+        true,
+      );
+
+      expect(await draftWith(llm, { reviewDrafts: true })).toBe(FIRST);
+      expect(llm.prompts).toHaveLength(1);
+    });
+
+    it.each([
+      ['returns nothing', () => '   ', 'returned nothing'],
+      ['stops at its output limit', () => `${CHECKED}\n\n${TRUNCATION_NOTICE}`, 'output limit'],
+      [
+        'drops the front matter',
+        () => 'Just a paragraph with no front matter at all, so it cannot stand in.',
+        'front matter',
+      ],
+      ['cuts most of the draft', () => '---\ntitle: "T"\n---', 'more than half'],
+    ])('keeps the first draft, and says why, when the check %s', async (_name, review, why) => {
+      const skipped: string[] = [];
+      const llm = new RecordingLlm(answer(review));
+
+      const saved = await draftWith(llm, {
+        reviewDrafts: true,
+        onReviewSkipped: (reason) => skipped.push(reason),
+      });
+
+      expect(saved).toBe(FIRST);
+      expect(skipped).toHaveLength(1);
+      expect(skipped[0]).toContain(why);
+    });
+
+    it('keeps the first draft, and says why, when the check fails', async () => {
+      const skipped: string[] = [];
+      const llm = new RecordingLlm(
+        answer(() => {
+          throw new Error('provider timed out');
+        }),
+      );
+
+      const saved = await draftWith(llm, {
+        reviewDrafts: true,
+        onReviewSkipped: (reason) => skipped.push(reason),
+      });
+
+      expect(saved).toBe(FIRST);
+      expect(skipped).toEqual(['the review failed: provider timed out']);
+    });
+
+    it('is followed by the X post limit, since the check can change post lengths', async () => {
+      const longPost = `2/ ${'A sentence that fills the post. '.repeat(20).trim()}`;
+      const llm = new RecordingLlm((prompt) =>
+        isReview(prompt) ? `1/ Hook.\n\n${longPost}` : '1/ Hook.\n\n2/ Short.',
+      );
+
+      const saved = await draftWith(llm, { reviewDrafts: true }, ['asset-1'], 'x_thread');
+
+      expect(llm.prompts).toHaveLength(2);
+      expect(saved?.split('\n\n').every((post) => post.length <= 280)).toBe(true);
+      expect(saved?.split('\n\n').length).toBeGreaterThan(2);
+    });
   });
 
   describe('an X thread', () => {

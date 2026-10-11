@@ -26,5 +26,6 @@ export * from './handlers/update-content-draft-handler.js';
 export * from './handlers/publish-content-draft-handler.js';
 export * from './handlers/get-published-content-handler.js';
 export * from './handlers/list-published-content-handler.js';
+export * from './services/draft-writer.js';
 export * from './services/source-material-loader.js';
 export * from './prompts/draft-prompt.js';

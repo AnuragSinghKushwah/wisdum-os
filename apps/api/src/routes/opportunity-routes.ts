@@ -10,6 +10,7 @@ import {
   listOpportunitiesQuery,
   listPublishedContentQuery,
   publishContentDraftCommand,
+  regenerateContentDraftCommand,
   updateContentDraftCommand,
 } from '@wisdum/application';
 import type { KnowledgeReadModel } from '@wisdum/application';
@@ -23,6 +24,7 @@ import {
   generateFromKnowledgeParamsSchema,
   opportunityIdParamsSchema,
   publishedContentIdParamsSchema,
+  regenerateDraftBodySchema,
   updateContentDraftBodySchema,
 } from '../validation/opportunity-schemas.js';
 
@@ -177,6 +179,23 @@ export function registerOpportunityRoutes(
         updateContentDraftCommand({ draftId: id, ...body, tenantId }),
       );
       return { status: 'updated' };
+    },
+  );
+
+  app.post(
+    '/v1/drafts/:id/regenerate',
+    { schema: { params: draftIdParamsSchema, body: regenerateDraftBodySchema } },
+    async (request) => {
+      const tenantId = requireTenantId(request);
+      const { id } = request.params as { id: string };
+      const { instructions } = request.body as { instructions?: string };
+      return handlers.regenerateDraft.execute(
+        regenerateContentDraftCommand({
+          tenantId,
+          draftId: id,
+          ...(instructions !== undefined ? { instructions } : {}),
+        }),
+      );
     },
   );
 

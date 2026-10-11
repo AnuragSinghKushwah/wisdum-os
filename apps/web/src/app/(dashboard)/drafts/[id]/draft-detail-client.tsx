@@ -31,6 +31,11 @@ export function DraftDetailClient({ id }: { id: string }) {
   const [oppType, setOppType] = useState<string>('blog_post');
   const [activeEditorTab, setActiveEditorTab] = useState<'rich' | 'source'>('rich');
   const [copiedDraft, setCopiedDraft] = useState(false);
+  const [showRegenerate, setShowRegenerate] = useState(false);
+  const [regenerateInstructions, setRegenerateInstructions] = useState('');
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  // What was in the editor before the draft was written again, so it can be put back.
+  const [previousText, setPreviousText] = useState<{ title: string; body: string } | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -74,6 +79,44 @@ export function DraftDetailClient({ id }: { id: string }) {
       await load();
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : 'Failed to save this draft.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  // Writes the draft again from its source. This replaces the text on the server, so what the author
+  // had in the editor (saved or not) is kept here until they leave the page, and can be restored.
+  async function handleRegenerate() {
+    setIsRegenerating(true);
+    setError(null);
+    const before = { title: titleDraft, body: bodyDraft };
+    const instructions = regenerateInstructions.trim();
+
+    try {
+      await apiFetch(`/v1/drafts/${id}/regenerate`, {
+        method: 'POST',
+        body: instructions.length > 0 ? { instructions } : {},
+      });
+      setPreviousText(before);
+      setShowRegenerate(false);
+      await load();
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause.message : 'Failed to write this draft again.');
+    } finally {
+      setIsRegenerating(false);
+    }
+  }
+
+  async function handleRestorePrevious() {
+    if (previousText === null) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      await apiFetch(`/v1/drafts/${id}`, { method: 'PUT', body: previousText });
+      setPreviousText(null);
+      await load();
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause.message : 'Failed to restore the previous text.');
     } finally {
       setIsSaving(false);
     }
@@ -450,6 +493,14 @@ export function DraftDetailClient({ id }: { id: string }) {
             </button>
             <button
               type="button"
+              disabled={isRegenerating || isSaving || isPublishing || isPublished}
+              onClick={() => setShowRegenerate((open) => !open)}
+              className="rounded border border-neutral-350 px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-neutral-750 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+            >
+              ↻ Regenerate
+            </button>
+            <button
+              type="button"
               onClick={handleCopyDraft}
               className="rounded border border-neutral-350 px-4 py-2 text-sm font-medium dark:border-neutral-750 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer"
             >
@@ -470,6 +521,76 @@ export function DraftDetailClient({ id }: { id: string }) {
               📄 Export PDF
             </button>
           </div>
+          {showRegenerate && !isPublished && (
+            <div
+              role="region"
+              aria-label="Regenerate this draft"
+              className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+            >
+              <p>
+                <strong>Write this draft again from its source?</strong> The current text, including
+                any edits you have not saved, is replaced. You can restore it until you leave this
+                page.
+              </p>
+              <label className="mt-3 flex flex-col gap-1 text-xs font-semibold">
+                Angle or audience (optional)
+                <textarea
+                  value={regenerateInstructions}
+                  onChange={(event) => setRegenerateInstructions(event.target.value)}
+                  maxLength={2000}
+                  rows={2}
+                  disabled={isRegenerating}
+                  placeholder="For example: aim at engineering managers"
+                  className="rounded border border-amber-300 bg-white px-2 py-1 text-sm font-normal text-neutral-900 dark:border-amber-700 dark:bg-neutral-900 dark:text-neutral-100"
+                />
+              </label>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={isRegenerating}
+                  onClick={() => void handleRegenerate()}
+                  className="rounded bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+                >
+                  {isRegenerating
+                    ? 'Writing again… this can take a minute or two'
+                    : 'Replace this draft'}
+                </button>
+                <button
+                  type="button"
+                  disabled={isRegenerating}
+                  onClick={() => setShowRegenerate(false)}
+                  className="rounded border border-amber-400 px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {previousText !== null && (
+            <div
+              role="status"
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-neutral-300 bg-neutral-50 px-4 py-3 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            >
+              <span>The draft was written again from your source.</span>
+              <button
+                type="button"
+                disabled={isSaving || isRegenerating}
+                onClick={() => void handleRestorePrevious()}
+                className="rounded border border-neutral-400 px-3 py-1 text-sm font-medium disabled:opacity-50"
+              >
+                Restore previous text
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviousText(null)}
+                className="text-sm text-neutral-500 underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           <p className="text-xs text-neutral-500">
             Publish creates a shareable page on this Wisdum site (and posts blog drafts to Dev.to or
             Ghost when those are configured). For LinkedIn, X and newsletters, use Copy text and

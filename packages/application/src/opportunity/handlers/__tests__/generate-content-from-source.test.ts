@@ -33,11 +33,13 @@ import type {
 } from '../../../shared/ports.js';
 import { generateContentDraftCommand } from '../../commands/generate-content-draft-command.js';
 import { generateContentFromKnowledgeCommand } from '../../commands/generate-content-from-knowledge-command.js';
+import { regenerateContentDraftCommand } from '../../commands/regenerate-content-draft-command.js';
 import { SourceMaterialLoader } from '../../services/source-material-loader.js';
 import { DraftWriter } from '../../services/draft-writer.js';
 import type { DraftWriterOptions } from '../../services/draft-writer.js';
 import { GenerateContentDraftHandler } from '../generate-content-draft-handler.js';
 import { GenerateContentFromKnowledgeHandler } from '../generate-content-from-knowledge-handler.js';
+import { RegenerateContentDraftHandler } from '../regenerate-content-draft-handler.js';
 
 const TENANT = 'tenant-a' as TenantId;
 const OTHER_TENANT = 'tenant-b' as TenantId;
@@ -203,6 +205,13 @@ function build(
     events,
     clock,
   );
+  const regenerating = new RegenerateContentDraftHandler(
+    opportunities,
+    insights,
+    drafts,
+    writer,
+    clock,
+  );
   const fromKnowledge = new GenerateContentFromKnowledgeHandler(
     knowledge,
     sources,
@@ -214,7 +223,7 @@ function build(
     events,
     clock,
   );
-  return { fromKnowledge, drafting, insights, opportunities, drafts, ids, sources };
+  return { fromKnowledge, drafting, regenerating, insights, opportunities, drafts, ids, sources };
 }
 
 describe('SourceMaterialLoader', () => {
@@ -517,6 +526,139 @@ describe('GenerateContentDraftHandler grounding', () => {
 
       expect(ctx.drafts.all()[0]?.body.value).toBe('x'.repeat(2000));
     });
+  });
+});
+
+describe('RegenerateContentDraftHandler', () => {
+  async function draftedOpportunity(
+    ctx: ReturnType<typeof build>,
+    options: { type?: string; tenantId?: TenantId; sourceIds?: readonly string[] } = {},
+  ) {
+    const tenantId = options.tenantId ?? TENANT;
+    const insight = Insight.create(
+      {
+        id: InsightId.create(ctx.ids.nextId()),
+        tenantId,
+        summary: InsightSummary.create('An observation.'),
+        conceptIds: [],
+        sourceKnowledgeIds: (options.sourceIds ?? ['asset-1']) as unknown as readonly UUID[],
+      },
+      clock,
+    );
+    await ctx.insights.save(insight);
+    const opportunity = Opportunity.create(
+      {
+        id: OpportunityId.create(ctx.ids.nextId()),
+        tenantId,
+        insightId: insight.getId().value(),
+        title: OpportunityTitle.create('A title'),
+        rationale: OpportunityRationale.create('A reason'),
+        type: OpportunityType.create(options.type ?? 'blog_post'),
+      },
+      clock,
+    );
+    await ctx.opportunities.save(opportunity);
+    const { draftId } = await ctx.drafting.execute(
+      generateContentDraftCommand({ tenantId, opportunityId: opportunity.getId().value() }),
+    );
+    return { draftId, opportunityId: opportunity.getId().value() };
+  }
+
+  const regenerate = (ctx: ReturnType<typeof build>, draftId: string, instructions?: string) =>
+    ctx.regenerating.execute(
+      regenerateContentDraftCommand({
+        tenantId: TENANT,
+        draftId,
+        ...(instructions !== undefined ? { instructions } : {}),
+      }),
+    );
+
+  it('writes the draft again from its source and replaces the text, keeping the same draft', async () => {
+    let call = 0;
+    const llm = new RecordingLlm(() => `Version ${String((call += 1))}`);
+    const ctx = build({ llm });
+    const { draftId } = await draftedOpportunity(ctx);
+    const before = ctx.drafts.all()[0];
+
+    const result = await regenerate(ctx, draftId, 'Aim at managers');
+
+    expect(result.draftId).toBe(draftId);
+    expect(ctx.drafts.all()).toHaveLength(1);
+    expect(ctx.drafts.all()[0]?.body.value).toBe('Version 2');
+    expect(ctx.drafts.all()[0]?.title.value).toBe(before?.title.value);
+    expect(llm.prompts[1]).toContain(SOURCE_TEXT);
+    expect(llm.prompts[1]).toContain('Aim at managers');
+  });
+
+  it('leaves the opportunity as drafted and creates no second draft', async () => {
+    const ctx = build();
+    const { draftId, opportunityId } = await draftedOpportunity(ctx);
+
+    await regenerate(ctx, draftId);
+
+    const found = await ctx.opportunities.findById(OpportunityId.create(opportunityId));
+    expect(found.some && found.value.status.value).toBe('drafted');
+    expect(ctx.drafts.all()).toHaveLength(1);
+  });
+
+  it('is checked against the source and fitted to the platform like a new draft', async () => {
+    const longPost = `2/ ${'A sentence that fills the post. '.repeat(20).trim()}`;
+    const llm = new RecordingLlm((prompt) =>
+      prompt.includes('fact-checking editor') ? `1/ Hook.\n\n${longPost}` : '1/ Hook.\n\n2/ Short.',
+    );
+    const ctx = build({ llm, drafting: { reviewDrafts: true } });
+    const { draftId } = await draftedOpportunity(ctx, { type: 'x_thread' });
+
+    await regenerate(ctx, draftId);
+
+    const saved = ctx.drafts.all()[0]?.body.value ?? '';
+    expect(llm.prompts.filter((p) => p.includes('fact-checking editor'))).toHaveLength(2);
+    expect(saved.split('\n\n').every((post) => post.length <= 280)).toBe(true);
+    expect(saved.split('\n\n').length).toBeGreaterThan(2);
+  });
+
+  it("treats another tenant's draft as not found, and never reads its source", async () => {
+    const llm = new RecordingLlm();
+    const ctx = build({ llm });
+    const { draftId } = await draftedOpportunity(ctx);
+
+    await expect(
+      ctx.regenerating.execute(regenerateContentDraftCommand({ tenantId: OTHER_TENANT, draftId })),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(llm.prompts).toHaveLength(1);
+  });
+
+  it('refuses a draft that has been published, and does not call the model', async () => {
+    const llm = new RecordingLlm();
+    const ctx = build({ llm });
+    const { draftId } = await draftedOpportunity(ctx);
+    ctx.drafts.all()[0]?.markPublished(clock);
+
+    await expect(regenerate(ctx, draftId)).rejects.toBeInstanceOf(ValidationError);
+    expect(llm.prompts).toHaveLength(1);
+  });
+
+  it('refuses with a configuration error for the offline demo model', async () => {
+    const llm = new RecordingLlm(() => 'Sample text', true);
+    const ctx = build({ llm });
+    const { draftId } = await draftedOpportunity(ctx);
+
+    await expect(regenerate(ctx, draftId)).rejects.toBeInstanceOf(ConfigurationError);
+    expect(ctx.drafts.all()[0]?.body.value).toBe('Sample text');
+  });
+
+  it('keeps the existing text when the model fails', async () => {
+    let fail = false;
+    const llm = new RecordingLlm(() => {
+      if (fail) throw new Error('provider down');
+      return 'Original text';
+    });
+    const ctx = build({ llm });
+    const { draftId } = await draftedOpportunity(ctx);
+    fail = true;
+
+    await expect(regenerate(ctx, draftId)).rejects.toThrow('provider down');
+    expect(ctx.drafts.all()[0]?.body.value).toBe('Original text');
   });
 });
 

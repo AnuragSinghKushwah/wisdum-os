@@ -13,6 +13,7 @@ import {
   ListOpportunitiesHandler,
   ListPublishedContentHandler,
   PublishContentDraftHandler,
+  RegenerateContentDraftHandler,
   SourceMaterialLoader,
   UpdateContentDraftHandler,
 } from '@wisdum/application';
@@ -162,6 +163,13 @@ export class OpportunityModule implements KernelModule {
       ),
       getDraft: new GetContentDraftHandler(drafts),
       listDrafts: new ListContentDraftsHandler(drafts),
+      regenerateDraft: new RegenerateContentDraftHandler(
+        opportunities,
+        insights,
+        drafts,
+        writer,
+        clock,
+      ),
       updateDraft: new UpdateContentDraftHandler(drafts, clock),
       publishDraft: new PublishContentDraftHandler(
         drafts,

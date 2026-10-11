@@ -13,6 +13,7 @@ const STATUS_BY_CODE: Readonly<Record<string, number>> = {
   invariant_violation: 422,
   plugin_disabled: 403,
   configuration_error: 503,
+  ai_provider_error: 502,
 };
 
 /**

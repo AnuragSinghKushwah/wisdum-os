@@ -1,12 +1,11 @@
+import { TRUNCATION_NOTICE } from '@wisdum/application';
+import { AiProviderError } from '@wisdum/errors';
 import type { LlmCompletionOptions, LlmCompletionPort } from '@wisdum/application';
 import { describeAiFailure } from './ai-check.js';
 import type { LlmProvider } from '@wisdum/platform-ai';
 
 /** Default output budget; some models spend part of it thinking, so it is generous. */
 const MAX_OUTPUT_TOKENS = 4096;
-
-const TRUNCATION_NOTICE =
-  '⚠ The model stopped at its output limit, so this draft may end abruptly. Edit it, or create it again.';
 
 /**
  * Fallback port that returns deterministic, highly realistic mock responses
@@ -268,7 +267,9 @@ export class LlmCompletionAdapter implements LlmCompletionPort {
         maxOutputTokens: options.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
       })
       .catch((error: unknown) => {
-        throw new Error(describeAiFailure(error, { name: this.providerName, model: this.model }));
+        throw new AiProviderError(
+          describeAiFailure(error, { name: this.providerName, model: this.model }),
+        );
       });
     if (options.markTruncation === true && result.finishReason === 'length') {
       return `${result.content.trimEnd()}\n\n${TRUNCATION_NOTICE}`;

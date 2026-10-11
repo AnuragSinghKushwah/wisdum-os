@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AiProviderError } from '@wisdum/errors';
 import type { LlmCompletionRequest, LlmCompletionResult, LlmProvider } from '@wisdum/platform-ai';
 import {
   LlmCompletionAdapter,
@@ -88,6 +89,17 @@ describe('LlmCompletionAdapter failures', () => {
     expect((error as Error).message).toBe(
       'anthropic rejected the credentials. Check ANTHROPIC_API_KEY in .env, then restart.',
     );
+  });
+
+  it('raises it as an AI provider error, so the message reaches the person instead of being hidden', async () => {
+    const llm: LlmProvider = { complete: () => Promise.reject(new Error('Connection error.')) };
+
+    const error = await new LlmCompletionAdapter(llm, 'm', 'nvidia-nim')
+      .complete('hello')
+      .catch((cause: unknown) => cause);
+
+    expect(error).toBeInstanceOf(AiProviderError);
+    expect((error as AiProviderError).code).toBe('ai_provider_error');
   });
 });
 

@@ -32,6 +32,12 @@ export const generateFromKnowledgeParamsSchema = {
   properties: { id: { type: 'string' } },
 } as const;
 
+export const regenerateDraftBodySchema = {
+  type: 'object',
+  properties: { instructions: { type: 'string', maxLength: 2000 } },
+  additionalProperties: false,
+} as const;
+
 export const generateFromKnowledgeBodySchema = {
   type: 'object',
   required: ['platforms'],

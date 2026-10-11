@@ -41,4 +41,45 @@ describe('buildDraftPrompt', () => {
     expect(prompt('x_thread')).toContain('Every post must be 280 characters or fewer');
     expect(prompt('x_thread')).toContain('six to ten posts');
   });
+
+  describe('keeping claims to what the source says', () => {
+    const withSource = prompt('blog_post');
+
+    it('treats the discovery-written angle as a hint the source can overrule, not as a fact', () => {
+      const text = buildDraftPrompt({
+        title: 'How Duplicate Resolution Improves Data Quality',
+        rationale: 'Helps readers cut the manual work.',
+        type: 'blog_post',
+        insightSummary: undefined,
+        sources: [
+          { knowledgeId: 'k', title: 'notes', text: 'Some source text.', truncated: false },
+        ],
+        instructions: undefined,
+      });
+
+      expect(text).toContain('proposed by automatic discovery before it read the source');
+      expect(text).toContain('Helps readers cut the manual work.');
+      expect(text).not.toContain('Why this content is valuable');
+    });
+
+    it('still gives the rationale as the reason when there is no source to check it against', () => {
+      const text = buildDraftPrompt({
+        title: 'T',
+        rationale: 'Because readers asked.',
+        type: 'blog_post',
+        insightSummary: undefined,
+        sources: [],
+        instructions: undefined,
+      });
+
+      expect(text).toContain('Why this content is valuable/necessary: Because readers asked.');
+    });
+
+    it('asks for status to be reported as the source gives it, and baselines not to become results', () => {
+      expect(withSource).toContain('on hold');
+      expect(withSource).toContain('never describe it as done, deployed or working');
+      expect(withSource).toContain('A measurement taken before a change is a baseline');
+      expect(withSource).toContain('Add advice for the reader only where the source gives it');
+    });
+  });
 });

@@ -97,7 +97,34 @@ Each platform succeeds or fails on its own. An opportunity whose draft failed st
 | --- | --- | --- |
 | `400` | `validation_error` | Unknown platform, none chosen, more than six, or the asset has no text yet. |
 | `404` | `not_found` | The asset does not exist in the caller's tenant. |
+| `502` | `ai_provider_error` | Not returned here: a provider failure for one platform is reported in that platform's `error`. The single-draft endpoints (`POST /v1/opportunities/:id/draft`, `POST /v1/drafts/:id/regenerate`) return it. |
 | `503` | `configuration_error` | No AI provider is configured. The action never writes from the offline mock model. |
+
+---
+
+## 3b. Write a Draft Again (`POST /v1/drafts/:id/regenerate`)
+
+Writes an existing draft again from its source and **replaces its text**, keeping the same draft, title and opportunity. Needs `draft:write`. The text goes through the same steps as a new draft: the source is loaded, the model writes, the draft is checked against the source (unless `WISDUM_DRAFT_REVIEW=false`) and an X thread is fitted to 280 characters per post. It can take a minute or two.
+
+The previous text is not kept on the server. The draft page in the web app holds it until you leave the page, and offers "Restore previous text".
+
+### Request Body
+| Field | Type | Notes |
+| --- | --- | --- |
+| `instructions` | string (optional, up to 2,000 characters) | The angle, audience or emphasis. Send `{}` for none. |
+
+### Response Schema (`200 OK`)
+```json
+{ "draftId": "…" }
+```
+
+### Errors
+| Status | Code | When |
+| --- | --- | --- |
+| `400` | `validation_error` | The draft is published (the published page would no longer match it), or `instructions` is too long. |
+| `404` | `not_found` | The draft does not exist in the caller's tenant. |
+| `502` | `ai_provider_error` | The provider failed the request (bad key, unreachable, retired model, out of quota). `error.message` says what to do, and the draft is unchanged. |
+| `503` | `configuration_error` | No AI provider is configured. |
 
 ---
 

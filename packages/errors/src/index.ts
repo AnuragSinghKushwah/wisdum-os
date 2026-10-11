@@ -24,6 +24,17 @@ export class ConfigurationError extends WisdumError {
 }
 
 /**
+ * Raised when the AI provider could not do what was asked: it rejected the credentials, could not be
+ * reached, no longer offers the model, or is out of quota. The message says what to do about it, so it
+ * is shown to the person, unlike an unexpected error.
+ */
+export class AiProviderError extends WisdumError {
+  constructor(message: string, details: Record<string, unknown> = {}) {
+    super('ai_provider_error', message, details);
+  }
+}
+
+/**
  * Base class for errors raised by domain logic, as opposed to infrastructure
  * failures. Bounded contexts define their own subclasses of this family.
  */

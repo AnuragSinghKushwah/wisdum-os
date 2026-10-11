@@ -73,6 +73,7 @@ import type {
   SlugGenerator,
   StartConversationHandler,
   TokenService,
+  RegenerateContentDraftHandler,
   UpdateContentDraftHandler,
   UpdateWorkspaceSettingsHandler,
   CreateAgentTaskHandler,
@@ -234,6 +235,7 @@ export interface OpportunityHandlers {
   readonly generateFromKnowledge: GenerateContentFromKnowledgeHandler;
   readonly getDraft: GetContentDraftHandler;
   readonly listDrafts: ListContentDraftsHandler;
+  readonly regenerateDraft: RegenerateContentDraftHandler;
   readonly updateDraft: UpdateContentDraftHandler;
   readonly publishDraft: PublishContentDraftHandler;
   readonly getPublished: GetPublishedContentHandler;

@@ -14,19 +14,9 @@ import type {
 import type { Clock } from '@wisdum/domain';
 import type { CommandHandler } from '../../shared/messages.js';
 import { NotFoundError } from '../../shared/errors.js';
-import type { DomainEventPublisher, IdGenerator, LlmCompletionPort } from '../../shared/ports.js';
+import type { DomainEventPublisher, IdGenerator } from '../../shared/ports.js';
 import type { GenerateContentDraftCommand } from '../commands/generate-content-draft-command.js';
-import { buildDraftPrompt } from '../prompts/draft-prompt.js';
-import { cleanModelOutput } from '../services/clean-model-output.js';
-import type { SourceMaterialLoader } from '../services/source-material-loader.js';
-import { fitThread } from '../services/x-thread.js';
-
-/**
- * Room for a full first draft plus any thinking the model does first: some models spend part of
- * this budget thinking (Claude counts thinking tokens toward the limit), and a long blog post or
- * script runs to a few thousand words. Only tokens actually produced are billed.
- */
-const DRAFT_MAX_OUTPUT_TOKENS = 16_000;
+import type { DraftWriter } from '../services/draft-writer.js';
 
 /**
  * The Create step (Product Bible §9): generates a first Markdown draft for
@@ -45,8 +35,7 @@ export class GenerateContentDraftHandler implements CommandHandler<
     private readonly opportunities: OpportunityRepository,
     private readonly insights: InsightRepository,
     private readonly drafts: ContentDraftRepository,
-    private readonly llm: LlmCompletionPort,
-    private readonly sources: SourceMaterialLoader,
+    private readonly writer: DraftWriter,
     private readonly ids: IdGenerator,
     private readonly events: DomainEventPublisher,
     private readonly clock: Clock,
@@ -61,28 +50,15 @@ export class GenerateContentDraftHandler implements CommandHandler<
 
     const foundInsight = await this.insights.findById(InsightId.create(opportunity.insightId));
     const insight = foundInsight.some ? foundInsight.value : undefined;
-    const sources = await this.sources.load(command.tenantId, insight?.sourceKnowledgeIds ?? []);
-
-    const rawBody = await this.llm.complete(
-      buildDraftPrompt({
-        title: opportunity.title.value,
-        rationale: opportunity.rationale.value,
-        type: opportunity.type.value,
-        insightSummary: insight?.summary.value,
-        sources,
-        instructions: command.instructions,
-      }),
-      { maxOutputTokens: DRAFT_MAX_OUTPUT_TOKENS, markTruncation: true },
-    );
-    let bodyText = cleanModelOutput(rawBody);
-    if (bodyText.length === 0) {
-      throw new Error('The model returned an empty draft. Try again.');
-    }
-    // X rejects a post over 280 characters and models write them anyway, so long posts are split in
-    // code. The offline demo model's canned sample text is left as it is.
-    if (opportunity.type.value === 'x_thread' && this.llm.isMock !== true) {
-      bodyText = fitThread(bodyText);
-    }
+    const bodyText = await this.writer.write({
+      tenantId: command.tenantId,
+      title: opportunity.title.value,
+      rationale: opportunity.rationale.value,
+      type: opportunity.type.value,
+      insightSummary: insight?.summary.value,
+      sourceKnowledgeIds: insight?.sourceKnowledgeIds ?? [],
+      instructions: command.instructions,
+    });
 
     const draft = ContentDraft.create(
       {
